@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC | AI Course Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text-main: #000000;
+            --text-muted: #666666;
+            --border: #e5e5e5;
+            --accent: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        header {
+            text-align: left;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 2rem;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.2rem;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 70vh;
+            background: #fff;
+            border: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            margin: 0 20px;
+        }
+
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        #chat-box::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #chat-box::-webkit-scrollbar-thumb {
+            background: #000;
+        }
+
+        .message {
+            max-width: 90%;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .bot-msg {
+            align-self: flex-start;
+            border-left: 2px solid #000;
+            padding-left: 1rem;
+        }
+
+        .user-msg {
+            align-self: flex-end;
+            text-align: right;
+            border-right: 2px solid #e5e5e5;
+            padding-right: 1rem;
+            color: var(--text-muted);
+        }
+
+        .message strong {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .typing-indicator {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 1rem 2rem;
+            display: none;
+        }
+
+        #controls {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #000;
+            display: flex;
+            gap: 1rem;
+        }
+
+        #user-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0.5rem 0;
+            color: #000;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        #send-btn {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 0 1.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        #send-btn:hover:not(:disabled) {
+            opacity: 0.8;
+        }
+
+        #send-btn:disabled {
+            background: #e5e5e5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        /* Markdown Overrides */
+        .content p {
+            margin-bottom: 0.8rem;
+        }
+
+        .content ul,
+        .content ol {
+            margin-left: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .content li {
+            margin-bottom: 0.3rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="blob"></div>
+
+    <header>
+        <h1>Management Concepts</h1>
+        <p class="subtitle">Your intelligent course advisor</p>
+    </header>
+
+    <div id="chat-container">
+        <div id="chat-box"></div>
+        <div id="typing" class="typing-indicator" style="padding: 0 1.5rem;">Bot is thinking...</div>
+        <div id="controls">
+            <input id="user-input" type="text" placeholder="Type your question..." disabled>
+            <button onclick="sendMessage()" id="send-btn" disabled>Send</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        let sessionId = null;
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing');
+
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+
+        async function initSession() {
+            try {
+                const res = await fetch('http://localhost:8000/session/start', { method: 'POST' });
+                const data = await res.json();
+                sessionId = data.session_id;
+
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                appendMessage('Bot', 'Welcome! I can help you find the right courses, schedules, or pricing for your professional development. What would you like to know?');
+            } catch (err) {
+                appendMessage('Bot', 'Error connecting to the server. Please ensure the backend is running.');
+            }
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message || !sessionId) return;
+
+            appendMessage('You', message);
+            userInput.value = '';
+
+            typingIndicator.style.display = 'block';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Create a placeholder for the bot's response
+            const botMsgDiv = document.createElement('div');
+            botMsgDiv.className = 'message bot-msg';
+            botMsgDiv.innerHTML = '<strong>Bot</strong><br><div class="content">...</div>';
+            chatBox.appendChild(botMsgDiv);
+            const contentDiv = botMsgDiv.querySelector('.content');
+
+            try {
+                const res = await fetch('http://localhost:8000/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, message })
+                });
+
+                if (!res.ok) throw new Error('Failed to connect');
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                typingIndicator.style.display = 'none';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullText += chunk;
+
+                    // Update content with rendered markdown
+                    contentDiv.innerHTML = marked.parse(fullText);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            } catch (err) {
+                typingIndicator.style.display = 'none';
+                contentDiv.innerHTML = 'Sorry, I encountered an error. Please try again.';
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender === 'Bot' ? 'bot-msg' : 'user-msg'}`;
+
+            const content = sender === 'Bot' ? marked.parse(text) : text;
+            msgDiv.innerHTML = `<strong>${sender}</strong><br>${content}`;
+
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        userInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        initSession();
+    </script>
+</body>
+
+</html>
