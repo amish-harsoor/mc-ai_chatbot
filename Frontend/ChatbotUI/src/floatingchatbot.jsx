@@ -2,26 +2,98 @@ import { useState, useRef, useEffect } from "react";
 
 export default function FloatingChatbot() {
     const [open, setOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        { text: "Hi 👋 How can I help you?", sender: "bot" },
-    ]);
+    const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
+    const [sessionId, setSessionId] = useState(null);
+    const [loading, setLoading] = useState(false);
     const chatEndRef = useRef(null);
 
-    const sendMessage = () => {
-        if (!input.trim()) return;
+    // ✅ Initialize session when component mounts
+    useEffect(() => {
+        const initSession = async () => {
+            try {
+                const res = await fetch("http://10.169.21.26:8000/session/start", {
+                    method: "POST",
+                });
 
-        const newMessage = { text: input, sender: "user" };
-        setMessages((prev) => [...prev, newMessage]);
+                const data = await res.json();
+                setSessionId(data.session_id);
 
-        setTimeout(() => {
-            setMessages((prev) => [
-                ...prev,
-                { text: "Thanks for your message!", sender: "bot" },
-            ]);
-        }, 600);
+                setMessages([
+                    {
+                        text: "Welcome! How can I help you today?",
+                        sender: "bot",
+                    },
+                ]);
+            } catch (error) {
+                setMessages([
+                    {
+                        text: "Error connecting to server. Make sure backend is running.",
+                        sender: "bot",
+                    },
+                ]);
+            }
+        };
 
+        initSession();
+    }, []);
+
+    // ✅ Send Message with Streaming Response
+    const sendMessage = async () => {
+        if (!input.trim() || !sessionId) return;
+
+        const messageToSend = input; // store before clearing
+        const userMessage = { text: messageToSend, sender: "user" };
+        const botMessage = { text: "", sender: "bot" };
+
+        setMessages((prev) => [...prev, userMessage, botMessage]);
         setInput("");
+        setLoading(true);
+
+        try {
+            const res = await fetch("http://10.169.21.26:8000/chat/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    message: messageToSend,
+                }),
+            });
+
+            if (!res.ok) throw new Error("Failed to connect");
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                fullText += chunk;
+
+                setMessages((prev) => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = {
+                        text: fullText,
+                        sender: "bot",
+                    };
+                    return updated;
+                });
+            }
+        } catch (error) {
+            setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = {
+                    text: "Sorry, something went wrong.",
+                    sender: "bot",
+                };
+                return updated;
+            });
+        }
+
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -61,7 +133,7 @@ export default function FloatingChatbot() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-gray-50">
+                <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-gray-50 max-h-[350px]">
                     {messages.map((msg, index) => (
                         <div
                             key={index}
@@ -79,20 +151,19 @@ export default function FloatingChatbot() {
                                             ? "#90182A"
                                             : "#25358E",
                                     color: "#ffffff",
-                                    borderBottomRightRadius:
-                                        msg.sender === "user"
-                                            ? "0.25rem"
-                                            : undefined,
-                                    borderBottomLeftRadius:
-                                        msg.sender === "bot"
-                                            ? "0.25rem"
-                                            : undefined,
                                 }}
                             >
                                 {msg.text}
                             </div>
                         </div>
                     ))}
+
+                    {loading && (
+                        <div className="text-xs text-gray-500">
+                            Bot is thinking...
+                        </div>
+                    )}
+
                     <div ref={chatEndRef} />
                 </div>
 
@@ -102,6 +173,7 @@ export default function FloatingChatbot() {
                         type="text"
                         placeholder="Type message..."
                         value={input}
+                        disabled={!sessionId || loading}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                         className="flex-1 px-3 py-2 text-sm border rounded-full outline-none"
@@ -109,7 +181,8 @@ export default function FloatingChatbot() {
                     />
                     <button
                         onClick={sendMessage}
-                        className="text-white px-4 py-2 text-sm rounded-full"
+                        disabled={!sessionId || loading}
+                        className="text-white px-4 py-2 text-sm rounded-full disabled:opacity-50"
                         style={{ backgroundColor: "#90182A" }}
                     >
                         Send
