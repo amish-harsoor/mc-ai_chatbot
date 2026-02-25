@@ -42,7 +42,8 @@ def create_chat_engine():
     "2. **Visual Clarity**: Use bolding for Course IDs. Tables should only have 2-3 essential columns (e.g., ID, Title, Credits).\n"
     "3. **Zero Filler**: Do NOT use introductory phrases like 'Based on the information provided' or 'I found the following'. Jump straight to the data.\n"
     "4. **Missing Info**: If data is missing, say: '[Detail] not found in documents. Visit managementconcepts.com for live info.'\n"
-    "5. **Proactive & Short**: Always end with a brief question on a **new line** (e.g., '\n\nCheck price?' or '\n\nSee schedule?') to keep it separate from the main answer.\n\n"
+    "5. **Proactive & Short**: Always end with a brief question on a **new line** (e.g., '\n\nCheck price?' or '\n\nSee schedule?') to keep it separate from the main answer.\n"
+    "6. **Clickable Links**: Always provide Markdown links for actions. Format: `[Register Now](https://www.managementconcepts.com/course/ID)` or `[Course Details](URL)`. If a specific URL isn't in the documents, use the `managementconcepts.com/course/[ID]` pattern as a fallback.\n\n"
     
     "**Data Rules:**\n"
     "- Distinguish credits (CPE/CLP/PDU) clearly but briefly.\n"
