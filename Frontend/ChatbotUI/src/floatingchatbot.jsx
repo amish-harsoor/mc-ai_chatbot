@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import img from "./assets/img.png"
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 
 export default function FloatingChatbot() {
     const [open, setOpen] = useState(false);
@@ -112,7 +116,7 @@ export default function FloatingChatbot() {
                 className="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition"
                 style={{ backgroundColor: "#90182A" }}
             >
-                💬
+                <img src={img} alt="chat icon" className="w-8 h-8" />
             </button>
 
             {/* Chat Window */}
@@ -153,7 +157,9 @@ export default function FloatingChatbot() {
                                     color: "#ffffff",
                                 }}
                             >
-                                {msg.text}
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {msg.text}
+                                </ReactMarkdown>
                             </div>
                         </div>
                     ))}
