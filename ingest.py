@@ -16,18 +16,29 @@ def ingest_documents():
     documents = SimpleDirectoryReader("data/", recursive=True).load_data()
     print(f"Loaded {len(documents)} documents")
 
-    print("Chunking, embedding, and storing documents locally... (this may take a while)")
+    print("Chunking, embedding, and storing documents in PostgreSQL... (this may take a while)")
+    
+    # Create PGVectorStore
+    vector_store = PGVectorStore.from_params(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "5432")),
+        database=os.getenv("DB_NAME", "mc_chatbot"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD"),
+        table_name="vectors",
+        embed_dim=384,
+    )
+    
+    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+    
     # Create the index from document chunks
     index = VectorStoreIndex.from_documents(
         documents,
+        storage_context=storage_context,
         show_progress=True,
     )
 
-    # Persist the index to the 'storage' directory
-    print("Saving index to ./storage...")
-    index.storage_context.persist(persist_dir="./storage")
-
-    print("Ingestion complete! Your documents are now searchable locally.")
+    print("Ingestion complete! Your documents are now searchable in PostgreSQL.")
     return index
 
 if __name__ == "__main__":

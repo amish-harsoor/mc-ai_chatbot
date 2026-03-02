@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
+from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.memory import ChatMemoryBuffer
 from config import configure_llama_index
 
@@ -9,15 +10,20 @@ configure_llama_index()
 
 def load_index():
     """
-    Loads the index from the local './storage' directory.
+    Loads the index from PostgreSQL vector store.
     """
-    if not os.path.exists("./storage"):
-        raise FileNotFoundError("Storage directory not found. Please run ingest.py first!")
-        
-    storage_context = StorageContext.from_defaults(persist_dir="./storage")
-    return load_index_from_storage(storage_context)
+    vector_store = PGVectorStore.from_params(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "5432")),
+        database=os.getenv("DB_NAME", "mc_chatbot"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD"),
+        table_name="vectors",
+        embed_dim=384,
+    )
+    return VectorStoreIndex.from_vector_store(vector_store)
 
-print("Loading index from local storage...")
+print("Loading index from PostgreSQL...")
 index = load_index()
 print("Index loaded and ready.")
 
