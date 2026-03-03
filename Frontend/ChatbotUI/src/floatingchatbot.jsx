@@ -148,7 +148,11 @@ export default function FloatingChatbot() {
                             }`}
                         >
                             <div
-                                className="px-3 py-2 text-sm rounded-2xl max-w-[70%] break-words"
+                                className={`px-4 py-3 text-sm leading-relaxed max-w-[85%] break-words shadow-sm ${
+                                    msg.sender === "user"
+                                        ? "rounded-2xl rounded-br-md"
+                                        : "rounded-2xl rounded-bl-md"
+                                }`}
                                 style={{
                                     backgroundColor:
                                         msg.sender === "user"
@@ -160,18 +164,15 @@ export default function FloatingChatbot() {
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
+                                        p: ({ children }) => (
+                                            <p className="mb-2 last:mb-0">{children}</p>
+                                        ),
                                         a: ({ node, ...props }) => (
                                             <a
                                                 {...props}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                style={{
-                                                    color: "#FFD700",
-                                                    textDecoration: "underline",
-                                                    fontWeight: "500",
-                                                    wordBreak: "break-word",
-                                                    overflowWrap: "anywhere",
-                                                }}
+                                                className="text-yellow-300 underline font-medium break-words"
                                             />
                                         ),
                                     }}
