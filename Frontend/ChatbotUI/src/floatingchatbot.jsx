@@ -16,7 +16,7 @@ export default function FloatingChatbot() {
     useEffect(() => {
         const initSession = async () => {
             try {
-                const res = await fetch("http://10.169.21.26:8000/session/start", {
+                const res = await fetch("http://10.169.21.11:8000/session/start", {
                     method: "POST",
                 });
 
@@ -55,7 +55,7 @@ export default function FloatingChatbot() {
         setLoading(true);
 
         try {
-            const res = await fetch("http://10.169.21.26:8000/chat/stream", {
+            const res = await fetch("http://10.169.21.11:8000/chat/stream", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
