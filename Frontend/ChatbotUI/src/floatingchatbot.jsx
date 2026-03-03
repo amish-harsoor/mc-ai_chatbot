@@ -113,10 +113,10 @@ export default function FloatingChatbot() {
             {/* Floating Button */}
             <button
                 onClick={() => setOpen(!open)}
-                className="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition"
+                className="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition cursor-pointer"
                 style={{ backgroundColor: "#90182A" }}
             >
-                <img src={img} alt="chat icon" className="w-15 h-15 mb-15" />
+                <img src={img} alt="chat icon" className="w-15 h-15 mb-15 ml-1" />
             </button>
 
             {/* Chat Window */}
@@ -148,7 +148,7 @@ export default function FloatingChatbot() {
                             }`}
                         >
                             <div
-                                className="px-3 py-2 text-sm rounded-2xl max-w-[70%]"
+                                className="px-3 py-2 text-sm rounded-2xl max-w-[70%] break-words"
                                 style={{
                                     backgroundColor:
                                         msg.sender === "user"
@@ -157,7 +157,25 @@ export default function FloatingChatbot() {
                                     color: "#ffffff",
                                 }}
                             >
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        a: ({ node, ...props }) => (
+                                            <a
+                                                {...props}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    color: "#FFD700",
+                                                    textDecoration: "underline",
+                                                    fontWeight: "500",
+                                                    wordBreak: "break-word",
+                                                    overflowWrap: "anywhere",
+                                                }}
+                                            />
+                                        ),
+                                    }}
+                                >
                                     {msg.text}
                                 </ReactMarkdown>
                             </div>
