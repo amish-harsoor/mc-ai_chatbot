@@ -16,7 +16,7 @@ export default function FloatingChatbot() {
     useEffect(() => {
         const initSession = async () => {
             try {
-                const res = await fetch("http://10.169.21.26:8000/session/start", {
+                const res = await fetch("http://10.169.21.11:8000/session/start", {
                     method: "POST",
                 });
 
@@ -55,7 +55,7 @@ export default function FloatingChatbot() {
         setLoading(true);
 
         try {
-            const res = await fetch("http://10.169.21.26:8000/chat/stream", {
+            const res = await fetch("http://10.169.21.11:8000/chat/stream", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -116,7 +116,7 @@ export default function FloatingChatbot() {
                 className="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition"
                 style={{ backgroundColor: "#90182A" }}
             >
-                <img src={img} alt="chat icon" className="w-8 h-8" />
+                <img src={img} alt="chat icon" className="w-15 h-15 mb-15" />
             </button>
 
             {/* Chat Window */}
@@ -132,7 +132,7 @@ export default function FloatingChatbot() {
                     className="text-white p-4 flex justify-between items-center"
                     style={{ backgroundColor: "#25358E" }}
                 >
-                    <span className="font-medium">Support Chat</span>
+                    <span className="font-medium flex items-center gap-2"> <img src={img} alt="chat icon" className="w-8 h-8 mb-1 mr-1" /> Support Chat  </span>
                     <button onClick={() => setOpen(false)}>✕</button>
                 </div>
 
