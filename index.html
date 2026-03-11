@@ -188,6 +188,16 @@
         .content li {
             margin-bottom: 0.3rem;
         }
+
+        .content a {
+            color: #0066cc;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .content a:hover {
+            color: #004499;
+        }
     </style>
 </head>
 
@@ -277,6 +287,10 @@
                     contentDiv.innerHTML = marked.parse(fullText);
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
+
+                // Post-process fullText to add Register Now links
+                fullText = fullText.replace(/\*\*(\d+)\*\*/g, '**$1**\n[Register Now](https://www.managementconcepts.com/course/$1)');
+                contentDiv.innerHTML = marked.parse(fullText);
             } catch (err) {
                 typingIndicator.style.display = 'none';
                 contentDiv.innerHTML = 'Sorry, I encountered an error. Please try again.';
