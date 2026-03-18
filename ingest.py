@@ -25,7 +25,7 @@ def ingest_documents():
         database=os.getenv("DB_NAME", "mc_chatbot"),
         user=os.getenv("DB_USER", "postgres"),
         password=os.getenv("DB_PASSWORD"),
-        table_name="vectors",
+        table_name="data_vectors",
         embed_dim=384,
     )
     

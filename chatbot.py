@@ -13,16 +13,20 @@ def load_index():
     """
     Loads the index from PostgreSQL vector store.
     """
-    vector_store = PGVectorStore.from_params(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "5432")),
-        database=os.getenv("DB_NAME", "mc_chatbot"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD"),
-        table_name="vectors",
-        embed_dim=384,
-    )
-    return VectorStoreIndex.from_vector_store(vector_store)
+    try:
+        vector_store = PGVectorStore.from_params(
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", "5432")),
+            database=os.getenv("DB_NAME", "mc_chatbot"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD"),
+            table_name="data_vectors",
+            embed_dim=384,
+        )
+        return VectorStoreIndex.from_vector_store(vector_store)
+    except Exception as e:
+        print(f"Error loading index: {e}")
+        raise
 
 print("Loading index from PostgreSQL...")
 index = load_index()
@@ -65,7 +69,9 @@ def create_chat_engine():
 - For recommendations: Base on user preferences (e.g., skill level, topic).
 - If no exact match: Suggest similar alternatives.
 - For unavailable info: Say "I'm sorry, I don't have that information right now."
+- For greetings or off-topic messages: Respond warmly with a brief welcome and offer to help with courses.
 - Avoid speculative or external knowledge—stick strictly to database content.
+- when providing a link to a course, always use the format: https://www.managementconcepts.com/course/{course_id} and do not make the course id bold in the link
 
 **Conversation Flow:**
 - Be respectful and avoid repetition of declined suggestions.
@@ -82,6 +88,9 @@ def get_response(chat_engine, user_message: str) -> str:
     """
     response = chat_engine.chat(user_message)
     response_str = str(response)
+    if not response_str.strip():
+        # Fallback for empty responses, e.g., off-topic queries
+        response_str = "Hey there! I'm here to help with courses from Management Concepts. What can I assist you with today?"
     # Add "Register Now" link after each bolded course ID
     response_str = re.sub(r'\*\*(\d+)\*\*', r'**\1**\n[Register Now](https://www.managementconcepts.com/course/\1)', response_str)
     return response_str

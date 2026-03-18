@@ -15,7 +15,7 @@ def setup_database():
     }
     
     # Database to create
-    target_db = os.getenv("DB_NAME", "mc_chatbot")
+    target_db = os.getenv("DB_NAME", "livechat_final")
     
     try:
         # Connect to default postgres DB to create the new one
@@ -33,7 +33,22 @@ def setup_database():
             cur.execute(f'CREATE DATABASE "{target_db}"')
             print(f"Database {target_db} created successfully.")
         else:
-            print(f"Database {target_db} already exists.")
+            print(f"Database {target_db} already exists. Terminating active connections and dropping...")
+            # Terminate active connections to the database
+            cur.execute("""
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE datname = %s AND pid <> pg_backend_pid()
+            """, (target_db,))
+            print(f"Terminated active connections to {target_db}.")
+            
+            # Now drop the database
+            cur.execute(f'DROP DATABASE IF EXISTS "{target_db}"')
+            print(f"Database {target_db} dropped.")
+            
+            # Create the database again
+            cur.execute(f'CREATE DATABASE "{target_db}"')
+            print(f"Database {target_db} created successfully.")
             
         cur.close()
         conn.close()
