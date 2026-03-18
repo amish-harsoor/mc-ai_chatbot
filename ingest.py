@@ -16,18 +16,33 @@ def ingest_documents():
     documents = SimpleDirectoryReader("data/", recursive=True).load_data()
     print(f"Loaded {len(documents)} documents")
 
-    print("Chunking, embedding, and storing documents in PostgreSQL... (this may take a while)")
+    # Determine which database to use
+    use_supabase = os.getenv("USE_SUPABASE", "false").lower() == "true"
     
-    # Create PGVectorStore
-    vector_store = PGVectorStore.from_params(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "5432")),
-        database=os.getenv("DB_NAME", "mc_chatbot"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD"),
-        table_name="data_vectors",
-        embed_dim=384,
-    )
+    if use_supabase:
+        print("Using Supabase database for ingestion...")
+        vector_store = PGVectorStore.from_params(
+            host=os.getenv("SUPABASE_HOST", "localhost"),
+            port=int(os.getenv("SUPABASE_PORT", "5432")),
+            database=os.getenv("SUPABASE_DATABASE", "postgres"),
+            user=os.getenv("SUPABASE_USER", "postgres"),
+            password=os.getenv("SUPABASE_PASSWORD"),
+            table_name="data_data_vectors",
+            embed_dim=384,
+        )
+    else:
+        print("Using local database for ingestion...")
+        vector_store = PGVectorStore.from_params(
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", "5432")),
+            database=os.getenv("DB_NAME", "mc_chatbot"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD"),
+            table_name="data_vectors",
+            embed_dim=384,
+        )
+
+    print("Chunking, embedding, and storing documents in PostgreSQL... (this may take a while)")
     
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     
@@ -38,7 +53,8 @@ def ingest_documents():
         show_progress=True,
     )
 
-    print("Ingestion complete! Your documents are now searchable in PostgreSQL.")
+    db_type = "Supabase" if use_supabase else "local"
+    print(f"Ingestion complete! Your documents are now searchable in {db_type} PostgreSQL.")
     return index
 
 if __name__ == "__main__":

@@ -9,52 +9,46 @@ from config import configure_llama_index
 load_dotenv()
 configure_llama_index()
 
-def load_index():
+def load_supabase_index():
     """
-    Loads the index from PostgreSQL vector store (Supabase or Local based on USE_SUPABASE).
+    Loads the index from Supabase PostgreSQL vector store.
     """
     try:
-        use_supabase = os.getenv("USE_SUPABASE", "false").lower() == "true"
+        # Check if all required Supabase credentials are present
+        required_vars = ["SUPABASE_HOST", "SUPABASE_PORT", "SUPABASE_DATABASE", "SUPABASE_USER", "SUPABASE_PASSWORD"]
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
         
-        if use_supabase:
-            print("Using Supabase database...")
-            vector_store = PGVectorStore.from_params(
-                host=os.getenv("SUPABASE_HOST", "localhost"),
-                port=int(os.getenv("SUPABASE_PORT", "5432")),
-                database=os.getenv("SUPABASE_DATABASE", "postgres"),
-                user=os.getenv("SUPABASE_USER", "postgres"),
-                password=os.getenv("SUPABASE_PASSWORD"),
-                table_name="data_data_vectors",
-                embed_dim=384,
-            )
-        else:
-            print("Using local database...")
-            vector_store = PGVectorStore.from_params(
-                host=os.getenv("DB_HOST", "localhost"),
-                port=int(os.getenv("DB_PORT", "5432")),
-                database=os.getenv("DB_NAME", "mc_chatbot"),
-                user=os.getenv("DB_USER", "postgres"),
-                password=os.getenv("DB_PASSWORD"),
-                table_name="data_vectors",
-                embed_dim=384,
-            )
+        if missing_vars:
+            print(f"Error: Missing required Supabase environment variables: {', '.join(missing_vars)}")
+            print("Please check your .env file and ensure all Supabase credentials are set.")
+            return None
         
+        vector_store = PGVectorStore.from_params(
+            host=os.getenv("SUPABASE_HOST"),
+            port=int(os.getenv("SUPABASE_PORT", "5432")),
+            database=os.getenv("SUPABASE_DATABASE", "postgres"),
+            user=os.getenv("SUPABASE_USER"),
+            password=os.getenv("SUPABASE_PASSWORD"),
+            table_name="data_data_vectors",
+            embed_dim=384,
+        )
         return VectorStoreIndex.from_vector_store(vector_store)
     except Exception as e:
-        print(f"Error loading index: {e}")
-        raise
+        print(f"Error loading Supabase index: {e}")
+        return None
 
-print("Loading index from PostgreSQL...")
-index = load_index()
-print("Index loaded and ready.")
+print("Loading index from Supabase PostgreSQL...")
+index = load_supabase_index()
+if index:
+    print("Index loaded and ready from Supabase.")
+else:
+    print("Failed to load index from Supabase. Please check your credentials and ensure the database is set up.")
+    exit(1)
 
 def create_chat_engine():
     """
     Creates a new chat engine with its own fresh memory.
     Call this once per user session to give each user their own conversation history.
-
-    ChatMemoryBuffer keeps track of conversation history but caps it at token_limit
-    tokens. This prevents the prompt from growing infinitely as the chat gets longer.
     """
     memory = ChatMemoryBuffer.from_defaults(token_limit=3000)
 
@@ -116,3 +110,13 @@ def get_streaming_response(chat_engine, user_message: str):
     Returns a streaming response object.
     """
     return chat_engine.stream_chat(user_message)
+
+# Test the connection
+if __name__ == "__main__":
+    print("Testing Supabase chatbot connection...")
+    try:
+        chat_engine = create_chat_engine()
+        test_response = get_response(chat_engine, "Hello, can you help me find courses?")
+        print(f"Test successful! Response: {test_response[:100]}...")
+    except Exception as e:
+        print(f"Test failed: {e}")
