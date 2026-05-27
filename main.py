@@ -72,12 +72,27 @@ async def chat_stream(request: ChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     from chatbot import get_streaming_response
-    
+    import re
+
     streaming_response = get_streaming_response(chat_engine, request.message)
 
     def response_generator():
+        # Buffer the full text so we can apply post-processing (e.g. Register Now links)
+        full_text = ""
         for token in streaming_response.response_gen:
-            yield f"{token}"
+            full_text += token
+
+        # Inject "Register Now" links after each bolded course ID that doesn't already have one
+        processed = re.sub(
+            r'\*\*(\d+)\*\*(?!\s*\n\[Register Now\])',
+            r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)',
+            full_text
+        )
+
+        # Stream the processed text in reasonably sized chunks
+        chunk_size = 64
+        for i in range(0, len(processed), chunk_size):
+            yield processed[i:i + chunk_size]
 
     return StreamingResponse(response_generator(), media_type="text/plain")
 

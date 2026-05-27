@@ -71,7 +71,7 @@ def create_chat_engine():
 - Format for readability: Short paragraphs, bullet points, avoid walls of text.
 - If listing multiple courses, limit to 3-5 most relevant unless specified.
 - Provide course links when mentioning courses or course related info (always).
-- the course registration links must be in the format: https://www.managementconcepts.com/course/{course_id}
+- the course registration links must be in the format: https://www.managementconcepts.com/product/{course_id}
 **Handling Queries:**
 - For course searches: Suggest top matches with brief descriptions.
 - For specific course info: Summarize key details concisely.
@@ -81,7 +81,7 @@ def create_chat_engine():
 - For unavailable info: Say "I'm sorry, I don't have that information right now."
 - For greetings or off-topic messages: Respond warmly with a brief welcome and offer to help with courses.
 - Avoid speculative or external knowledge—stick strictly to database content.
-- when providing a link to a course, always use the format: https://www.managementconcepts.com/course/{course_id} and do not make the course id bold in the link
+- when providing a link to a course, always use the format: https://www.managementconcepts.com/product/{course_id} and do not make the course id bold in the link
 
 **Conversation Flow:**
 - Be respectful and avoid repetition of declined suggestions.
@@ -102,7 +102,7 @@ def get_response(chat_engine, user_message: str) -> str:
         # Fallback for empty responses, e.g., off-topic queries
         response_str = "Hey there! I'm here to help with courses from Management Concepts. What can I assist you with today?"
     # Add "Register Now" link after each bolded course ID
-    response_str = re.sub(r'\*\*(\d+)\*\*', r'**\1**\n[Register Now](https://www.managementconcepts.com/course/\1)', response_str)
+    response_str = re.sub(r'\*\*(\d+)\*\*', r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)', response_str)
     return response_str
 
 def get_streaming_response(chat_engine, user_message: str):
