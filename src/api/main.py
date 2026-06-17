@@ -18,11 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def read_index():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.join(current_dir, "..", "..")
-    return FileResponse(os.path.join(root_dir, "index.html"))
+
 
 active_sessions: dict = {}
 
@@ -48,20 +44,6 @@ async def start_session():
     active_sessions[session_id] = create_chat_engine()
     return StartSessionResponse(session_id=session_id)
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    chat_engine = active_sessions.get(request.session_id)
-    if not chat_engine:
-        raise HTTPException(
-            status_code=404,
-            detail="Session not found. Please start a new session first."
-        )
-
-    if not request.message.strip():
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
-
-    answer = get_response(chat_engine, request.message)
-    return ChatResponse(answer=answer, session_id=request.session_id)
 
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
