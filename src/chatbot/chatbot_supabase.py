@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.memory import ChatMemoryBuffer
-from config import configure_llama_index
+from src.config import configure_llama_index
 
 load_dotenv()
 configure_llama_index()

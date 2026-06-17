@@ -1,8 +1,11 @@
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 from dotenv import load_dotenv
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, StorageContext
 from llama_index.vector_stores.postgres import PGVectorStore
-from config import configure_llama_index
+from src.config import configure_llama_index
 import psycopg2
 
 load_dotenv()

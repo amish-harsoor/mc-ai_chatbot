@@ -1,10 +1,13 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import uuid
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from chatbot import create_chat_engine, get_response
-import uuid
-import os
+from src.chatbot.chatbot import create_chat_engine, get_response
 
 app = FastAPI(title="Course Chatbot API")
 
@@ -18,7 +21,8 @@ app.add_middleware(
 @app.get("/")
 async def read_index():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    return FileResponse(os.path.join(current_dir, "index.html"))
+    root_dir = os.path.join(current_dir, "..", "..")
+    return FileResponse(os.path.join(root_dir, "index.html"))
 
 active_sessions: dict = {}
 
@@ -71,28 +75,40 @@ async def chat_stream(request: ChatRequest):
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    from chatbot import get_streaming_response
+    from src.chatbot.chatbot import get_streaming_response
     import re
 
     streaming_response = get_streaming_response(chat_engine, request.message)
 
     def response_generator():
-        # Buffer the full text so we can apply post-processing (e.g. Register Now links)
-        full_text = ""
+        buffer = ""
         for token in streaming_response.response_gen:
-            full_text += token
+            buffer += token
+            
+            # Keep a buffer of ~50 characters for lookahead/regex safety
+            if len(buffer) > 100:
+                # Split at the last space before the last 50 characters to avoid breaking words
+                split_idx = buffer.rfind(' ', 0, len(buffer) - 50)
+                if split_idx == -1:
+                    split_idx = len(buffer) - 50
+                
+                chunk = buffer[:split_idx]
+                buffer = buffer[split_idx:]
+                
+                processed = re.sub(
+                    r'\*\*(\d+)\*\*(?!\s*\n\[Register Now\])',
+                    r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)',
+                    chunk
+                )
+                yield processed
 
-        # Inject "Register Now" links after each bolded course ID that doesn't already have one
-        processed = re.sub(
-            r'\*\*(\d+)\*\*(?!\s*\n\[Register Now\])',
-            r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)',
-            full_text
-        )
-
-        # Stream the processed text in reasonably sized chunks
-        chunk_size = 64
-        for i in range(0, len(processed), chunk_size):
-            yield processed[i:i + chunk_size]
+        if buffer:
+            processed = re.sub(
+                r'\*\*(\d+)\*\*(?!\s*\n\[Register Now\])',
+                r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)',
+                buffer
+            )
+            yield processed
 
     return StreamingResponse(response_generator(), media_type="text/plain")
 
