@@ -30,14 +30,14 @@ def configure_llama_index():
     else:
         # Default to OpenRouter (OpenAILike)
         Settings.llm = OpenAILike(
-            model="nvidia/nemotron-3-nano-30b-a3b:free",
+            model="nvidia/nemotron-3-ultra-550b-a55b:free",
             api_base="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
             temperature=0.3,
             max_tokens=1024,
             is_chat_model=True,
         )
-        print(f"LlamaIndex configured with OpenRouter (model: nvidia/nemotron-3-nano-30b-a3b:free)")
+        print(f"LlamaIndex configured with OpenRouter (model: nvidia/nemotron-3-ultra-550b-a55b:free)")
 
     Settings.chunk_size = 512
     Settings.chunk_overlap = 50

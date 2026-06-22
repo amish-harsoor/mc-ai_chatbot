@@ -361,6 +361,7 @@ export default function FloatingChatbot() {
       backendMessage = `My career goal is: ${messageToSend}. Please recommend some courses based on my experience, department, and goal.`;
     }
 
+    const isSilentStep = stepRef.current === "experience" || stepRef.current === "department";
     let botMessageAdded = false;
     try {
       const res = await fetch("http://127.0.0.1:8000/chat/stream", {
@@ -379,15 +380,17 @@ export default function FloatingChatbot() {
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
         
-        if (!botMessageAdded) {
-          botMessageAdded = true;
-          setMessages((prev) => [...prev, { text: fullText, sender: "bot", time: getTime() }]);
-        } else {
-          setMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { text: fullText, sender: "bot", time: getTime() };
-            return updated;
-          });
+        if (!isSilentStep) {
+          if (!botMessageAdded) {
+            botMessageAdded = true;
+            setMessages((prev) => [...prev, { text: fullText, sender: "bot", time: getTime() }]);
+          } else {
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = { text: fullText, sender: "bot", time: getTime() };
+              return updated;
+            });
+          }
         }
       }
 
@@ -413,19 +416,21 @@ export default function FloatingChatbot() {
       }
 
     } catch {
-      setMessages((prev) => {
-        if (!botMessageAdded) {
-          return [...prev, { text: "Sorry, something went wrong.", sender: "bot", time: getTime() }];
-        } else {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            text: "Sorry, something went wrong.",
-            sender: "bot",
-            time: getTime(),
-          };
-          return updated;
-        }
-      });
+      if (!isSilentStep) {
+        setMessages((prev) => {
+          if (!botMessageAdded) {
+            return [...prev, { text: "Sorry, something went wrong.", sender: "bot", time: getTime() }];
+          } else {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              text: "Sorry, something went wrong.",
+              sender: "bot",
+              time: getTime(),
+            };
+            return updated;
+          }
+        });
+      }
     }
 
     setLoading(false);
