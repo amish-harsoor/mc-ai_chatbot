@@ -25,5 +25,9 @@ EXPOSE 8000
 # Ensure Python can find the src module
 ENV PYTHONPATH=/app
 
+# For the React frontend widget (served separately or via proxy in prod):
+#   Set VITE_API_BASE_URL at build time if bundling the UI, or pass at runtime via hosting.
+#   The widget defaults to http://localhost:8000 when no env is present.
+
 # Command to run the application
 CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

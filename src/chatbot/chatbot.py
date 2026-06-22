@@ -1,17 +1,16 @@
 import os
 import re
+import logging
 from dotenv import load_dotenv
-from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
+from llama_index.core import VectorStoreIndex
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.memory import ChatMemoryBuffer
 from src.config import configure_llama_index
-import logging
 
-# Configure logging
-logger = logging.getLogger("AI_Model_Health")
+logger = logging.getLogger(__name__)
 
 load_dotenv()
-configure_llama_index()
+configure_llama_index()  # configures embeddings + LLM (idempotent with lifespan)
 
 def load_index():
     """
@@ -45,12 +44,13 @@ def load_index():
         
         return VectorStoreIndex.from_vector_store(vector_store)
     except Exception as e:
-        print(f"Error loading index: {e}")
+        logger.error(f"Error loading index: {e}")
         raise
 
-print("Loading index from PostgreSQL...")
+
+print("Loading index from PostgreSQL...")  # kept for startup visibility (DB path)
 index = load_index()
-print("Index loaded and ready.")
+print("Index loaded and ready.")  # kept; DB-related side effect left untouched
 
 def create_chat_engine(chat_history=None):
     """
@@ -105,6 +105,16 @@ Throughout the chat, keep the user's provided profile data (Experience Level, De
         verbose=True,
     )
 
+
+def _postprocess_links(text: str) -> str:
+    """Shared post-processing to turn **123** into linked course with Register Now line.
+    Streaming path does equivalent buffering+sub in api/main.py.
+    """
+    if not text or not text.strip():
+        return text or ""
+    return re.sub(r'\*\*(\d+)\*\*', r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)', text)
+
+
 def get_response(chat_engine, user_message: str) -> str:
     """
     Send a message to the chat engine and get a response.
@@ -112,16 +122,14 @@ def get_response(chat_engine, user_message: str) -> str:
     try:
         response = chat_engine.chat(user_message)
     except Exception as e:
-        logger.error(f"AI Model Health Check Failed: Error getting response from model provider. Details: {e}", exc_info=True)
+        logger.error(f"Error getting response from model provider: {e}", exc_info=True)
         return "I'm currently experiencing a connection issue with my AI brain. Please try again in a moment."
 
     response_str = str(response)
     if not response_str.strip():
         # Fallback for empty responses, e.g., off-topic queries
         response_str = "Hey there! I'm here to help with courses from Management Concepts. What can I assist you with today?"
-    # Add "Register Now" link after each bolded course ID
-    response_str = re.sub(r'\*\*(\d+)\*\*', r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)', response_str)
-    return response_str
+    return _postprocess_links(response_str)
 
 def get_streaming_response(chat_engine, user_message: str):
     """
@@ -130,3 +138,6 @@ def get_streaming_response(chat_engine, user_message: str):
     after buffering the full response text.
     """
     return chat_engine.stream_chat(user_message)
+
+
+# get_response kept for compatibility / tests (main path uses streaming + postprocess in caller)

@@ -1,10 +1,18 @@
-llama-index
-fastapi
-python-multipart
-pydantic
-uvicorn
-python-dotenv
-psycopg2-binary
-transformers
-openai
-groq
+# Core (pinned for stability; update with care)
+llama-index>=0.10.0,<0.13
+fastapi>=0.110,<0.116
+python-multipart>=0.0.9
+pydantic>=2.6,<3
+uvicorn[standard]>=0.29,<0.31
+python-dotenv>=1.0,<2
+
+# DB (intentionally left unpinned per project DB constraint)
+psycopg2-binary>=2.9,<3
+
+# LLM / embeddings support
+transformers>=4.40,<5
+openai>=1.30,<2
+groq>=0.9,<1
+
+# Note: HuggingFaceEmbedding also pulls torch/sentence-transformers transitively.
+# For prod Docker consider pinning torch CPU wheels if needed.

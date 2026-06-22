@@ -13,8 +13,8 @@ It uses Retrieval-Augmented Generation (RAG) to answer user questions about cour
 - **RAG Engine:** LlamaIndex
 - **Vector DB:** PostgreSQL + `pgvector` (or Supabase)
 - **Embeddings:** `all-MiniLM-L6-v2` (runs locally, no API key needed)
-- **LLM:** `meta-llama/llama-3.1-8b-instruct` (via OpenRouter/Groq)
-- **Frontend:** Vanilla HTML/JS
+- **LLM:** llama-3.3-70b-versatile (Groq) or meta-llama/llama-3.1-8b-instruct (OpenRouter) — see src/config.py and LLM_PROVIDER env
+- **Frontend:** React + Vite (widget in frontend/ChatbotUI; configure via VITE_API_BASE_URL)
 
 ---
 
@@ -88,7 +88,7 @@ If you need to update the chatbot's knowledge base:
 ## 🔗 API Endpoints
 
 - `POST /session/start` - Generates a new `session_id` to track chat history.
-- `POST /chat/stream` - Send a message and get a streaming text response (Server-Sent Events style).
+- `POST /chat/stream` - Send a message and get a streaming text response (text/plain chunks with link post-processing).
 - `GET /health` - Check API status.
 
 *(You can view the full interactive API docs by visiting `http://localhost:8000/docs` while the server is running).*

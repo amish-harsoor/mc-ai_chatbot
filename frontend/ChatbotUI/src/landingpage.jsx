@@ -1,3 +1,5 @@
+// UNUSED / DEAD CODE (previously referenced in App.jsx but commented out).
+// Safe to delete in future cleanup. Not part of active chatbot UI.
 import { useState } from "react";
 
 export default function PremiumChatUI() {

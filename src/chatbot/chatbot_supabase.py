@@ -1,3 +1,9 @@
+"""
+DEAD / UNUSED CODE
+This file (chatbot_supabase.py) is not imported by the main application (src/api/main.py uses chatbot.py).
+It duplicates logic with drift (different prompts, signatures, exit(1) on failure).
+Safe to delete. Marked dead during audit. Its DB-specific parts were intentionally left untouched.
+"""
 import os
 import re
 from dotenv import load_dotenv

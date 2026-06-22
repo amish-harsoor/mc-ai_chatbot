@@ -303,13 +303,17 @@ export default function FloatingChatbot() {
     timeoutsRef.current.push(id);
   };
 
+  // Support configurable backend for dev / docker / prod via Vite env
+  // Set VITE_API_BASE_URL=http://your-host:8000 in .env (frontend/ChatbotUI/.env or root env loaded by Vite)
+  const API_BASE = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || "http://localhost:8000";
+
   useEffect(() => {
     if (sessionStarted.current) return;
     sessionStarted.current = true;
 
     const initSession = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/session/start", { method: "POST" });
+        const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
         const data = await res.json();
         setSessionId(data.session_id);
 
@@ -364,7 +368,7 @@ export default function FloatingChatbot() {
     const isSilentStep = stepRef.current === "experience" || stepRef.current === "department";
     let botMessageAdded = false;
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat/stream", {
+      const res = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId, message: backendMessage }),

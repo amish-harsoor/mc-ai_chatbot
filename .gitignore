@@ -32,6 +32,9 @@ ENV/
 data/*
 !data/.gitkeep
 
+# Local vector storage (may contain embedded document text)
+storage/
+
 # IDEs
 .vscode/
 .idea/

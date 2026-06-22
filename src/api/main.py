@@ -1,25 +1,52 @@
+# --- Import path fix (supports direct execution) ---
+# This allows running the file directly without PYTHONPATH:
+#   python src/api/main.py
+#   (Docker uses ENV PYTHONPATH=/app instead)
 import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    # We are being run as a script (not via -m or installed package)
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+# --- end import path fix ---
+
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import uuid
 import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("AI_Model_Health")
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import shutil
-from src.chatbot.chatbot import create_chat_engine, get_response
 
-app = FastAPI(title="Course Chatbot API")
+from src.chatbot.chatbot import create_chat_engine
+
+# Configure logging properly (was misnamed "AI_Model_Health" before)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("mc_ai_chatbot")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Configure LLM + embeddings once at startup (non-DB side only)
+    from src.config import configure_llama_index
+    try:
+        configure_llama_index()
+    except Exception as e:
+        logger.error(f"LLM/embeddings configuration failed: {e}")
+        # Do not raise here to allow health checks; real errors will surface on /chat
+    yield
+    # shutdown cleanup (none needed currently)
+
+
+app = FastAPI(title="Course Chatbot API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Consider restricting in production
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -50,8 +77,8 @@ async def start_session():
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     from src.db.session_manager import get_session_history, save_message
-    from src.chatbot.chatbot import create_chat_engine
-    
+    # NOTE: DB import intentionally left inside per scope rules (no DB layer edits)
+
     # Try to parse uuid just to validate format if we want, or just proceed
     try:
         uuid.UUID(request.session_id)
@@ -66,13 +93,13 @@ async def chat_stream(request: ChatRequest):
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    from src.chatbot.chatbot import get_streaming_response
     import re
+    from src.chatbot.chatbot import get_streaming_response
 
     try:
         streaming_response = get_streaming_response(chat_engine, request.message)
     except Exception as e:
-        logger.error(f"AI Model Health Check Failed: Error initiating chat stream with model provider. Details: {e}", exc_info=True)
+        logger.error(f"Error initiating chat stream with model provider: {e}", exc_info=True)
         raise HTTPException(status_code=503, detail="AI Model provider is currently unavailable. Please try again later.")
 
     def response_generator():
@@ -120,7 +147,7 @@ async def chat_stream(request: ChatRequest):
             save_message(request.session_id, 'user', request.message)
             save_message(request.session_id, 'assistant', full_response)
         except Exception as e:
-            logger.error(f"AI Model Health Check Failed: Stream interrupted by model provider. Details: {e}", exc_info=True)
+            logger.error(f"Stream interrupted by model provider: {e}", exc_info=True)
             yield "\n\n[Error: AI Model provider disconnected. Please try again.]"
 
     return StreamingResponse(response_generator(), media_type="text/plain")
@@ -184,4 +211,6 @@ async def get_history(session_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use module string form (recommended). The path fix above makes
+    # `python src/api/main.py` work the same as `uvicorn src.api.main:app`.
+    uvicorn.run("src.api.main:app", host="0.0.0.0", port=8000)
