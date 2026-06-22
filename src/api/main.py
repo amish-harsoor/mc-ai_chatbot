@@ -8,10 +8,11 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("AI_Model_Health")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
+import shutil
 from src.chatbot.chatbot import create_chat_engine, get_response
 
 app = FastAPI(title="Course Chatbot API")
@@ -127,6 +128,44 @@ async def chat_stream(request: ChatRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.post("/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    """
+    Uploads a PDF file, saves it to the data/ directory, and automatically
+    chunks, embeds, and stores its vectors into the PostgreSQL database.
+    """
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+    
+    # Save the file to data/ directory
+    os.makedirs("data", exist_ok=True)
+    file_path = os.path.join("data", file.filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Parse the PDF using LlamaIndex
+        from llama_index.core import SimpleDirectoryReader
+        documents = SimpleDirectoryReader(input_files=[file_path]).load_data()
+        
+        # Import the global index
+        from src.chatbot.chatbot import index
+        
+        # Insert each document into the index
+        # This will automatically chunk, embed, and store in PGVectorStore
+        for doc in documents:
+            index.insert(doc)
+            
+        return {
+            "status": "success", 
+            "message": f"Successfully uploaded and vectorized {file.filename}",
+            "chunks_processed": len(documents)
+        }
+    except Exception as e:
+        logger.error(f"Error processing PDF upload: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to process and vectorize PDF: {str(e)}")
 
 @app.get("/session/{session_id}/history")
 async def get_history(session_id: str):

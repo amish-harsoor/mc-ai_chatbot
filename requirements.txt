@@ -1,5 +1,6 @@
 llama-index
 fastapi
+python-multipart
 pydantic
 uvicorn
 python-dotenv

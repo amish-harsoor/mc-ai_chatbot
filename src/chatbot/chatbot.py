@@ -75,6 +75,10 @@ def create_chat_engine(chat_history=None):
 - Use the provided database context to accurately answer questions and recommend courses.
 - If a user asks for something outside the database or if no relevant courses are found, politely explain that you can only help with courses available in the Management Concepts catalog, and offer to help them find something else. DO NOT say 'Information notavailable.'
 
+**Formatting Rules:**
+- Whenever you present a list of topics, features, or multiple points, ALWAYS use proper Markdown bullet points (e.g., starting with "- " or "* ") or numbered lists (e.g., "1. "). 
+- Do NOT just use plain text lines with indentation. Proper list formatting makes it much easier to read.
+
 **Course Output Format:**
 When recommending or listing courses, always use this clear format for the courses themselves, but feel free to add conversational text before and after the recommendations:
 
