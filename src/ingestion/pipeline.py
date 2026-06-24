@@ -21,7 +21,14 @@ from src.ingestion.metadata import (
 from src.ingestion.registry import DocumentRegistry
 from src.ingestion.vector_store import load_index
 
+
 logger = logging.getLogger(__name__)
+
+
+def _clear_bm25_cache() -> None:
+    from src.chatbot.retrieval import clear_bm25_cache
+
+    clear_bm25_cache()
 
 
 @dataclass
@@ -76,6 +83,7 @@ class IngestionPipeline:
             self.index.delete_ref_doc(ref_doc_id, delete_from_docstore=True)
         except Exception as exc:
             logger.warning("Failed to delete ref_doc_id %s: %s", ref_doc_id, exc)
+        _clear_bm25_cache()
         return IngestionResult(
             source_path=source_path,
             action="deleted",
@@ -125,6 +133,7 @@ class IngestionPipeline:
             chunk_count=len(unique_nodes),
             metadata=metadata,
         )
+        _clear_bm25_cache()
 
         return IngestionResult(
             source_path=source.source_path,

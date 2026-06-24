@@ -46,6 +46,30 @@ def init_db():
     finally:
         conn.close()
 
+_SCRIPTED_ONBOARDING_STEPS = frozenset({"welcome", "experience", "department", "goal"})
+
+
+def should_include_in_llm_history(role: str, metadata: dict | None) -> bool:
+    """Return False for onboarding KV pairs and scripted bot prompts."""
+    metadata = metadata or {}
+
+    if metadata.get("type") == "onboarding_selection":
+        return False
+
+    if role == "user" and metadata.get("step") in ("experience", "department"):
+        return False
+
+    if role == "assistant":
+        if metadata.get("type") == "onboarding":
+            return False
+        if metadata.get("step") in _SCRIPTED_ONBOARDING_STEPS:
+            return False
+        if metadata.get("visible") is False:
+            return False
+
+    return True
+
+
 def get_session_history(session_id: str) -> list[ChatMessage]:
     """Retrieve all messages for a given session, formatted for LlamaIndex."""
     conn = get_db_connection()
@@ -66,6 +90,32 @@ def get_session_history(session_id: str) -> list[ChatMessage]:
     finally:
         conn.close()
     
+    return messages
+
+
+def get_llm_session_history(session_id: str) -> list[ChatMessage]:
+    """Session history for the LLM, excluding onboarding selections and scripted prompts."""
+    conn = get_db_connection()
+    messages = []
+    try:
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute("""
+                SELECT role, content, metadata
+                FROM chat_messages
+                WHERE session_id = %s
+                ORDER BY created_at ASC
+            """, (session_id,))
+            rows = cur.fetchall()
+
+            for row in rows:
+                metadata = _normalize_metadata(row["metadata"])
+                if not should_include_in_llm_history(row["role"], metadata):
+                    continue
+                role = MessageRole.USER if row["role"] == "user" else MessageRole.ASSISTANT
+                messages.append(ChatMessage(role=role, content=row["content"]))
+    finally:
+        conn.close()
+
     return messages
 
 def _normalize_metadata(raw_metadata) -> dict | None:

@@ -160,7 +160,8 @@ const styles = `
   .bubble a { color: #2563eb; text-decoration: underline; }
   .bubble.user a { color: #bfdbfe; }
   .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
-  
+  .stream-plain { margin: 0; white-space: pre-wrap; }
+
   .options-container {
     display: flex; flex-direction: column; gap: 10px;
     width: 100%; max-width: 85%; margin-left: 56px; margin-top: 4px;
@@ -267,6 +268,10 @@ const GOAL_OPTIONS = [
   "Upskill / personal growth",
 ];
 
+function newMessageId() {
+  return crypto.randomUUID();
+}
+
 function getTime() {
   return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
@@ -286,11 +291,25 @@ function inferConversationStep(apiMessages) {
   return "experience";
 }
 
+function extractProfileFromHistory(apiMessages) {
+  const profile = {};
+  for (const m of apiMessages) {
+    if (m.role !== "user") continue;
+    const step = m.metadata?.step;
+    const value = m.metadata?.value || m.display_content || m.content;
+    if (step === "experience") profile.experience = value;
+    if (step === "department") profile.department = value;
+    if (step === "goal") profile.goal = value;
+  }
+  return profile;
+}
+
 function mapHistoryToMessages(apiMessages) {
   const visible = apiMessages.filter((m) => m.metadata?.visible !== false);
   return visible.map((m, i, arr) => {
     const hasReplyAfter = arr.slice(i + 1).some((next) => next.role === "user");
     return {
+      id: newMessageId(),
       text: m.display_content || m.content,
       sender: m.role === "user" ? "user" : "bot",
       time: formatTimeFromIso(m.created_at),
@@ -298,6 +317,26 @@ function mapHistoryToMessages(apiMessages) {
       optionsDisabled: m.metadata?.options ? hasReplyAfter : undefined,
     };
   });
+}
+
+function MessageContent({ msg }) {
+  if (msg.sender === "user" || msg.streaming) {
+    return <p className="stream-plain">{msg.text}</p>;
+  }
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p>{children}</p>,
+        a: ({ node, ...props }) => (
+          <a {...props} target="_blank" rel="noopener noreferrer" />
+        ),
+      }}
+    >
+      {msg.text}
+    </ReactMarkdown>
+  );
 }
 
 function useIsMobile() {
@@ -325,16 +364,26 @@ export default function FloatingChatbot() {
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sessionInitializing, setSessionInitializing] = useState(false);
   const [conversationStep, setConversationStep] = useState("experience");
   const stepRef = useRef("experience");
+  const profileRef = useRef({});
+  const sendingRef = useRef(false);
+  const streamAbortRef = useRef(null);
+  const sessionInitStarted = useRef(false);
   const timeoutsRef = useRef([]);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
   const isMobile = useIsMobile();
-  const sessionStarted = useRef(false);
+
+  const abortActiveStream = () => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+  };
 
   useEffect(() => {
     return () => {
+      abortActiveStream();
       timeoutsRef.current.forEach(clearTimeout);
     };
   }, []);
@@ -360,9 +409,26 @@ export default function FloatingChatbot() {
     }
   };
 
+  const persistUserSelection = async (sid, step, value) => {
+    const content =
+      step === "experience"
+        ? `My experience level is: ${value}.`
+        : `My department is: ${value}.`;
+    await fetch(`${API_BASE}/session/${sid}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: "user",
+        content,
+        display_content: value,
+        metadata: { step, value, type: "onboarding_selection" },
+      }),
+    });
+  };
+
   const scheduleMsg = (delay, msg, sid) => {
     const id = setTimeout(() => {
-      const withTime = { ...msg, time: getTime() };
+      const withTime = { ...msg, id: newMessageId(), time: getTime() };
       setMessages((prev) => [...prev, withTime]);
       if (sid) {
         persistBotMessage(sid, msg.text, msg.metadata || { type: "onboarding" });
@@ -374,6 +440,7 @@ export default function FloatingChatbot() {
   const showWelcomeFlow = (sid) => {
     const welcomeText = "Welcome! I'm here to help you find the perfect courses.";
     setMessages([{
+      id: newMessageId(),
       sender: "bot",
       time: getTime(),
       text: welcomeText,
@@ -389,12 +456,15 @@ export default function FloatingChatbot() {
   };
 
   const startNewChat = async () => {
+    abortActiveStream();
+    sendingRef.current = false;
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
     localStorage.removeItem(SESSION_STORAGE_KEY);
     setMessages([]);
     setConversationStep("experience");
     stepRef.current = "experience";
+    profileRef.current = {};
     setLoading(false);
     setInput("");
 
@@ -408,6 +478,7 @@ export default function FloatingChatbot() {
     } catch {
       setSessionId(null);
       setMessages([{
+        id: newMessageId(),
         text: "Error connecting to server. Make sure the backend is running.",
         sender: "bot",
         time: getTime(),
@@ -415,88 +486,193 @@ export default function FloatingChatbot() {
     }
   };
 
-  useEffect(() => {
-    if (sessionStarted.current) return;
-    sessionStarted.current = true;
+  const initSession = async () => {
+    if (sessionInitStarted.current) return;
+    sessionInitStarted.current = true;
+    setSessionInitializing(true);
 
-    const initSession = async () => {
-      try {
-        const storedId = localStorage.getItem(SESSION_STORAGE_KEY);
-        if (storedId) {
-          const historyRes = await fetch(`${API_BASE}/session/${storedId}/history`);
-          if (historyRes.ok) {
-            const historyData = await historyRes.json();
-            if (historyData.messages?.length > 0) {
-              setSessionId(storedId);
-              setMessages(mapHistoryToMessages(historyData.messages));
-              const step = inferConversationStep(historyData.messages);
-              setConversationStep(step);
-              stepRef.current = step;
-              return;
-            }
+    try {
+      const storedId = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (storedId) {
+        const historyRes = await fetch(`${API_BASE}/session/${storedId}/history`);
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          if (historyData.messages?.length > 0) {
+            setSessionId(storedId);
+            setMessages(mapHistoryToMessages(historyData.messages));
+            const step = inferConversationStep(historyData.messages);
+            setConversationStep(step);
+            stepRef.current = step;
+            profileRef.current = extractProfileFromHistory(historyData.messages);
+            return;
           }
         }
-
-        const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
-        const data = await res.json();
-        const newId = data.session_id;
-        setSessionId(newId);
-        localStorage.setItem(SESSION_STORAGE_KEY, newId);
-        showWelcomeFlow(newId);
-      } catch {
-        setMessages([{
-          text: "Error connecting to server. Make sure the backend is running.",
-          sender: "bot",
-          time: getTime(),
-        }]);
       }
-    };
 
-    initSession();
-  }, []);
+      const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
+      const data = await res.json();
+      const newId = data.session_id;
+      setSessionId(newId);
+      localStorage.setItem(SESSION_STORAGE_KEY, newId);
+      showWelcomeFlow(newId);
+    } catch {
+      setMessages([{
+        id: newMessageId(),
+        text: "Error connecting to server. Make sure the backend is running.",
+        sender: "bot",
+        time: getTime(),
+      }]);
+    } finally {
+      setSessionInitializing(false);
+    }
+  };
 
   const sendMessage = async (overrideText) => {
     const messageToSend = typeof overrideText === "string" ? overrideText : input;
-    if (!messageToSend.trim() || !sessionId || loading) return;
+    if (!messageToSend.trim() || !sessionId || loading || sendingRef.current) return;
 
-    const userMessage = { text: messageToSend, sender: "user", time: getTime() };
+    sendingRef.current = true;
+    const currentStep = stepRef.current;
+    const isOnboardingKv = currentStep === "experience" || currentStep === "department";
+
+    const userMessage = {
+      id: newMessageId(),
+      text: messageToSend,
+      sender: "user",
+      time: getTime(),
+    };
 
     setMessages((prev) => {
-      const updatedPrev = prev.map(msg => 
+      const updatedPrev = prev.map(msg =>
         msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
       );
       return [...updatedPrev, userMessage];
     });
     setInput("");
+
+    // Experience & department: store as KV pairs only — no LLM call, no typing indicator
+    if (isOnboardingKv) {
+      try {
+        await persistUserSelection(sessionId, currentStep, messageToSend);
+        profileRef.current[currentStep] = messageToSend;
+
+        if (currentStep === "experience") {
+          scheduleMsg(600, {
+            sender: "bot",
+            text: "Got it! Which department are you in?",
+            options: DEPARTMENT_OPTIONS,
+            metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
+          }, sessionId);
+          setConversationStep("department");
+          stepRef.current = "department";
+        } else {
+          scheduleMsg(600, {
+            sender: "bot",
+            text: "Are you looking to earn a specific certification, get a promotion, or just upskill?",
+            options: GOAL_OPTIONS,
+            metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
+          }, sessionId);
+          setConversationStep("goal");
+          stepRef.current = "goal";
+        }
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: newMessageId(),
+            text: "Sorry, something went wrong saving your selection.",
+            sender: "bot",
+            time: getTime(),
+          },
+        ]);
+      } finally {
+        sendingRef.current = false;
+      }
+      return;
+    }
+
+    abortActiveStream();
     setLoading(true);
 
-    const currentStep = stepRef.current;
     let backendMessage = messageToSend;
     let stepMetadata = { step: currentStep };
-    if (currentStep === "experience") {
-      backendMessage = `My experience level is: ${messageToSend}. Please acknowledge.`;
-      stepMetadata = { step: "experience" };
-    } else if (currentStep === "department") {
-      backendMessage = `My department is: ${messageToSend}. Please acknowledge.`;
-      stepMetadata = { step: "department" };
-    } else if (currentStep === "goal") {
-      backendMessage = `My career goal is: ${messageToSend}. Please recommend some courses based on my experience, department, and goal.`;
-      stepMetadata = { step: "goal" };
+
+    if (currentStep === "goal") {
+      const profile = { ...profileRef.current, goal: messageToSend };
+      profileRef.current = profile;
+      backendMessage =
+        `My experience level is: ${profile.experience}. ` +
+        `My department is: ${profile.department}. ` +
+        `My career goal is: ${profile.goal}. ` +
+        `Please recommend courses based on my profile.`;
+      stepMetadata = {
+        step: "goal",
+        value: messageToSend,
+        profile_complete: true,
+        profile: {
+          experience: profile.experience,
+          department: profile.department,
+          goal: profile.goal,
+        },
+        experience: profile.experience,
+        department: profile.department,
+        goal: profile.goal,
+      };
     } else {
       stepMetadata = { step: "free" };
     }
 
-    const isSilentStep = currentStep === "experience" || currentStep === "department";
-    let botMessageAdded = false;
+    const botMessageId = newMessageId();
+    let streamStarted = false;
+    let streamRafId = null;
+    let pendingStreamText = "";
+
+    const applyBotMessage = (text, streaming) => {
+      if (!streamStarted) {
+        streamStarted = true;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: botMessageId,
+            text,
+            sender: "bot",
+            time: getTime(),
+            streaming,
+          },
+        ]);
+        return;
+      }
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === botMessageId ? { ...msg, text, streaming } : msg
+        )
+      );
+    };
+
+    const flushStreamUpdate = () => {
+      streamRafId = null;
+      applyBotMessage(pendingStreamText, true);
+    };
+
+    const scheduleStreamUpdate = (text) => {
+      pendingStreamText = text;
+      if (streamRafId === null) {
+        streamRafId = requestAnimationFrame(flushStreamUpdate);
+      }
+    };
+
+    const abortController = new AbortController();
+    streamAbortRef.current = abortController;
+
     try {
       const res = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: abortController.signal,
         body: JSON.stringify({
           session_id: sessionId,
           message: backendMessage,
           display_message: messageToSend,
-          silent_response: isSilentStep,
           metadata: stepMetadata,
         }),
       });
@@ -510,63 +686,33 @@ export default function FloatingChatbot() {
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
-        
-        if (!isSilentStep) {
-          if (!botMessageAdded) {
-            botMessageAdded = true;
-            setMessages((prev) => [...prev, { text: fullText, sender: "bot", time: getTime() }]);
-          } else {
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[updated.length - 1] = { text: fullText, sender: "bot", time: getTime() };
-              return updated;
-            });
-          }
-        }
+        scheduleStreamUpdate(fullText);
       }
 
-      if (currentStep === "experience") {
-        scheduleMsg(1000, {
-          sender: "bot",
-          text: "Got it! Which department are you in?",
-          options: DEPARTMENT_OPTIONS,
-          metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
-        }, sessionId);
-        setConversationStep("department");
-        stepRef.current = "department";
-      } else if (currentStep === "department") {
-        scheduleMsg(1000, {
-          sender: "bot",
-          text: "Are you looking to earn a specific certification, get a promotion, or just upskill?",
-          options: GOAL_OPTIONS,
-          metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
-        }, sessionId);
-        setConversationStep("goal");
-        stepRef.current = "goal";
-      } else if (currentStep === "goal") {
+      if (streamRafId !== null) {
+        cancelAnimationFrame(streamRafId);
+        streamRafId = null;
+      }
+      applyBotMessage(fullText, false);
+
+      if (currentStep === "goal") {
         setConversationStep("free");
         stepRef.current = "free";
       }
-
-    } catch {
-      if (!isSilentStep) {
-        setMessages((prev) => {
-          if (!botMessageAdded) {
-            return [...prev, { text: "Sorry, something went wrong.", sender: "bot", time: getTime() }];
-          } else {
-            const updated = [...prev];
-            updated[updated.length - 1] = {
-              text: "Sorry, something went wrong.",
-              sender: "bot",
-              time: getTime(),
-            };
-            return updated;
-          }
-        });
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      if (streamRafId !== null) {
+        cancelAnimationFrame(streamRafId);
+        streamRafId = null;
       }
+      applyBotMessage("Sorry, something went wrong.", false);
+    } finally {
+      if (streamAbortRef.current === abortController) {
+        streamAbortRef.current = null;
+      }
+      sendingRef.current = false;
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -575,8 +721,12 @@ export default function FloatingChatbot() {
 
   const handleOpen = () => {
     setOpen((prev) => {
-      if (!prev) setTimeout(() => inputRef.current?.focus(), 320);
-      return !prev;
+      const next = !prev;
+      if (next && !sessionInitStarted.current) {
+        initSession();
+      }
+      if (next) setTimeout(() => inputRef.current?.focus(), 320);
+      return next;
     });
   };
 
@@ -616,10 +766,21 @@ export default function FloatingChatbot() {
         </div>
 
         <div className="chat-messages">
+          {sessionInitializing && messages.length === 0 && (
+            <div className="typing-indicator">
+              <div className="bot-icon">
+                <MCIcon />
+              </div>
+              <div className="typing-bubble">
+                <div className="dot" /><div className="dot" /><div className="dot" />
+              </div>
+            </div>
+          )}
+
           {messages.map((msg, i) => {
             const isConsecutive = i > 0 && messages[i - 1].sender === msg.sender;
             return (
-            <div key={i} className={`msg-wrapper ${msg.sender}`}>
+            <div key={msg.id} className={`msg-wrapper ${msg.sender}`}>
               {msg.sender === "bot" && !isConsecutive && (
                 <div className="msg-meta bot">
                   <span className="sender-name">MCAgent</span>
@@ -648,17 +809,7 @@ export default function FloatingChatbot() {
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                   <div className={`bubble ${msg.sender}`}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => <p>{children}</p>,
-                        a: ({ node, ...props }) => (
-                          <a {...props} target="_blank" rel="noopener noreferrer" />
-                        ),
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
+                    <MessageContent msg={msg} />
                   </div>
                 </div>
               </div>
@@ -723,14 +874,14 @@ export default function FloatingChatbot() {
               type="text"
               placeholder="Write a message"
               value={input}
-              disabled={!sessionId || loading || (messages.length > 0 && messages[messages.length - 1].options && !messages[messages.length - 1].optionsDisabled)}
+              disabled={sessionInitializing || !sessionId || loading || (messages.length > 0 && messages[messages.length - 1].options && !messages[messages.length - 1].optionsDisabled)}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <button
               className={`send-btn ${input.trim() ? 'active' : ''}`}
               onClick={sendMessage}
-              disabled={!sessionId || loading || (messages.length > 0 && messages[messages.length - 1].options && !messages[messages.length - 1].optionsDisabled)}
+              disabled={sessionInitializing || !sessionId || loading || (messages.length > 0 && messages[messages.length - 1].options && !messages[messages.length - 1].optionsDisabled)}
               title="Send"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from src.config import configure_llama_index
 from src.ingestion.pipeline import ingest_directory
-from src.ingestion.vector_store import get_db_params, get_vector_table_name
+from src.db.vector_config import get_db_params, get_vector_table_name
 
 load_dotenv()
 configure_llama_index()

@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from typing import Optional
 import shutil
 
-from src.chatbot.chatbot import create_chat_engine
+from src.chatbot.chatbot import get_or_create_chat_engine
 
 # Configure logging properly (was misnamed "AI_Model_Health" before)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -92,9 +92,18 @@ async def start_session():
     return StartSessionResponse(session_id=session_id)
 
 
+def _is_partial_onboarding(metadata: dict | None) -> bool:
+    """Onboarding selections before profile is complete should not call the LLM."""
+    if not metadata:
+        return False
+    if metadata.get("profile_complete"):
+        return False
+    return metadata.get("step") in ("experience", "department")
+
+
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
-    from src.db.session_manager import get_session_history, save_message
+    from src.db.session_manager import get_llm_session_history, save_message
     # NOTE: DB import intentionally left inside per scope rules (no DB layer edits)
 
     # Try to parse uuid just to validate format if we want, or just proceed
@@ -106,10 +115,27 @@ async def chat_stream(request: ChatRequest):
             detail="Invalid session ID format."
         )
 
-    chat_history = get_session_history(request.session_id)
-    chat_engine = create_chat_engine(chat_history)
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    if _is_partial_onboarding(request.metadata):
+        user_metadata = dict(request.metadata) if request.metadata else {}
+        save_message(
+            request.session_id,
+            "user",
+            request.message,
+            display_content=request.display_message or request.message,
+            metadata=user_metadata or None,
+        )
+        return StreamingResponse(iter(()), media_type="text/plain")
+
+    chat_history = get_llm_session_history(request.session_id)
+    chat_engine = get_or_create_chat_engine(
+        request.session_id,
+        chat_history,
+        latest_message=request.message,
+        request_metadata=request.metadata,
+    )
 
     import re
     from src.chatbot.chatbot import get_streaming_response

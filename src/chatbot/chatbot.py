@@ -1,23 +1,64 @@
-import os
 import logging
+import os
+import time
+from dataclasses import dataclass
+from typing import Any
+
 from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex
-from llama_index.vector_stores.postgres import PGVectorStore
+from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.vector_stores.postgres import PGVectorStore
+
+from src.chatbot.query_context import build_metadata_filters, build_user_profile
+from src.chatbot.retrieval import (
+    build_condense_prompt,
+    create_hybrid_retriever,
+    create_node_postprocessors,
+    initialize_retrieval,
+)
 from src.config import configure_llama_index
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-configure_llama_index()  # configures embeddings + LLM (idempotent with lifespan)
+configure_llama_index()
 
-def load_index():
-    """
-    Loads the index from PostgreSQL vector store (Supabase or Local based on USE_SUPABASE).
-    """
+SYSTEM_PROMPT = """You are Course Advisor for Management Concepts — a concise, friendly assistant for course discovery.
+
+Scope: Use only the provided catalog context. If nothing matches or the topic is out of scope, briefly say you help with Management Concepts courses and suggest a related search. Never say "Information not available." Never return an empty response.
+
+Style: Warm but brief. Skip greetings after the first turn. Lead with the answer; add at most 1–2 short sentences of context. One line per course on why it fits. No filler, repetition, or long intros.
+
+Lists: Use Markdown bullets (- ) or numbered lists (1. ) — never plain indented lines.
+
+Course format (required for each course):
+**[COURSE_ID]** [Course Title](https://www.managementconcepts.com/product/{course_id})
+Duration: ...
+Cost: ...
+Description: ...
+
+Recommend 3–5 courses unless asked for more. Tailor picks to Experience Level, Department, and Career Goal when provided in the message."""
+
+CHAT_MEMORY_TOKEN_LIMIT = int(os.getenv("CHAT_MEMORY_TOKEN_LIMIT", "3000"))
+SESSION_ENGINE_TTL_SECONDS = int(os.getenv("SESSION_ENGINE_TTL_SECONDS", "1800"))
+
+
+@dataclass
+class _CachedSessionEngine:
+    engine: CondensePlusContextChatEngine
+    profile_key: str
+    updated_at: float
+
+
+_session_engine_cache: dict[str, _CachedSessionEngine] = {}
+
+
+def load_index() -> VectorStoreIndex:
+    """Loads the index from PostgreSQL vector store (Supabase or Local based on USE_SUPABASE)."""
     try:
         use_supabase = os.getenv("USE_SUPABASE", "false").lower() == "true"
-        
+
         if use_supabase:
             print("Using Supabase database...")
             vector_store = PGVectorStore.from_params(
@@ -40,69 +81,143 @@ def load_index():
                 table_name="data_vectors",
                 embed_dim=384,
             )
-        
+
         return VectorStoreIndex.from_vector_store(vector_store)
     except Exception as e:
         logger.error(f"Error loading index: {e}")
         raise
 
 
-print("Loading index from PostgreSQL...")  # kept for startup visibility (DB path)
+print("Loading index from PostgreSQL...")
 index = load_index()
-print("Index loaded and ready.")  # kept; DB-related side effect left untouched
+print("Index loaded and ready.")
+try:
+    initialize_retrieval(index)
+    print("Retrieval stack pre-warmed (BM25 + reranker).")
+except Exception as exc:
+    logger.warning("Retrieval pre-warm failed; will retry on first chat: %s", exc)
 
-def create_chat_engine(chat_history=None):
+
+def _should_skip_condense(request_metadata: dict[str, Any] | None) -> bool:
+    return bool(request_metadata and request_metadata.get("profile_complete"))
+
+
+def _memory_from_history(chat_history: list) -> ChatMemoryBuffer:
+    return ChatMemoryBuffer.from_defaults(
+        chat_history=chat_history,
+        token_limit=CHAT_MEMORY_TOKEN_LIMIT,
+    )
+
+
+def _prune_session_engine_cache() -> None:
+    now = time.time()
+    expired = [
+        sid
+        for sid, entry in _session_engine_cache.items()
+        if now - entry.updated_at > SESSION_ENGINE_TTL_SECONDS
+    ]
+    for sid in expired:
+        _session_engine_cache.pop(sid, None)
+
+
+def clear_session_engine_cache(session_id: str | None = None) -> None:
+    if session_id is None:
+        _session_engine_cache.clear()
+    else:
+        _session_engine_cache.pop(session_id, None)
+
+
+def create_chat_engine(
+    chat_history=None,
+    *,
+    latest_message: str | None = None,
+    request_metadata: dict[str, Any] | None = None,
+    skip_condense: bool | None = None,
+):
     """
-    Creates a new chat engine with its own fresh memory.
-    Call this once per user session to give each user their own conversation history.
-
-    ChatMemoryBuffer keeps track of conversation history but caps it at token_limit
-    tokens. This prevents the prompt from growing infinitely as the chat gets longer.
+    Creates a chat engine with hybrid retrieval, reranking, query expansion,
+    metadata filtering, and context compression.
     """
     if chat_history is None:
         chat_history = []
-    
-    memory = ChatMemoryBuffer.from_defaults(chat_history=chat_history, token_limit=3000)
 
-    return index.as_chat_engine(
-        chat_mode="condense_plus_context", # Uses chat history to generate a better search query, ensuring department & experience are searched for
-        memory=memory,
-        system_prompt=('''You are Course Advisor, a friendly and helpful assistant guiding users to find the best courses from Management Concepts. Act like a normal, conversational AI assistant, but heavily specialize in recommending and discussing our courses.
+    if skip_condense is None:
+        skip_condense = _should_skip_condense(request_metadata)
 
-**Core Responsibilities:**
-- Engage in natural, friendly conversation with the user.
-- Use the provided database context to accurately answer questions and recommend courses.
-- If a user asks for something outside the database or if no relevant courses are found, politely explain that you can only help with courses available in the Management Concepts catalog, and offer to help them find something else. DO NOT say 'Information notavailable.'
-
-**Formatting Rules:**
-- Whenever you present a list of topics, features, or multiple points, ALWAYS use proper Markdown bullet points (e.g., starting with "- " or "* ") or numbered lists (e.g., "1. "). 
-- Do NOT just use plain text lines with indentation. Proper list formatting makes it much easier to read.
-
-**Course Output Format:**
-When recommending or listing courses, always use this clear format for the courses themselves, but feel free to add conversational text before and after the recommendations:
-
-**[COURSE_ID]** [Course Title](https://www.managementconcepts.com/product/{course_id})
-Duration: ...
-Cost: ...
-Description: ...
-
-Always use the URL format: https://www.managementconcepts.com/product/{course_id}
-
-**Response Guidelines:**
-- Be conversational, warm, and helpful. Feel free to greet the user and use pleasantries.
-- Provide explanations and context for your recommendations. Let the user know *why* a course is a good fit.
-- Recommend 3-5 courses at a time unless asked for more.
-- If the user sends a message starting with "My experience level" or "My department", reply ONLY with the word "Acknowledged." and wait for their next input.
-- When the user sends a message starting with "My career goal", this means you have their full profile. Go ahead and enthusiastically recommend some courses based on their experience, department, and goal!
-
-**CRITICAL: Using User Preferences:**
-Throughout the chat, keep the user's provided profile data (Experience Level, Department, Career Goal) in mind. Tailor your conversations and course recommendations to align perfectly with their specific background and goals.
-
-**CRITICAL RULE: NEVER RETURN AN EMPTY RESPONSE.** If you are unsure or cannot find a specific course, acknowledge the user's input and provide a helpful, conversational response or ask a follow-up question. Under no circumstances should you output a blank message.
-'''),
-        similarity_top_k=6,
-        verbose=True,
+    profile = build_user_profile(
+        chat_history,
+        latest_message=latest_message,
+        request_metadata=request_metadata,
     )
+    metadata_filters = build_metadata_filters(profile)
+    retriever = create_hybrid_retriever(
+        index,
+        metadata_filters=metadata_filters,
+        profile=profile,
+    )
+
+    memory = _memory_from_history(chat_history)
+
+    return CondensePlusContextChatEngine.from_defaults(
+        retriever=retriever,
+        memory=memory,
+        system_prompt=SYSTEM_PROMPT,
+        condense_prompt=build_condense_prompt(profile),
+        node_postprocessors=create_node_postprocessors(),
+        skip_condense=skip_condense,
+        verbose=os.getenv("CHAT_VERBOSE", "false").lower() == "true",
+    )
+
+
+def get_or_create_chat_engine(
+    session_id: str,
+    chat_history=None,
+    *,
+    latest_message: str | None = None,
+    request_metadata: dict[str, Any] | None = None,
+):
+    """Return a cached chat engine for the session, refreshing memory and retriever as needed."""
+    if chat_history is None:
+        chat_history = []
+
+    skip_condense = _should_skip_condense(request_metadata)
+    profile = build_user_profile(
+        chat_history,
+        latest_message=latest_message,
+        request_metadata=request_metadata,
+    )
+    profile_key = profile.summary()
+    now = time.time()
+
+    cached = _session_engine_cache.get(session_id)
+    if cached and now - cached.updated_at <= SESSION_ENGINE_TTL_SECONDS:
+        engine = cached.engine
+        engine._skip_condense = skip_condense
+        engine._memory = _memory_from_history(chat_history)
+        if cached.profile_key != profile_key:
+            metadata_filters = build_metadata_filters(profile)
+            engine._retriever = create_hybrid_retriever(
+                index,
+                metadata_filters=metadata_filters,
+                profile=profile,
+            )
+            cached.profile_key = profile_key
+        cached.updated_at = now
+        return engine
+
+    engine = create_chat_engine(
+        chat_history,
+        latest_message=latest_message,
+        request_metadata=request_metadata,
+        skip_condense=skip_condense,
+    )
+    _session_engine_cache[session_id] = _CachedSessionEngine(
+        engine=engine,
+        profile_key=profile_key,
+        updated_at=now,
+    )
+    _prune_session_engine_cache()
+    return engine
 
 
 def get_streaming_response(chat_engine, user_message: str):

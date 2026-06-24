@@ -6,7 +6,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from src.ingestion.loaders import SourceRecord
-from src.ingestion.vector_store import get_db_params
+from src.db.vector_config import get_db_params
 
 REGISTRY_TABLE = "ingestion_registry"
 

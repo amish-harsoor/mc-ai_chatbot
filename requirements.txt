@@ -19,5 +19,8 @@ beautifulsoup4>=4.12,<5
 requests>=2.31,<3
 python-frontmatter>=1.1,<2
 
+# Retrieval (hybrid search + reranking)
+llama-index-retrievers-bm25>=0.5,<1
+
 # Note: HuggingFaceEmbedding also pulls torch/sentence-transformers transitively.
 # For prod Docker consider pinning torch CPU wheels if needed.

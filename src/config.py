@@ -48,3 +48,10 @@ def configure_llama_index():
 
     Settings.chunk_size = int(os.getenv("CHUNK_SIZE", "512"))
     Settings.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "50"))
+
+    logger.info(
+        "Retrieval config: hybrid=%s, rerank=%s, query_expansion=%s",
+        os.getenv("RETRIEVAL_VECTOR_TOP_K", "12"),
+        os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
+        os.getenv("RETRIEVAL_NUM_QUERIES", "3"),
+    )
