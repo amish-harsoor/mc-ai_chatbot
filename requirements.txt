@@ -14,5 +14,10 @@ transformers>=4.40,<5
 openai>=1.30,<2
 groq>=0.9,<1
 
+# Document ingestion
+beautifulsoup4>=4.12,<5
+requests>=2.31,<3
+python-frontmatter>=1.1,<2
+
 # Note: HuggingFaceEmbedding also pulls torch/sentence-transformers transitively.
 # For prod Docker consider pinning torch CPU wheels if needed.

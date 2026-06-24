@@ -1,5 +1,4 @@
 import os
-import re
 import logging
 from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex
@@ -106,31 +105,6 @@ Throughout the chat, keep the user's provided profile data (Experience Level, De
     )
 
 
-def _postprocess_links(text: str) -> str:
-    """Shared post-processing to turn **123** into linked course with Register Now line.
-    Streaming path does equivalent buffering+sub in api/main.py.
-    """
-    if not text or not text.strip():
-        return text or ""
-    return re.sub(r'\*\*(\d+)\*\*', r'**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)', text)
-
-
-def get_response(chat_engine, user_message: str) -> str:
-    """
-    Send a message to the chat engine and get a response.
-    """
-    try:
-        response = chat_engine.chat(user_message)
-    except Exception as e:
-        logger.error(f"Error getting response from model provider: {e}", exc_info=True)
-        return "I'm currently experiencing a connection issue with my AI brain. Please try again in a moment."
-
-    response_str = str(response)
-    if not response_str.strip():
-        # Fallback for empty responses, e.g., off-topic queries
-        response_str = "Hey there! I'm here to help with courses from Management Concepts. What can I assist you with today?"
-    return _postprocess_links(response_str)
-
 def get_streaming_response(chat_engine, user_message: str):
     """
     Returns a raw streaming response object.
@@ -138,6 +112,3 @@ def get_streaming_response(chat_engine, user_message: str):
     after buffering the full response text.
     """
     return chat_engine.stream_chat(user_message)
-
-
-# get_response kept for compatibility / tests (main path uses streaming + postprocess in caller)

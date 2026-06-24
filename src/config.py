@@ -46,5 +46,5 @@ def configure_llama_index():
         )
         logger.info("LlamaIndex configured with OpenRouter (model: meta-llama/llama-3.1-8b-instruct)")
 
-    Settings.chunk_size = 512
-    Settings.chunk_overlap = 50
+    Settings.chunk_size = int(os.getenv("CHUNK_SIZE", "512"))
+    Settings.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "50"))

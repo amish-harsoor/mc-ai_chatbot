@@ -253,8 +253,51 @@ const styles = `
   }
 `;
 
+const SESSION_STORAGE_KEY = "mc_chat_session_id";
+
+const EXPERIENCE_OPTIONS = [
+  "Entry-level (0–2 years)",
+  "Mid-level (3–7 years)",
+  "Senior/Manager (8+ years)",
+];
+const DEPARTMENT_OPTIONS = ["Finance", "Management", "IT"];
+const GOAL_OPTIONS = [
+  "Earn a certification",
+  "Get a promotion",
+  "Upskill / personal growth",
+];
+
 function getTime() {
   return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatTimeFromIso(iso) {
+  if (!iso) return getTime();
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function inferConversationStep(apiMessages) {
+  const userSteps = apiMessages
+    .filter((m) => m.role === "user" && m.metadata?.step)
+    .map((m) => m.metadata.step);
+  if (userSteps.includes("goal")) return "free";
+  if (userSteps.includes("department")) return "goal";
+  if (userSteps.includes("experience")) return "department";
+  return "experience";
+}
+
+function mapHistoryToMessages(apiMessages) {
+  const visible = apiMessages.filter((m) => m.metadata?.visible !== false);
+  return visible.map((m, i, arr) => {
+    const hasReplyAfter = arr.slice(i + 1).some((next) => next.role === "user");
+    return {
+      text: m.display_content || m.content,
+      sender: m.role === "user" ? "user" : "bot",
+      time: formatTimeFromIso(m.created_at),
+      options: m.metadata?.options,
+      optionsDisabled: m.metadata?.options ? hasReplyAfter : undefined,
+    };
+  });
 }
 
 function useIsMobile() {
@@ -296,16 +339,81 @@ export default function FloatingChatbot() {
     };
   }, []);
 
-  const scheduleMsg = (delay, msg) => {
+  // Support configurable backend for dev / docker / prod via Vite env
+  // Set VITE_API_BASE_URL=http://your-host:8000 in .env (frontend/ChatbotUI/.env or root env loaded by Vite)
+  const API_BASE = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || "http://localhost:8000";
+
+  const persistBotMessage = async (sid, text, metadata = {}) => {
+    try {
+      await fetch(`${API_BASE}/session/${sid}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "assistant",
+          content: text,
+          display_content: text,
+          metadata,
+        }),
+      });
+    } catch {
+      // Non-blocking — chat still works if persistence fails
+    }
+  };
+
+  const scheduleMsg = (delay, msg, sid) => {
     const id = setTimeout(() => {
-      setMessages((prev) => [...prev, { ...msg, time: getTime() }]);
+      const withTime = { ...msg, time: getTime() };
+      setMessages((prev) => [...prev, withTime]);
+      if (sid) {
+        persistBotMessage(sid, msg.text, msg.metadata || { type: "onboarding" });
+      }
     }, delay);
     timeoutsRef.current.push(id);
   };
 
-  // Support configurable backend for dev / docker / prod via Vite env
-  // Set VITE_API_BASE_URL=http://your-host:8000 in .env (frontend/ChatbotUI/.env or root env loaded by Vite)
-  const API_BASE = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || "http://localhost:8000";
+  const showWelcomeFlow = (sid) => {
+    const welcomeText = "Welcome! I'm here to help you find the perfect courses.";
+    setMessages([{
+      sender: "bot",
+      time: getTime(),
+      text: welcomeText,
+    }]);
+    persistBotMessage(sid, welcomeText, { step: "welcome", type: "onboarding" });
+
+    scheduleMsg(1000, {
+      sender: "bot",
+      text: "To get started, what's your current experience level?",
+      options: EXPERIENCE_OPTIONS,
+      metadata: { step: "experience", type: "onboarding", options: EXPERIENCE_OPTIONS },
+    }, sid);
+  };
+
+  const startNewChat = async () => {
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setMessages([]);
+    setConversationStep("experience");
+    stepRef.current = "experience";
+    setLoading(false);
+    setInput("");
+
+    try {
+      const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
+      const data = await res.json();
+      const newId = data.session_id;
+      setSessionId(newId);
+      localStorage.setItem(SESSION_STORAGE_KEY, newId);
+      showWelcomeFlow(newId);
+    } catch {
+      setSessionId(null);
+      setMessages([{
+        text: "Error connecting to server. Make sure the backend is running.",
+        sender: "bot",
+        time: getTime(),
+      }]);
+    }
+  };
 
   useEffect(() => {
     if (sessionStarted.current) return;
@@ -313,22 +421,28 @@ export default function FloatingChatbot() {
 
     const initSession = async () => {
       try {
+        const storedId = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (storedId) {
+          const historyRes = await fetch(`${API_BASE}/session/${storedId}/history`);
+          if (historyRes.ok) {
+            const historyData = await historyRes.json();
+            if (historyData.messages?.length > 0) {
+              setSessionId(storedId);
+              setMessages(mapHistoryToMessages(historyData.messages));
+              const step = inferConversationStep(historyData.messages);
+              setConversationStep(step);
+              stepRef.current = step;
+              return;
+            }
+          }
+        }
+
         const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
         const data = await res.json();
-        setSessionId(data.session_id);
-
-        setMessages([{
-          sender: "bot",
-          time: getTime(),
-          text: "Welcome! I'm here to help you find the perfect courses.",
-        }]);
-
-        scheduleMsg(1000, {
-          sender: "bot",
-          text: "To get started, what's your current experience level?",
-          options: ["Entry-level (0–2 years)", "Mid-level (3–7 years)", "Senior/Manager (8+ years)"],
-        });
-
+        const newId = data.session_id;
+        setSessionId(newId);
+        localStorage.setItem(SESSION_STORAGE_KEY, newId);
+        showWelcomeFlow(newId);
       } catch {
         setMessages([{
           text: "Error connecting to server. Make sure the backend is running.",
@@ -356,22 +470,35 @@ export default function FloatingChatbot() {
     setInput("");
     setLoading(true);
 
+    const currentStep = stepRef.current;
     let backendMessage = messageToSend;
-    if (stepRef.current === "experience") {
+    let stepMetadata = { step: currentStep };
+    if (currentStep === "experience") {
       backendMessage = `My experience level is: ${messageToSend}. Please acknowledge.`;
-    } else if (stepRef.current === "department") {
+      stepMetadata = { step: "experience" };
+    } else if (currentStep === "department") {
       backendMessage = `My department is: ${messageToSend}. Please acknowledge.`;
-    } else if (stepRef.current === "goal") {
+      stepMetadata = { step: "department" };
+    } else if (currentStep === "goal") {
       backendMessage = `My career goal is: ${messageToSend}. Please recommend some courses based on my experience, department, and goal.`;
+      stepMetadata = { step: "goal" };
+    } else {
+      stepMetadata = { step: "free" };
     }
 
-    const isSilentStep = stepRef.current === "experience" || stepRef.current === "department";
+    const isSilentStep = currentStep === "experience" || currentStep === "department";
     let botMessageAdded = false;
     try {
       const res = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, message: backendMessage }),
+        body: JSON.stringify({
+          session_id: sessionId,
+          message: backendMessage,
+          display_message: messageToSend,
+          silent_response: isSilentStep,
+          metadata: stepMetadata,
+        }),
       });
       if (!res.ok) throw new Error("Failed");
 
@@ -398,23 +525,25 @@ export default function FloatingChatbot() {
         }
       }
 
-      if (stepRef.current === "experience") {
+      if (currentStep === "experience") {
         scheduleMsg(1000, {
           sender: "bot",
           text: "Got it! Which department are you in?",
-          options: ["Finance", "Management", "IT"],
-        });
+          options: DEPARTMENT_OPTIONS,
+          metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
+        }, sessionId);
         setConversationStep("department");
         stepRef.current = "department";
-      } else if (stepRef.current === "department") {
+      } else if (currentStep === "department") {
         scheduleMsg(1000, {
           sender: "bot",
           text: "Are you looking to earn a specific certification, get a promotion, or just upskill?",
-          options: ["Earn a certification", "Get a promotion", "Upskill / personal growth"],
-        });
+          options: GOAL_OPTIONS,
+          metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
+        }, sessionId);
         setConversationStep("goal");
         stepRef.current = "goal";
-      } else if (stepRef.current === "goal") {
+      } else if (currentStep === "goal") {
         setConversationStep("free");
         stepRef.current = "free";
       }
@@ -470,7 +599,7 @@ export default function FloatingChatbot() {
             <span style={{ fontSize: '18px', fontWeight: '600' }}>Support Assistant</span>
           </div>
           <div className="header-right">
-            <button className="header-icon-btn">
+            <button className="header-icon-btn" onClick={startNewChat} title="New chat">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                  <circle cx="5" cy="12" r="2"/>
                  <circle cx="12" cy="12" r="2"/>

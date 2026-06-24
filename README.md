@@ -76,11 +76,11 @@ If you need to update the chatbot's knowledge base:
 2. Ensure your Postgres/Supabase database is running and reachable.
 3. Run the ingestion script to chunk, embed, and save to the database:
    ```bash
-   # If running locally (without docker)
+   # Local Postgres (set DB_* env vars)
    python src/ingestion/ingest.py
-   
-   # Or for Supabase
-   python src/ingestion/ingest_supabase.py
+
+   # Supabase (set SUPABASE_* env vars)
+   python src/ingestion/ingest.py --supabase
    ```
 
 ---
@@ -88,7 +88,9 @@ If you need to update the chatbot's knowledge base:
 ## 🔗 API Endpoints
 
 - `POST /session/start` - Generates a new `session_id` to track chat history.
-- `POST /chat/stream` - Send a message and get a streaming text response (text/plain chunks with link post-processing).
+- `POST /chat/stream` - Send a message and get a streaming text response (text/plain chunks with link post-processing). Accepts optional `display_message`, `silent_response`, and `metadata` for UI-accurate history persistence.
+- `GET /session/{session_id}/history` - Returns stored messages for a session (`role`, `content`, `display_content`, `metadata`, `created_at`).
+- `POST /session/{session_id}/message` - Persist a client-side message (e.g. welcome/onboarding prompts) with optional `display_content` and `metadata`.
 - `GET /health` - Check API status.
 
 *(You can view the full interactive API docs by visiting `http://localhost:8000/docs` while the server is running).*

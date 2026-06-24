@@ -21,6 +21,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import Optional
 import shutil
 
 from src.chatbot.chatbot import create_chat_engine
@@ -38,6 +39,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"LLM/embeddings configuration failed: {e}")
         # Do not raise here to allow health checks; real errors will surface on /chat
+
+    from src.db.session_manager import init_db
+    try:
+        init_db()
+        logger.info("chat_messages table initialized")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+
     yield
     # shutdown cleanup (none needed currently)
 
@@ -58,6 +67,15 @@ class StartSessionResponse(BaseModel):
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+    display_message: Optional[str] = None
+    silent_response: bool = False
+    metadata: Optional[dict] = None
+
+class SaveMessageRequest(BaseModel):
+    role: str
+    content: str
+    display_content: Optional[str] = None
+    metadata: Optional[dict] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -144,8 +162,22 @@ async def chat_stream(request: ChatRequest):
                 full_response = fallback
                 
             # After streaming is complete, save the messages to the database
-            save_message(request.session_id, 'user', request.message)
-            save_message(request.session_id, 'assistant', full_response)
+            user_metadata = dict(request.metadata) if request.metadata else {}
+            save_message(
+                request.session_id,
+                'user',
+                request.message,
+                display_content=request.display_message or request.message,
+                metadata=user_metadata or None,
+            )
+            assistant_metadata = {"visible": not request.silent_response}
+            save_message(
+                request.session_id,
+                'assistant',
+                full_response,
+                display_content=full_response,
+                metadata=assistant_metadata,
+            )
         except Exception as e:
             logger.error(f"Stream interrupted by model provider: {e}", exc_info=True)
             yield "\n\n[Error: AI Model provider disconnected. Please try again.]"
@@ -156,43 +188,93 @@ async def chat_stream(request: ChatRequest):
 async def health():
     return {"status": "ok"}
 
-@app.post("/upload-pdf")
-async def upload_pdf(file: UploadFile = File(...)):
-    """
-    Uploads a PDF file, saves it to the data/ directory, and automatically
-    chunks, embeds, and stores its vectors into the PostgreSQL database.
-    """
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
-    
-    # Save the file to data/ directory
+SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".md", ".markdown", ".txt"}
+
+
+def _save_uploaded_file(file: UploadFile) -> str:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required.")
+
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in SUPPORTED_UPLOAD_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed: {', '.join(sorted(SUPPORTED_UPLOAD_EXTENSIONS))}",
+        )
+
     os.makedirs("data", exist_ok=True)
     file_path = os.path.join("data", file.filename)
-    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return file_path
+
+
+@app.post("/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    """Backward-compatible PDF upload endpoint."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+    return await upload_document(file)
+
+
+@app.post("/upload-document")
+async def upload_document(file: UploadFile = File(...)):
+    """
+    Uploads a supported document, saves it to data/, and incrementally ingests it
+    with semantic chunking, metadata extraction, and deduplication.
+    """
+    from src.ingestion.pipeline import IngestionPipeline
+    from src.chatbot.chatbot import index
+
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        # Parse the PDF using LlamaIndex
-        from llama_index.core import SimpleDirectoryReader
-        documents = SimpleDirectoryReader(input_files=[file_path]).load_data()
-        
-        # Import the global index
-        from src.chatbot.chatbot import index
-        
-        # Insert each document into the index
-        # This will automatically chunk, embed, and store in PGVectorStore
-        for doc in documents:
-            index.insert(doc)
-            
+        file_path = _save_uploaded_file(file)
+        pipeline = IngestionPipeline(index=index)
+        result = pipeline.ingest_file(file_path, force=True)
+
         return {
-            "status": "success", 
-            "message": f"Successfully uploaded and vectorized {file.filename}",
-            "chunks_processed": len(documents)
+            "status": "success" if result.action == "indexed" else result.action,
+            "message": result.message or f"Processed {file.filename}",
+            "source_path": result.source_path,
+            "chunks_processed": result.chunk_count,
+            "skipped_duplicate_chunks": result.skipped_duplicate_chunks,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing document upload: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process and vectorize document: {str(e)}",
+        )
+
+
+class IngestUrlRequest(BaseModel):
+    url: str
+    force: bool = False
+
+
+@app.post("/ingest-url")
+async def ingest_url_endpoint(request: IngestUrlRequest):
+    """Fetches a web page and ingests it into the vector store."""
+    from src.ingestion.pipeline import IngestionPipeline
+    from src.chatbot.chatbot import index
+
+    if not request.url.strip().lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL must start with http:// or https://")
+
+    try:
+        pipeline = IngestionPipeline(index=index)
+        result = pipeline.ingest_url(request.url.strip(), force=request.force)
+        return {
+            "status": "success" if result.action == "indexed" else result.action,
+            "message": result.message,
+            "source_path": result.source_path,
+            "chunks_processed": result.chunk_count,
+            "skipped_duplicate_chunks": result.skipped_duplicate_chunks,
         }
     except Exception as e:
-        logger.error(f"Error processing PDF upload: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to process and vectorize PDF: {str(e)}")
+        logger.error(f"Error ingesting URL: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to ingest URL: {str(e)}")
 
 @app.get("/session/{session_id}/history")
 async def get_history(session_id: str):
@@ -207,6 +289,33 @@ async def get_history(session_id: str):
     
     messages = get_session_history_raw(session_id)
     return {"session_id": session_id, "messages": messages}
+
+@app.post("/session/{session_id}/message")
+async def save_session_message(session_id: str, request: SaveMessageRequest):
+    from src.db.session_manager import save_message
+
+    try:
+        uuid.UUID(session_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid session ID format."
+        )
+
+    if request.role not in ("user", "assistant"):
+        raise HTTPException(status_code=400, detail="Role must be 'user' or 'assistant'.")
+
+    if not request.content.strip():
+        raise HTTPException(status_code=400, detail="Message content cannot be empty.")
+
+    save_message(
+        session_id,
+        request.role,
+        request.content,
+        display_content=request.display_content or request.content,
+        metadata=request.metadata,
+    )
+    return {"status": "ok", "session_id": session_id}
 
 
 if __name__ == "__main__":
