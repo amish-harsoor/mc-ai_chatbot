@@ -17,7 +17,19 @@ GOAL_PATTERN = re.compile(
     r"career goal is:\s*(.+?)(?:\.\s*please|\.\s*$|$)",
     re.IGNORECASE,
 )
-COURSE_ID_PATTERN = re.compile(r"\b(\d{4,6})\b")
+COURSE_ID_IN_QUERY_PATTERNS = (
+    re.compile(
+        r"course\s+(?:id\s+|number\s*:?\s*|#)?(\d{4,6})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[^\d])(\d{4,6})(?=\s*(?:course|class|training)\b)",
+        re.IGNORECASE,
+    ),
+    re.compile(r"course/id/(\d{4,6})\b", re.IGNORECASE),
+    re.compile(r"Course\s+Number:\s*(\d{4,6})\b", re.IGNORECASE),
+)
+YEAR_LIKE_ID_PATTERN = re.compile(r"^20[12]\d$")
 
 
 @dataclass
@@ -48,6 +60,20 @@ def _clean_value(value: str) -> str:
     return value.strip().rstrip(".")
 
 
+def extract_course_ids_from_text(text: str) -> list[str]:
+    """Extract course IDs from explicit catalog references (not years or phone numbers)."""
+    ids: list[str] = []
+    for pattern in COURSE_ID_IN_QUERY_PATTERNS:
+        ids.extend(pattern.findall(text))
+    return list(
+        dict.fromkeys(
+            course_id
+            for course_id in ids
+            if course_id and not YEAR_LIKE_ID_PATTERN.match(course_id)
+        )
+    )
+
+
 def _extract_from_text(text: str, profile: UserProfile) -> None:
     if match := EXPERIENCE_PATTERN.search(text):
         profile.experience = _clean_value(match.group(1))
@@ -55,7 +81,7 @@ def _extract_from_text(text: str, profile: UserProfile) -> None:
         profile.department = _clean_value(match.group(1))
     if match := GOAL_PATTERN.search(text):
         profile.goal = _clean_value(match.group(1))
-    profile.course_ids.extend(COURSE_ID_PATTERN.findall(text))
+    profile.course_ids.extend(extract_course_ids_from_text(text))
 
 
 def build_user_profile(
@@ -87,12 +113,12 @@ def build_user_profile(
             if profile_data.get(key):
                 setattr(profile, key, str(profile_data[key]))
 
-    for key in ("department", "experience", "goal", "course_id"):
-        if metadata.get(key) and not getattr(profile, key if key != "course_id" else "course_ids", None):
-            if key == "course_id":
-                profile.course_ids.append(str(metadata[key]))
-            else:
-                setattr(profile, key, str(metadata[key]))
+    for key in ("department", "experience", "goal"):
+        if metadata.get(key) and not getattr(profile, key):
+            setattr(profile, key, str(metadata[key]))
+
+    if metadata.get("course_id"):
+        profile.course_ids.append(str(metadata["course_id"]))
 
     if metadata.get("source_type"):
         profile.source_types.append(str(metadata["source_type"]))

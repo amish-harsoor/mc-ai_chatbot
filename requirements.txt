@@ -10,9 +10,12 @@ python-dotenv>=1.0,<2
 psycopg2-binary>=2.9,<3
 
 # LLM / embeddings support
-transformers>=4.40,<5
 openai>=1.30,<2
 groq>=0.9,<1
+fastembed>=0.3,<0.7
+llama-index-embeddings-fastembed>=0.2,<0.4
+# Optional: HuggingFace local embeddings (pulls torch); use EMBED_PROVIDER=huggingface
+transformers>=4.40,<5
 
 # Document ingestion
 beautifulsoup4>=4.12,<5

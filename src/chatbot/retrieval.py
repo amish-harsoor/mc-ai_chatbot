@@ -1,6 +1,7 @@
 import logging
 import os
 from functools import lru_cache
+from typing import Optional
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -11,10 +12,9 @@ from llama_index.core.postprocessor.optimizer import SentenceEmbeddingOptimizer
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.retrievers import QueryFusionRetriever, VectorIndexRetriever
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
-from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
-from llama_index.core.vector_stores.types import MetadataFilters
-from llama_index.retrievers.bm25 import BM25Retriever
-
+from llama_index.core.schema import BaseNode, NodeWithScore, QueryBundle, TextNode
+from llama_index.core.vector_stores import FilterCondition, FilterOperator
+from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters
 from src.chatbot.query_context import UserProfile, build_query_expansion_terms
 from src.db.vector_config import get_db_params, get_vector_table_name
 
@@ -40,8 +40,55 @@ RETRIEVAL_RERANK_TOP_N = _env_int("RETRIEVAL_RERANK_TOP_N", 6)
 RETRIEVAL_NUM_QUERIES = _env_int("RETRIEVAL_NUM_QUERIES", 1)
 RETRIEVAL_VECTOR_WEIGHT = _env_float("RETRIEVAL_VECTOR_WEIGHT", 0.6)
 RETRIEVAL_BM25_WEIGHT = _env_float("RETRIEVAL_BM25_WEIGHT", 0.4)
-CONTEXT_COMPRESSION_PERCENTILE = _env_float("CONTEXT_COMPRESSION_PERCENTILE", 0.5)
+CONTEXT_COMPRESSION_PERCENTILE = _env_float("CONTEXT_COMPRESSION_PERCENTILE", 0.0)
 RERANK_MODEL = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+ENABLE_CONTEXT_COMPRESSION = os.getenv("ENABLE_CONTEXT_COMPRESSION", "false").lower() == "true"
+
+
+class CourseMetadataPostprocessor(BaseNodePostprocessor):
+    """Prepend canonical course fields so the LLM always sees accurate IDs, titles, and pricing."""
+
+    def _postprocess_nodes(
+        self,
+        nodes: list[NodeWithScore],
+        query_bundle: Optional[QueryBundle] = None,
+    ) -> list[NodeWithScore]:
+        from src.ingestion.pricing import apply_catalog_prices
+
+        enriched: list[NodeWithScore] = []
+        for node_with_score in nodes:
+            metadata = apply_catalog_prices(dict(node_with_score.node.metadata or {}))
+            header_parts: list[str] = []
+            if metadata.get("course_id"):
+                header_parts.append(f"Course ID: {metadata['course_id']}")
+            if metadata.get("course_title"):
+                header_parts.append(f"Title: {metadata['course_title']}")
+            if metadata.get("duration"):
+                header_parts.append(f"Duration: {metadata['duration']}")
+            if metadata.get("price"):
+                header_parts.append(f"Cost: {metadata['price']}")
+            if metadata.get("delivery_method"):
+                header_parts.append(f"Delivery: {metadata['delivery_method']}")
+
+            if not header_parts:
+                enriched.append(node_with_score)
+                continue
+
+            prefix = " | ".join(header_parts)
+            source_text = node_with_score.node.get_content()
+            if source_text.startswith(prefix):
+                enriched.append(node_with_score)
+                continue
+
+            enriched_node = TextNode(
+                id_=node_with_score.node.id_,
+                text=f"{prefix}\n{source_text}",
+                metadata=metadata,
+            )
+            enriched.append(
+                NodeWithScore(node=enriched_node, score=node_with_score.score)
+            )
+        return enriched
 
 
 class ProfileAwareRetriever(BaseRetriever):
@@ -64,6 +111,65 @@ class ProfileAwareRetriever(BaseRetriever):
             logger.debug("Metadata-filtered retrieval returned no results; retrying without filters")
             return self._fallback_retriever.retrieve(query_bundle)
         return nodes
+
+
+def _node_matches_filter(node: BaseNode, metadata_filter: MetadataFilter) -> bool:
+    metadata = node.metadata or {}
+    value = metadata.get(metadata_filter.key)
+    if value is None:
+        return False
+    if metadata_filter.operator == FilterOperator.EQ:
+        return str(value) == str(metadata_filter.value)
+    return False
+
+
+def _node_matches_filters(node: BaseNode, metadata_filters: MetadataFilters) -> bool:
+    if not metadata_filters.filters:
+        return True
+    if metadata_filters.condition == FilterCondition.OR:
+        return any(_node_matches_filter(node, flt) for flt in metadata_filters.filters)
+    return all(_node_matches_filter(node, flt) for flt in metadata_filters.filters)
+
+
+class MetadataPostFilterRetriever(BaseRetriever):
+    """Post-filter hybrid retrieval results by metadata without unfiltered fallback."""
+
+    def __init__(
+        self,
+        base_retriever: BaseRetriever,
+        metadata_filters: MetadataFilters,
+    ) -> None:
+        super().__init__()
+        self._base_retriever = base_retriever
+        self._metadata_filters = metadata_filters
+
+    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+        nodes = self._base_retriever.retrieve(query_bundle)
+        return [
+            node_with_score
+            for node_with_score in nodes
+            if _node_matches_filters(node_with_score.node, self._metadata_filters)
+        ]
+
+
+class MergedRetriever(BaseRetriever):
+    """Merge results from multiple retrievers, preserving first-seen order."""
+
+    def __init__(self, retrievers: list[BaseRetriever]) -> None:
+        super().__init__()
+        self._retrievers = retrievers
+
+    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+        merged: list[NodeWithScore] = []
+        seen_ids: set[str] = set()
+        for retriever in self._retrievers:
+            for node_with_score in retriever.retrieve(query_bundle):
+                node_id = node_with_score.node.id_
+                if node_id in seen_ids:
+                    continue
+                seen_ids.add(node_id)
+                merged.append(node_with_score)
+        return merged
 
 
 class QueryExpansionRetriever(BaseRetriever):
@@ -119,9 +225,29 @@ def _load_bm25_nodes(index: VectorStoreIndex) -> list:
 
 
 def clear_bm25_cache() -> None:
-    global _bm25_nodes_cache, _base_hybrid_retriever
+    global _bm25_nodes_cache, _base_hybrid_retriever, _node_postprocessors
     _bm25_nodes_cache = None
     _base_hybrid_retriever = None
+    _node_postprocessors = None
+    try:
+        _create_reranker.cache_clear()
+    except Exception:
+        pass
+
+
+def clear_retrieval_caches() -> None:
+    """Release retrieval caches (BM25 nodes, fusion retriever, reranker)."""
+    clear_bm25_cache()
+
+
+def _get_bm25_retriever_class():
+    try:
+        from llama_index.retrievers.bm25 import BM25Retriever
+
+        return BM25Retriever
+    except ImportError as exc:
+        logger.warning("BM25 retriever unavailable (package mismatch): %s", exc)
+        return None
 
 
 def create_vector_retriever(
@@ -141,7 +267,10 @@ def create_bm25_retriever(
     index: VectorStoreIndex,
     *,
     similarity_top_k: int = RETRIEVAL_BM25_TOP_K,
-) -> BM25Retriever | None:
+) -> BaseRetriever | None:
+    BM25Retriever = _get_bm25_retriever_class()
+    if BM25Retriever is None:
+        return None
     nodes = _load_bm25_nodes(index)
     if not nodes:
         return None
@@ -186,9 +315,27 @@ def get_base_hybrid_retriever(index: VectorStoreIndex) -> BaseRetriever:
 
 def initialize_retrieval(index: VectorStoreIndex) -> None:
     """Pre-warm BM25 index, fusion retriever, and reranker at startup."""
+    import os
+    from src.ingestion.pricing import ensure_price_catalog_from_directory
+
+    data_dir = os.getenv("INGEST_DATA_DIR", "data")
+    try:
+        catalog = ensure_price_catalog_from_directory(data_dir)
+        if catalog:
+            logger.info("Course price catalog ready (%s courses)", len(catalog))
+    except Exception as exc:
+        logger.warning("Course price catalog initialization failed: %s", exc)
+
     get_base_hybrid_retriever(index)
     create_node_postprocessors()
     logger.info("Retrieval stack initialized")
+
+
+def _has_course_id_filter(metadata_filters: MetadataFilters | None) -> bool:
+    return bool(
+        metadata_filters
+        and any(flt.key == "course_id" for flt in metadata_filters.filters)
+    )
 
 
 def create_hybrid_retriever(
@@ -200,8 +347,13 @@ def create_hybrid_retriever(
     base_hybrid = get_base_hybrid_retriever(index)
 
     if metadata_filters:
-        vector_filtered = create_vector_retriever(index, filters=metadata_filters)
-        inner = ProfileAwareRetriever(vector_filtered, base_hybrid)
+        if _has_course_id_filter(metadata_filters):
+            vector_filtered = create_vector_retriever(index, filters=metadata_filters)
+            hybrid_filtered = MetadataPostFilterRetriever(base_hybrid, metadata_filters)
+            inner = MergedRetriever([vector_filtered, hybrid_filtered])
+        else:
+            vector_filtered = create_vector_retriever(index, filters=metadata_filters)
+            inner = ProfileAwareRetriever(vector_filtered, base_hybrid)
     else:
         inner = base_hybrid
 
@@ -221,14 +373,21 @@ def create_node_postprocessors() -> list[BaseNodePostprocessor]:
     if _node_postprocessors is not None:
         return _node_postprocessors
 
-    _node_postprocessors = [
-        _create_reranker(),
-        SentenceEmbeddingOptimizer(
-            embed_model=Settings.embed_model,
-            percentile_cutoff=CONTEXT_COMPRESSION_PERCENTILE,
-        ),
-        LongContextReorder(),
-    ]
+    processors: list[BaseNodePostprocessor] = [_create_reranker()]
+    if ENABLE_CONTEXT_COMPRESSION and CONTEXT_COMPRESSION_PERCENTILE > 0:
+        processors.append(
+            SentenceEmbeddingOptimizer(
+                embed_model=Settings.embed_model,
+                percentile_cutoff=CONTEXT_COMPRESSION_PERCENTILE,
+            )
+        )
+    processors.extend(
+        [
+            LongContextReorder(),
+            CourseMetadataPostprocessor(),
+        ]
+    )
+    _node_postprocessors = processors
     return _node_postprocessors
 
 

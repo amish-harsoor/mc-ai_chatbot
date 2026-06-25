@@ -1,5 +1,7 @@
 import logging
+import os
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -11,15 +13,57 @@ from llama_index.readers.file import MarkdownReader, PDFReader
 from src.ingestion.metadata import (
     enrich_document_metadata,
     file_content_hash,
+    merge_course_metadata,
     parse_markdown_frontmatter,
     source_id_for_path,
     source_id_for_url,
+)
+from src.ingestion.pricing import (
+    apply_catalog_prices,
+    is_gsa_price_list,
+    update_price_catalog_from_text,
 )
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown", ".txt"}
 WEB_USER_AGENT = "mc-ai-chatbot-ingestion/1.0"
+
+DEFAULT_SKIP_FILENAMES = {
+    "1.2.1.3.1_mod-6-2.pdf",
+}
+
+
+def sanitize_text(text: str | None) -> str:
+    """Remove NUL bytes that break Postgres text inserts."""
+    if not text:
+        return ""
+    return text.replace("\x00", "")
+
+
+@lru_cache(maxsize=1)
+def get_skip_filenames() -> frozenset[str]:
+    """Basenames to exclude from directory ingestion (lowercased)."""
+    names = set(DEFAULT_SKIP_FILENAMES)
+    for path in (
+        Path("ingest_skip.txt"),
+        Path(__file__).resolve().parents[2] / "ingest_skip.txt",
+    ):
+        if path.is_file():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                value = line.strip()
+                if value and not value.startswith("#"):
+                    names.add(value.lower())
+    env_value = os.getenv("INGEST_SKIP_FILES", "")
+    for part in env_value.split(","):
+        value = part.strip()
+        if value:
+            names.add(value.lower())
+    return frozenset(names)
+
+
+def should_skip_file(path: str | Path) -> bool:
+    return Path(path).name.lower() in get_skip_filenames()
 
 
 @dataclass
@@ -50,6 +94,9 @@ def discover_local_sources(data_dir: str | Path) -> list[SourceRecord]:
             continue
         if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue
+        if should_skip_file(path):
+            logger.info("Skipping excluded file: %s", path)
+            continue
         source_type = _extension_to_source_type(path.suffix)
         records.append(
             SourceRecord(
@@ -72,14 +119,26 @@ def _extension_to_source_type(suffix: str) -> str:
     return "text"
 
 
+def _propagate_course_metadata(documents: list[Document]) -> None:
+    """Copy canonical course fields from the richest page onto every page of the same file."""
+    canonical = merge_course_metadata(*(doc.metadata for doc in documents))
+    if not canonical:
+        return
+    canonical = apply_catalog_prices(canonical)
+    for document in documents:
+        for key, value in canonical.items():
+            document.metadata[key] = value
+
+
 def load_pdf(path: str | Path) -> list[Document]:
     path = Path(path)
     reader = PDFReader(return_full_document=False)
     pages = reader.load_data(file=path)
     documents: list[Document] = []
     for page in pages:
+        page_text = sanitize_text(page.text)
         metadata = enrich_document_metadata(
-            text=page.text,
+            text=page_text,
             source_type="pdf",
             source_path=str(path.resolve()),
             base_metadata=dict(page.metadata or {}),
@@ -87,17 +146,24 @@ def load_pdf(path: str | Path) -> list[Document]:
         )
         documents.append(
             Document(
-                text=page.text,
+                text=page_text,
                 metadata=metadata,
                 id_=source_id_for_path(path),
             )
         )
+    full_text = "\n".join(doc.text for doc in documents)
+    if is_gsa_price_list(path, full_text):
+        update_price_catalog_from_text(full_text)
+        for document in documents:
+            document.metadata.pop("price", None)
+    else:
+        _propagate_course_metadata(documents)
     return documents
 
 
 def load_markdown(path: str | Path) -> list[Document]:
     path = Path(path)
-    raw_text = path.read_text(encoding="utf-8")
+    raw_text = sanitize_text(path.read_text(encoding="utf-8"))
     frontmatter_meta, body = parse_markdown_frontmatter(raw_text)
 
     if body.strip():
@@ -112,6 +178,7 @@ def load_markdown(path: str | Path) -> list[Document]:
         source_path=str(path.resolve()),
         base_metadata=frontmatter_meta,
     )
+    metadata = apply_catalog_prices(metadata)
     return [
         Document(
             text=text,
@@ -123,12 +190,13 @@ def load_markdown(path: str | Path) -> list[Document]:
 
 def load_text(path: str | Path) -> list[Document]:
     path = Path(path)
-    text = path.read_text(encoding="utf-8")
+    text = sanitize_text(path.read_text(encoding="utf-8"))
     metadata = enrich_document_metadata(
         text=text,
         source_type="text",
         source_path=str(path.resolve()),
     )
+    metadata = apply_catalog_prices(metadata)
     return [
         Document(
             text=text,
@@ -164,7 +232,7 @@ def load_web(url: str, timeout: int = 20) -> list[Document]:
 
     title = soup.title.get_text(strip=True) if soup.title else urlparse(url).path
     main = soup.find("main") or soup.find("article") or soup.body
-    text = main.get_text("\n", strip=True) if main else soup.get_text("\n", strip=True)
+    text = sanitize_text(main.get_text("\n", strip=True) if main else soup.get_text("\n", strip=True))
 
     metadata = enrich_document_metadata(
         text=text,
@@ -173,6 +241,7 @@ def load_web(url: str, timeout: int = 20) -> list[Document]:
         base_metadata={"url": url, "title": title},
         section_title=title,
     )
+    metadata = apply_catalog_prices(metadata)
     return [
         Document(
             text=text,

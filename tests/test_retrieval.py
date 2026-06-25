@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.core.schema import TextNode
+from llama_index.core.schema import NodeWithScore, TextNode
 from llama_index.core.vector_stores import FilterOperator
 
 from src.chatbot import retrieval
@@ -9,8 +9,35 @@ from src.chatbot.query_context import (
     build_metadata_filters,
     build_query_expansion_terms,
     build_user_profile,
+    extract_course_ids_from_text,
 )
-from src.chatbot.retrieval import QueryExpansionRetriever, _load_bm25_nodes, build_condense_prompt
+from src.chatbot.retrieval import (
+    CourseMetadataPostprocessor,
+    MetadataPostFilterRetriever,
+    QueryExpansionRetriever,
+    _load_bm25_nodes,
+    build_condense_prompt,
+)
+
+
+def test_build_user_profile_from_free_step_metadata():
+    profile = build_user_profile(
+        [],
+        latest_message="Tell me about budgeting courses",
+        request_metadata={
+            "step": "free",
+            "profile": {
+                "experience": "Mid-level (3–7 years)",
+                "department": "Finance",
+                "goal": "Earn a certification",
+            },
+            "experience": "Mid-level (3–7 years)",
+            "department": "Finance",
+            "goal": "Earn a certification",
+        },
+    )
+    assert profile.department == "Finance"
+    assert profile.goal == "Earn a certification"
 
 
 def test_build_user_profile_from_metadata_profile_dict():
@@ -72,6 +99,44 @@ def test_build_metadata_filters_for_course_id():
     assert filters.filters[0].operator == FilterOperator.EQ
 
 
+def test_extract_course_ids_ignores_years_and_phone_numbers():
+    assert extract_course_ids_from_text("Budget courses for 2025 and 2026") == []
+    assert extract_course_ids_from_text("Call 888.545.8574 for support") == []
+    assert extract_course_ids_from_text("Tell me about course 4606") == ["4606"]
+    assert extract_course_ids_from_text("https://www.managementconcepts.com/course/id/4606") == [
+        "4606"
+    ]
+
+
+def test_build_metadata_filters_skips_year_like_numbers():
+    profile = build_user_profile([], latest_message="What courses are available in 2025?")
+    assert build_metadata_filters(profile) is None
+
+
+def test_metadata_post_filter_retriever_does_not_return_unfiltered_nodes():
+    class StubRetriever:
+        def retrieve(self, query_bundle):
+            return [
+                NodeWithScore(
+                    node=TextNode(text="Budget course", metadata={"course_id": "4606"}),
+                    score=0.9,
+                ),
+                NodeWithScore(
+                    node=TextNode(text="Other course", metadata={"course_id": "9999"}),
+                    score=0.8,
+                ),
+            ]
+
+    filters = build_metadata_filters(
+        build_user_profile([], latest_message="Tell me about course 4606")
+    )
+    retriever = MetadataPostFilterRetriever(StubRetriever(), filters)
+    nodes = retriever.retrieve("course 4606")
+
+    assert len(nodes) == 1
+    assert nodes[0].node.metadata["course_id"] == "4606"
+
+
 def test_build_query_expansion_terms():
     profile = build_user_profile(
         [],
@@ -106,6 +171,47 @@ def test_query_expansion_retriever_merges_profile_terms():
 
     assert "budget analysis" in StubRetriever.last_query
     assert "Finance" in StubRetriever.last_query
+
+
+def test_course_metadata_postprocessor_prepends_structured_header():
+    node = TextNode(
+        text="Learn data visualization techniques.",
+        metadata={
+            "course_id": "4606",
+            "course_title": "Introduction to Data Visualization",
+            "duration": "2 Days",
+        },
+    )
+    processor = CourseMetadataPostprocessor()
+    result = processor.postprocess_nodes([NodeWithScore(node=node, score=0.9)])
+
+    content = result[0].node.get_content()
+    assert content.startswith(
+        "Course ID: 4606 | Title: Introduction to Data Visualization | Duration: 2 Days"
+    )
+    assert "Learn data visualization techniques." in content
+
+
+def test_course_metadata_postprocessor_fills_price_from_catalog(tmp_path, monkeypatch):
+    from src.ingestion.pricing import clear_price_catalog_cache, save_price_catalog
+
+    monkeypatch.setenv("COURSE_PRICE_CATALOG_PATH", str(tmp_path / "course_prices.json"))
+    clear_price_catalog_cache()
+    save_price_catalog({"4606": "$14,949.00"})
+
+    node = TextNode(
+        text="Learn data visualization techniques.",
+        metadata={
+            "course_id": "4606",
+            "course_title": "Introduction to Data Visualization",
+            "duration": "2 Days",
+        },
+    )
+    processor = CourseMetadataPostprocessor()
+    result = processor.postprocess_nodes([NodeWithScore(node=node, score=0.9)])
+
+    content = result[0].node.get_content()
+    assert "Cost: $14,949.00" in content
 
 
 def test_load_bm25_nodes_queries_postgres_directly():

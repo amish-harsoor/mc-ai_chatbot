@@ -8,9 +8,8 @@ from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.vector_stores.postgres import PGVectorStore
-
 from src.chatbot.query_context import build_metadata_filters, build_user_profile
+from src.ingestion.vector_store import load_index as load_vector_index
 from src.chatbot.retrieval import (
     build_condense_prompt,
     create_hybrid_retriever,
@@ -28,20 +27,23 @@ SYSTEM_PROMPT = """You are Course Advisor for Management Concepts — a concise,
 
 Scope: Use only the provided catalog context. If nothing matches or the topic is out of scope, briefly say you help with Management Concepts courses and suggest a related search. Never say "Information not available." Never return an empty response.
 
+Accuracy: Each context block may begin with a metadata header (Course ID, Title, Duration, Cost, Delivery). Use those values exactly — never invent or swap course IDs, titles, durations, or prices. When Cost appears in the header, always include the Cost line for that course. If Cost is absent from the header and body, omit the Cost line (do not guess).
+
 Style: Warm but brief. Skip greetings after the first turn. Lead with the answer; add at most 1–2 short sentences of context. One line per course on why it fits. No filler, repetition, or long intros.
 
 Lists: Use Markdown bullets (- ) or numbered lists (1. ) — never plain indented lines.
 
 Course format (required for each course):
 **[COURSE_ID]** [Course Title](https://www.managementconcepts.com/product/{course_id})
-Duration: ...
-Cost: ...
+Duration: ... (only if present in context)
+Cost: ... (only if present in context)
 Description: ...
 
 Recommend 3–5 courses unless asked for more. Tailor picks to Experience Level, Department, and Career Goal when provided in the message."""
 
 CHAT_MEMORY_TOKEN_LIMIT = int(os.getenv("CHAT_MEMORY_TOKEN_LIMIT", "3000"))
 SESSION_ENGINE_TTL_SECONDS = int(os.getenv("SESSION_ENGINE_TTL_SECONDS", "1800"))
+SESSION_ENGINE_CACHE_MAX_SIZE = int(os.getenv("SESSION_ENGINE_CACHE_MAX_SIZE", "200"))
 
 
 @dataclass
@@ -55,34 +57,12 @@ _session_engine_cache: dict[str, _CachedSessionEngine] = {}
 
 
 def load_index() -> VectorStoreIndex:
-    """Loads the index from PostgreSQL vector store (Supabase or Local based on USE_SUPABASE)."""
+    """Loads the index from PostgreSQL vector store (Supabase or local via vector_config)."""
     try:
-        use_supabase = os.getenv("USE_SUPABASE", "false").lower() == "true"
+        from src.db.connection import db_label
 
-        if use_supabase:
-            print("Using Supabase database...")
-            vector_store = PGVectorStore.from_params(
-                host=os.getenv("SUPABASE_HOST", "localhost"),
-                port=int(os.getenv("SUPABASE_PORT", "5432")),
-                database=os.getenv("SUPABASE_DATABASE", "postgres"),
-                user=os.getenv("SUPABASE_USER", "postgres"),
-                password=os.getenv("SUPABASE_PASSWORD"),
-                table_name="data_data_vectors",
-                embed_dim=384,
-            )
-        else:
-            print("Using local database...")
-            vector_store = PGVectorStore.from_params(
-                host=os.getenv("DB_HOST", "localhost"),
-                port=int(os.getenv("DB_PORT", "5432")),
-                database=os.getenv("DB_NAME", "mc_chatbot"),
-                user=os.getenv("DB_USER", "postgres"),
-                password=os.getenv("DB_PASSWORD"),
-                table_name="data_vectors",
-                embed_dim=384,
-            )
-
-        return VectorStoreIndex.from_vector_store(vector_store)
+        print(f"Using {db_label()} vector store...")
+        return load_vector_index()
     except Exception as e:
         logger.error(f"Error loading index: {e}")
         raise
@@ -98,8 +78,21 @@ except Exception as exc:
     logger.warning("Retrieval pre-warm failed; will retry on first chat: %s", exc)
 
 
-def _should_skip_condense(request_metadata: dict[str, Any] | None) -> bool:
-    return bool(request_metadata and request_metadata.get("profile_complete"))
+def _should_skip_condense(
+    request_metadata: dict[str, Any] | None,
+    chat_history: list | None = None,
+) -> bool:
+    """Skip query condensation for direct/standalone prompts where rewriting hurts retrieval."""
+    if not request_metadata:
+        return not chat_history
+
+    if request_metadata.get("profile_complete"):
+        return True
+
+    if request_metadata.get("step") == "free":
+        return True
+
+    return not chat_history
 
 
 def _memory_from_history(chat_history: list) -> ChatMemoryBuffer:
@@ -118,6 +111,15 @@ def _prune_session_engine_cache() -> None:
     ]
     for sid in expired:
         _session_engine_cache.pop(sid, None)
+
+    overflow = len(_session_engine_cache) - SESSION_ENGINE_CACHE_MAX_SIZE
+    if overflow > 0:
+        oldest = sorted(
+            _session_engine_cache.items(),
+            key=lambda item: item[1].updated_at,
+        )[:overflow]
+        for sid, _ in oldest:
+            _session_engine_cache.pop(sid, None)
 
 
 def clear_session_engine_cache(session_id: str | None = None) -> None:
@@ -142,7 +144,7 @@ def create_chat_engine(
         chat_history = []
 
     if skip_condense is None:
-        skip_condense = _should_skip_condense(request_metadata)
+        skip_condense = _should_skip_condense(request_metadata, chat_history)
 
     profile = build_user_profile(
         chat_history,
@@ -180,7 +182,7 @@ def get_or_create_chat_engine(
     if chat_history is None:
         chat_history = []
 
-    skip_condense = _should_skip_condense(request_metadata)
+    skip_condense = _should_skip_condense(request_metadata, chat_history)
     profile = build_user_profile(
         chat_history,
         latest_message=latest_message,
@@ -188,6 +190,8 @@ def get_or_create_chat_engine(
     )
     profile_key = profile.summary()
     now = time.time()
+
+    _prune_session_engine_cache()
 
     cached = _session_engine_cache.get(session_id)
     if cached and now - cached.updated_at <= SESSION_ENGINE_TTL_SECONDS:

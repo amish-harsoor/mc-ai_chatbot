@@ -619,7 +619,18 @@ export default function FloatingChatbot() {
         goal: profile.goal,
       };
     } else {
+      const profile = profileRef.current;
       stepMetadata = { step: "free" };
+      if (profile.experience) stepMetadata.experience = profile.experience;
+      if (profile.department) stepMetadata.department = profile.department;
+      if (profile.goal) stepMetadata.goal = profile.goal;
+      if (profile.experience && profile.department && profile.goal) {
+        stepMetadata.profile = {
+          experience: profile.experience,
+          department: profile.department,
+          goal: profile.goal,
+        };
+      }
     }
 
     const botMessageId = newMessageId();

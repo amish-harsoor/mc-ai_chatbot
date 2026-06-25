@@ -5,10 +5,20 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.ingestion.chunkers import chunk_documents
-from src.ingestion.loaders import discover_local_sources, load_markdown, load_text
+from src.ingestion.loaders import (
+    discover_local_sources,
+    get_skip_filenames,
+    load_markdown,
+    load_text,
+    should_skip_file,
+)
 from src.ingestion.metadata import (
+    build_course_metadata,
     enrich_document_metadata,
     extract_course_ids,
+    extract_course_title,
+    extract_primary_course_id,
+    merge_course_metadata,
     parse_markdown_frontmatter,
     source_id_for_path,
     stable_hash,
@@ -50,19 +60,61 @@ def test_parse_markdown_frontmatter():
     assert "# Heading" in body
 
 
-def test_extract_course_ids():
-    text = "See course 4606 and 12345 for details. 4606 repeats."
-    assert extract_course_ids(text) == ["4606", "12345"]
+def test_extract_course_ids_ignores_phone_numbers_and_years():
+    text = (
+        "888.545.8574 | © 2025 Management Concepts\n"
+        "Course Number: 4606\n"
+        "https://www.managementconcepts.com/course/id/4606"
+    )
+    assert extract_course_ids(text, source_path="4606.pdf") == ["4606"]
+
+
+def test_extract_primary_course_id_prefers_explicit_course_number():
+    text = "888.545.8574 | Course Number: 4606 | Microsoft Office 2010"
+    assert extract_primary_course_id(text, source_path="notes.pdf") == "4606"
+
+
+def test_extract_course_title_from_pdf_header():
+    text = (
+        "888.545.8574 | ManagementConcepts.com | © 2025 Management Concepts\n\n"
+        "Introduction to Data Visualization\n"
+        "Course Number: 4606\n"
+        "Length: 2 Days"
+    )
+    assert extract_course_title(text) == "Introduction to Data Visualization"
+
+
+def test_build_course_metadata_extracts_structured_fields():
+    text = (
+        "Introduction to Data Visualization\n"
+        "Course Number: 4606\n"
+        "Length: 2 Days\n"
+        "Primary Delivery Method: Instructor-led online"
+    )
+    metadata = build_course_metadata(text=text, source_path="4606.pdf")
+    assert metadata["course_id"] == "4606"
+    assert metadata["course_title"] == "Introduction to Data Visualization"
+    assert metadata["duration"] == "2 Days"
+    assert "Instructor-led online" in metadata["delivery_method"]
+
+
+def test_merge_course_metadata_prefers_first_non_empty_value():
+    first = {"course_id": "4606", "duration": "2 Days"}
+    second = {"course_id": "9999", "course_title": "Intro"}
+    merged = merge_course_metadata(first, second)
+    assert merged["course_id"] == "4606"
+    assert merged["course_title"] == "Intro"
 
 
 def test_enrich_document_metadata_includes_course_and_section():
     metadata = enrich_document_metadata(
-        text="# Federal Budget\nCourse 4606 details",
+        text="# Federal Budget\nCourse Number: 4606",
         source_type="markdown",
         source_path="/tmp/4606.md",
-        base_metadata={"department": "Finance"},
+        base_metadata={"department": "Finance", "title": "Federal Budget"},
     )
     assert metadata["course_id"] == "4606"
+    assert metadata["course_title"] == "Federal Budget"
     assert metadata["department"] == "Finance"
     assert metadata["section_title"] == "Federal Budget"
     assert metadata["source_type"] == "markdown"
@@ -73,6 +125,22 @@ def test_source_id_is_stable_for_same_path():
     second = source_id_for_path("data/course.md")
     assert first == second
     assert len(first) == 64
+
+
+def test_should_skip_problem_pdf():
+    get_skip_filenames.cache_clear()
+    assert should_skip_file("1.2.1.3.1_Mod-6-2.pdf") is True
+    assert should_skip_file("4606.pdf") is False
+
+
+def test_discover_local_sources_excludes_skipped_files(tmp_path):
+    get_skip_filenames.cache_clear()
+    (tmp_path / "4606.pdf").write_bytes(b"%PDF-1.4")
+    (tmp_path / "1.2.1.3.1_Mod-6-2.pdf").write_bytes(b"%PDF-1.4")
+
+    sources = discover_local_sources(tmp_path)
+    assert len(sources) == 1
+    assert sources[0].source_path.endswith("4606.pdf")
 
 
 def test_discover_local_sources_finds_supported_files(tmp_path):
@@ -89,8 +157,24 @@ def test_load_markdown_extracts_frontmatter(sample_markdown_file):
     docs = load_markdown(sample_markdown_file)
     assert len(docs) == 1
     assert docs[0].metadata["title"] == "Budget Analysis"
+    assert docs[0].metadata["course_title"] == "Budget Analysis"
     assert docs[0].metadata["course_id"] == "4606"
     assert "Learning Objectives" in docs[0].text
+
+
+def test_load_pdf_propagates_course_metadata_to_all_pages():
+    from src.ingestion.loaders import load_pdf
+
+    pdf_path = Path(__file__).resolve().parents[1] / "src" / "data" / "4606.pdf"
+    if not pdf_path.exists():
+        pytest.skip("Sample PDF not available")
+
+    docs = load_pdf(pdf_path)
+    assert len(docs) > 1
+    for doc in docs:
+        assert doc.metadata["course_id"] == "4606"
+        assert doc.metadata["course_title"] == "Introduction to Data Visualization"
+        assert doc.metadata["duration"] == "2 Days"
 
 
 def test_chunk_documents_adds_chunk_metadata(sample_markdown_file):

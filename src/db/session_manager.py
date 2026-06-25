@@ -1,20 +1,15 @@
-import psycopg2
 from psycopg2.extras import DictCursor, Json
-import os
 import json
 from dotenv import load_dotenv
 from llama_index.core.llms import ChatMessage, MessageRole
 
+from src.db.connection import get_connection
+
 load_dotenv()
 
+
 def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv("SUPABASE_HOST"),
-        port=os.getenv("SUPABASE_PORT", "5432"),
-        database=os.getenv("SUPABASE_DATABASE", "postgres"),
-        user=os.getenv("SUPABASE_USER"),
-        password=os.getenv("SUPABASE_PASSWORD")
-    )
+    return get_connection()
 
 def init_db():
     """Create the chat_messages table and ensure display/metadata columns exist."""

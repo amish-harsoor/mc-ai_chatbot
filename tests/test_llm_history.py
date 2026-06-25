@@ -90,6 +90,40 @@ def test_create_chat_engine_skips_condense_for_profile_complete():
     assert engine_mock.call_args.kwargs["skip_condense"] is True
 
 
+def test_create_chat_engine_skips_condense_for_free_step_standalone_query():
+    with patch.object(chatbot, "create_hybrid_retriever", return_value=MagicMock()), patch.object(
+        chatbot, "create_node_postprocessors", return_value=[]
+    ), patch.object(
+        chatbot.CondensePlusContextChatEngine,
+        "from_defaults",
+        return_value=MagicMock(),
+    ) as engine_mock:
+        chatbot.create_chat_engine(
+            [],
+            latest_message="Tell me about course 4606",
+            request_metadata={"step": "free"},
+        )
+
+    assert engine_mock.call_args.kwargs["skip_condense"] is True
+
+
+def test_create_chat_engine_skips_condense_for_empty_history_without_metadata():
+    with patch.object(chatbot, "create_hybrid_retriever", return_value=MagicMock()), patch.object(
+        chatbot, "create_node_postprocessors", return_value=[]
+    ), patch.object(
+        chatbot.CondensePlusContextChatEngine,
+        "from_defaults",
+        return_value=MagicMock(),
+    ) as engine_mock:
+        chatbot.create_chat_engine(
+            [],
+            latest_message="What budgeting courses do you offer?",
+            request_metadata=None,
+        )
+
+    assert engine_mock.call_args.kwargs["skip_condense"] is True
+
+
 def test_get_or_create_chat_engine_reuses_cached_session_engine():
     chatbot.clear_session_engine_cache()
     fake_engine = MagicMock()

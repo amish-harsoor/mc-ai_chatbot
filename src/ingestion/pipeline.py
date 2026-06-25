@@ -1,4 +1,6 @@
+import gc
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -11,6 +13,7 @@ from src.ingestion.loaders import (
     discover_local_sources,
     load_local_file,
     load_web,
+    should_skip_file,
 )
 from src.ingestion.metadata import (
     file_content_hash,
@@ -26,9 +29,25 @@ logger = logging.getLogger(__name__)
 
 
 def _clear_bm25_cache() -> None:
-    from src.chatbot.retrieval import clear_bm25_cache
+    from src.chatbot.retrieval_cache import clear_retrieval_caches
 
-    clear_bm25_cache()
+    clear_retrieval_caches()
+
+
+def _release_ingest_memory() -> None:
+    gc.collect()
+    try:
+        import sys
+
+        torch = sys.modules.get("torch")
+        if torch is not None and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+
+
+def _should_clear_bm25_each_file() -> bool:
+    return os.getenv("INGEST_CLEAR_BM25_EACH_FILE", "false").lower() == "true"
 
 
 @dataclass
@@ -133,7 +152,10 @@ class IngestionPipeline:
             chunk_count=len(unique_nodes),
             metadata=metadata,
         )
-        _clear_bm25_cache()
+        if _should_clear_bm25_each_file():
+            _clear_bm25_cache()
+        self._known_chunk_hashes.clear()
+        _release_ingest_memory()
 
         return IngestionResult(
             source_path=source.source_path,
@@ -145,6 +167,12 @@ class IngestionPipeline:
 
     def ingest_file(self, path: str | Path, *, force: bool = False) -> IngestionResult:
         path = Path(path)
+        if should_skip_file(path):
+            return IngestionResult(
+                source_path=str(path.resolve()),
+                action="skipped",
+                message="File is in ingest skip list",
+            )
         source_type = path.suffix.lower()
         if source_type == ".pdf":
             stype = "pdf"
@@ -197,8 +225,15 @@ class IngestionPipeline:
                 if deleted:
                     summary.deleted.append(deleted)
 
-        for source in sources:
+        total = len(sources)
+        for index, source in enumerate(sources, start=1):
             try:
+                logger.info(
+                    "Processing [%s/%s] %s",
+                    index,
+                    total,
+                    source.source_path,
+                )
                 if incremental and self.registry.is_unchanged(source):
                     summary.skipped.append(
                         IngestionResult(
@@ -228,6 +263,8 @@ class IngestionPipeline:
                         message=str(exc),
                     )
                 )
+        _clear_bm25_cache()
+        _release_ingest_memory()
         return summary
 
 

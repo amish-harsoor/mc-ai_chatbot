@@ -40,15 +40,22 @@ async def lifespan(app: FastAPI):
         logger.error(f"LLM/embeddings configuration failed: {e}")
         # Do not raise here to allow health checks; real errors will surface on /chat
 
+    from src.db.course_prices import init_course_prices_table
     from src.db.session_manager import init_db
     try:
         init_db()
-        logger.info("chat_messages table initialized")
+        init_course_prices_table()
+        logger.info("chat_messages and course_prices tables initialized")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
 
     yield
-    # shutdown cleanup (none needed currently)
+    from src.chatbot.chatbot import clear_session_engine_cache
+    from src.chatbot.retrieval import clear_retrieval_caches
+
+    clear_session_engine_cache()
+    clear_retrieval_caches()
+    logger.info("Session and retrieval caches cleared on shutdown")
 
 
 app = FastAPI(title="Course Chatbot API", lifespan=lifespan)

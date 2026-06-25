@@ -2,11 +2,17 @@ import os
 
 
 def use_supabase() -> bool:
-    return os.getenv("USE_SUPABASE", "false").lower() == "true"
+    return os.getenv("USE_SUPABASE", "true").lower() == "true"
+
+
+def get_pgvector_store_name() -> str:
+    """Logical name passed to LlamaIndex PGVectorStore (physical table is data_{name})."""
+    return "vectors"
 
 
 def get_vector_table_name() -> str:
-    return "data_data_vectors" if use_supabase() else "data_vectors"
+    """Physical Postgres table holding embeddings (for BM25 SQL, status, wipe)."""
+    return f"data_{get_pgvector_store_name()}"
 
 
 def get_db_params() -> dict:
@@ -25,3 +31,27 @@ def get_db_params() -> dict:
         "user": os.getenv("DB_USER", "postgres"),
         "password": os.getenv("DB_PASSWORD"),
     }
+
+
+def validate_db_env() -> None:
+    if use_supabase():
+        required = [
+            "SUPABASE_HOST",
+            "SUPABASE_USER",
+            "SUPABASE_PASSWORD",
+        ]
+        prefix = "SUPABASE"
+    else:
+        required = [
+            "DB_HOST",
+            "DB_USER",
+            "DB_PASSWORD",
+            "DB_NAME",
+        ]
+        prefix = "DB"
+
+    missing = [key for key in required if not os.getenv(key)]
+    if missing:
+        raise RuntimeError(
+            f"Missing required {prefix} environment variables: {', '.join(missing)}"
+        )
