@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -16,12 +17,9 @@ from src.chatbot.retrieval import (
     create_node_postprocessors,
     initialize_retrieval,
 )
-from src.config import configure_llama_index
-
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-configure_llama_index()
 
 SYSTEM_PROMPT = """You are Course Advisor for Management Concepts — a concise, friendly assistant for course discovery.
 
@@ -68,14 +66,32 @@ def load_index() -> VectorStoreIndex:
         raise
 
 
-print("Loading index from PostgreSQL...")
-index = load_index()
-print("Index loaded and ready.")
-try:
-    initialize_retrieval(index)
-    print("Retrieval stack pre-warmed (BM25 + reranker).")
-except Exception as exc:
-    logger.warning("Retrieval pre-warm failed; will retry on first chat: %s", exc)
+_index = None
+_index_lock = threading.Lock()
+
+
+def get_index() -> VectorStoreIndex:
+    """Return the shared vector index, loading it on first use."""
+    global _index
+    if _index is None:
+        with _index_lock:
+            if _index is None:
+                from src.config import configure_llama_index
+
+                configure_llama_index()
+                _index = load_index()
+    return _index
+
+
+def init_chatbot() -> VectorStoreIndex:
+    """Eagerly load the index and pre-warm retrieval. Call from app startup."""
+    idx = get_index()
+    try:
+        initialize_retrieval(idx)
+        logger.info("Retrieval stack pre-warmed (BM25 + reranker).")
+    except Exception as exc:
+        logger.warning("Retrieval pre-warm failed; will retry on first chat: %s", exc)
+    return idx
 
 
 def _should_skip_condense(
@@ -153,7 +169,7 @@ def create_chat_engine(
     )
     metadata_filters = build_metadata_filters(profile)
     retriever = create_hybrid_retriever(
-        index,
+        get_index(),
         metadata_filters=metadata_filters,
         profile=profile,
     )
@@ -201,7 +217,7 @@ def get_or_create_chat_engine(
         if cached.profile_key != profile_key:
             metadata_filters = build_metadata_filters(profile)
             engine._retriever = create_hybrid_retriever(
-                index,
+                get_index(),
                 metadata_filters=metadata_filters,
                 profile=profile,
             )

@@ -63,7 +63,7 @@ def test_get_llm_session_history_filters_scripted_messages():
     mock_cursor.fetchall.return_value = rows
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
 
-    with patch("src.db.session_manager.psycopg2.connect", return_value=mock_conn):
+    with patch("src.db.session_manager.get_db_connection", return_value=mock_conn):
         messages = get_llm_session_history("session-1")
 
     assert len(messages) == 2
@@ -74,7 +74,9 @@ def test_get_llm_session_history_filters_scripted_messages():
 
 
 def test_create_chat_engine_skips_condense_for_profile_complete():
-    with patch.object(chatbot, "create_hybrid_retriever", return_value=MagicMock()), patch.object(
+    with patch.object(chatbot, "get_index", return_value=MagicMock()), patch.object(
+        chatbot, "create_hybrid_retriever", return_value=MagicMock()
+    ), patch.object(
         chatbot, "create_node_postprocessors", return_value=[]
     ), patch.object(
         chatbot.CondensePlusContextChatEngine,
@@ -91,7 +93,9 @@ def test_create_chat_engine_skips_condense_for_profile_complete():
 
 
 def test_create_chat_engine_skips_condense_for_free_step_standalone_query():
-    with patch.object(chatbot, "create_hybrid_retriever", return_value=MagicMock()), patch.object(
+    with patch.object(chatbot, "get_index", return_value=MagicMock()), patch.object(
+        chatbot, "create_hybrid_retriever", return_value=MagicMock()
+    ), patch.object(
         chatbot, "create_node_postprocessors", return_value=[]
     ), patch.object(
         chatbot.CondensePlusContextChatEngine,
@@ -108,7 +112,9 @@ def test_create_chat_engine_skips_condense_for_free_step_standalone_query():
 
 
 def test_create_chat_engine_skips_condense_for_empty_history_without_metadata():
-    with patch.object(chatbot, "create_hybrid_retriever", return_value=MagicMock()), patch.object(
+    with patch.object(chatbot, "get_index", return_value=MagicMock()), patch.object(
+        chatbot, "create_hybrid_retriever", return_value=MagicMock()
+    ), patch.object(
         chatbot, "create_node_postprocessors", return_value=[]
     ), patch.object(
         chatbot.CondensePlusContextChatEngine,

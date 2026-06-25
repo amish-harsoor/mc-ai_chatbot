@@ -15,7 +15,7 @@ def test_chat_stream_skips_llm_for_partial_onboarding():
     session_id = str(uuid.uuid4())
 
     with patch.object(session_manager, "save_message") as save_mock, \
-         patch("src.api.main.get_or_create_chat_engine") as engine_mock:
+         patch("src.api.router.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
             json={
@@ -46,7 +46,7 @@ def test_chat_stream_calls_llm_when_profile_complete():
     with patch.object(session_manager, "get_llm_session_history", return_value=[]), \
          patch.object(session_manager, "save_message") as save_mock, \
          patch("src.chatbot.chatbot.get_streaming_response", side_effect=fake_stream), \
-         patch("src.api.main.get_or_create_chat_engine", return_value=object()) as engine_mock:
+         patch("src.api.router.get_or_create_chat_engine", return_value=object()) as engine_mock:
         response = client.post(
             "/chat/stream",
             json={

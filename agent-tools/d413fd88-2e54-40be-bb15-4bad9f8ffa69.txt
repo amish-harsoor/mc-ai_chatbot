@@ -1,0 +1,890 @@
+=== 4606.pdf pages 5 price None
+  (?i)price -> no
+  (?i)tuition -> no
+  (?i)cost -> no
+  \$\d -> no
+  Course Number:\s*\d+ -> yes
+
+=== GSA-Price-List_03162026.pdf pages 50 price $2,250 person (Annual Fee)
+  (?i)price -> yes
+  (?i)tuition -> no
+  (?i)cost -> yes
+  \$\d -> yes
+  Course Number:\s*\d+ -> no
+   Authorized Federal Supply Schedule FSS Price List 
+   Prices Shown Herein are Net (discount deducted) 
+   Price list current as of Modification #PS-0079 effective March 16, 2026 
+   1b. Lowest priced model number for each SIN. See tables of awarded prices. 
+   2. Maximum Order: $1,000,000.00. 
+   3. Minimum Order: $100.00. 
+   greater of $2,000 or 20 percent of the course price.  
+   6. Discount from list prices or statement of net price. Government Net Prices (discounts already deducted). 
+   18a. Terms and conditions of repair parts indicating date of parts price lists and any discounts from list 
+   prices. Not applicable.  
+   equal to 50% of the course price. 
+   equal to 100% of the course price.  
+   MAS customer will be charged the full course price. 
+   price plus any costs incurred for delivering make-up days (including instructor fees and travel costs). 
+   and-Conditions. Please note that course prices are predicated on using Voice over Internet Protocol (VOIP) 
+   on its GSA Price List as of the date of an order. This means that MAS buyers will receive the most up-to-date 
+   cost. Management Concepts continually updates its training courses. As a result, variations in title and 
+   NOTICE OF TEMPORARY PRICE REDUCTION FOR UNLIMITED EMPLOYEE DEVELOPMENT PROGRAMS (ONLY 
+   Price: $2,250 person (Annual Fee) 
+   Price: $2,500 person (Annual Fee) 
+   costs of instructor travel. These charges are in addition to the Annual Fee and will included in the 
+   6. For PGT classes that have less than 18 students who complete the course, a $250 surcharge will be 
+   7. The customer is responsible for providing sign language interpreters and paying for other costs 
+   8. The cost of student travel is not included in the offer and is the responsibility of the customer. 
+   NOTICE OF VOLUNTARY TEMPORARY PRICE REDUCTION FOR PURCHASE OF PACKAGED COTS INDIVIDUALIZED 
+   under the following conditions.  This price reduction will only apply if any of the COTS training packages 
+   offered below are purchased on a single Order or BPA award (total value) in excess of $250,000. Management 
+   Concepts GSA MAS Price List identifies more than 250 COTS courses that provide 799 “classroom” days of 
+   training. The price total of all 799 classroom days equals $3,775,127. This amounts to an average per training 
+   day price of $4,725. Each Management Concepts course is comprised of individual learning units that can be 
+   decided to pair existing learning units from COTS courses identified on its GSA MAS Price List into the 
+   temporary price reduction for the packages based on the average per training day price of $4,725. The 
+   discounted per training prices are: 
+   • 1-day – $4,370.45 
+   • 2-days – $8,740.91 
+   • 3-days – $13,111.36 
+   • 4-days – $17,481.81 
+   • 5-days – $21,852.27 
+   All prices are based on class sizes of 30 students. GSA permits MAS contract holders to issue a voluntary 
+   price reduction to MAS customers at any time. GSA approval is not required. Management Concepts need 
+   Pricing is for virtual delivery only. For in-person training, a flat fee of $1,150 will be added to the price (any 
+   For orders of in-person deliveries, prices exclude reimbursable expenses for instructor travel, including per 
+   Management Concepts facilities.  The price for delivery at a Management Concepts facility is: 1-24 students = 
+   $600/day; 25-Max students = $800/day; and $1,000/day for computer equipped classrooms.  Alternatively, 
+   Price For 21-25 Tier  
+   5117 Federal Financial Management Systems Requirements 2 $8,596.00 
+   5786 Overview of GAO's Current Government Auditing Standards 1 $4,100.00 
+   Price For 26-30 Tier  
+   1053 Cybersecurity and the Supply Chain 2 $8,740.91 
+   3800 Emerging Technologies - Robotic Process Automation, RPA 1 $4,370.45 
+   3801 Emerging Technologies: Cutting-Edge Applications 1 $4,370.45 
+   4008 Diplomatically Savvy Leadership 1 $4,370.45 
+   4235 Unleashing the Power of Innovation 2 $8,740.91 
+   4608 Championing Data: Building a Data-Savvy Federal Workforce 2 $8,740.91 
+   4611 Federal Data Ethics Framework 2 $8,740.91 
+   4613 Data Storytelling for the Federal Government: Numbers to Narratives 2 $8,740.91 
+   4614 Leveraging Artiﬁcial Intelligence for Federal Decision-Making 2 $8,740.91 
+   4625 Federal Analytics Simulation: A Data Quest 5 $21,852.27 
+   4718 Accelerating Team Collaboration 1 $4,370.45 
+   4719 Maximizing Team Collaboration and Results 1 $4,370.45 
+   4922 Exceptional Customer Service in Federal HR 2 $8,740.91 
+   4927 Succession Planning in Federal Government 2 $8,740.91 
+   4929 Job Analysis and Hiring Assessment 2 $8,740.91 
+   4931 Introduction to Federal Human Resources (HR) 2 $8,740.91 
+   4932 Federal Human Resources (HR) Functions 3 $13,111.36 
+   4938 Federal Human Resources (HR) Business Partner Essentials 1 $4,370.45 
+   4944 Federal Staffing, Placement, and Recruitment Essentials 3 $13,111.36 
+   4945 Federal Candidate Evaluation and Qualiﬁcation Analysis 2 $8,740.91 
+   4981 Understanding Federal Labor Relations 1 $4,370.45 
+   5018 Comprehensive Overview of Federal Risk Management 2 $8,740.91 
+   3 $13,111.36 
+   5020 Overview of Internal Control and Enterprise Risk Management 2 $8,740.91 
+   5084 Joint Travel Regulations: PCS for Uniformed Service Members 2 $8,740.91 
+   5117 Federal Financial Management Systems Requirements 2 $8,740.91 
+   5142 Internal Control for Managers 1 $4,370.45 
+   5183 Budget Analysis Techniques Boot Camp Using Microsoft Excel 4 $17,481.81 
+   5212 Purpose, Time, and Amount Mini Course 1 $4,370.45 
+   5213 Federal Financial Reporting and Your FM Career Mini Course 1 $4,370.45 
+   5292 Managerial Cost Accounting for Decision Support 2 $8,740.91 
+   5412 Internal Controls - Meeting Federal Requirements – Mini Course 1 $4,370.45 
+   5611 GFMCP: Government Environmental 1 $4,370.45 
+   5612 GFMCP: Government Accounting 3 $13,111.36 
+   5613 GFMCP: Financial Controls 2 $8,740.91 
+   5641 EDFMTC Module 1: Resource Management Environment 2 $8,740.91 
+   5642 EDFMTC Module 2: Budget and Cost Analysis 3 $13,111.36 
+   5643 EDFMTC Module 3: Accounting and Finance 2 $8,740.91 
+   1 $4,370.45 
+   5749 Contemporary Issues in Federal Financial Management 2 $8,740.91 
+   5750 Contemporary Issues in Defense Financial Management 2 $8,740.91 
+   5786 Overview of GAO's Current Government Auditing Standards 1 $4,370.45 
+   5821 Supporting the Mission Through Audit Readiness in Federal Agencies 3 $13,111.36 
+   6014 The Integrated Project Team (IPT) 2 $8,740.91 
+   6021 Data Driven Decision Making  2 $8,740.91 
+   6022 Applying Pricing, Cost, and Performance Data Analysis in a Govern-
+   3 $13,111.36 
+   6023 Tailoring Development Approaches for Project Success 2 $8,740.91 
+   6318 Hybrid Project Planning, Management, and Risk 3 $13,111.36 
+   NOTICE OF VOLUNTARY TEMPORARY PRICE REDUCTION FOR PURCHASE OF INDIVIDUALIZED COTS MODULES OF 
+   Description of offer: From 7/1/2025 – 6/30/2026, agencies will receive the price reduction if purchasing indi-
+   conditions.  This price reduction will only apply if any of the modules offered below are purchased on a single 
+   Order or BPA award (total value) in excess of $250,000. Course # 4710 has a price of $24,404 for 30 students. 
+   This price includes 10 of the below modules. The standard price for each module is $2,440.40. For a limited 
+   time, the modules can be purchased at $2,318.38. Standard terms and conditions for PGT deliveries apply.  
+   Module # Module Title Duration Price For 26-30 Tier (Vir-
+   4710/MCCRT Applying Critical Thinking .5 day $2,318.38 
+   4710/MCAP Appraising Performance .5 day $2,318.38 
+   4710/MCSUP Becoming a Supervisor .5 day $2,318.38 
+   4710/MCBET Building Effective Teams .5 day $2,318.38 
+   4710/MCBEI Building Emotional Intelligence .5 day $2,318.38 
+   4710/MCBRC Building Relationships Through Collaboration .5 day $2,318.38 
+   4710/MCCO Coaching .5 day $2,318.38 
+   4710/MCCME Cultivating Motivation and Engagement .5 day $2,318.38 
+   4710/MCDEL Delegating .5 day $2,318.38 
+   4710/MCDEP Delivering Effective Presentations .5 day $2,318.38 
+   4710/MCDIS Developing Interpersonal Skills .5 day $2,318.38 
+   4710/MCDPI Diagnosing Performance Issues .5 day $2,318.38 
+   4710/MCFPS Fostering a Public Service Mindset .5 day $2,318.38 
+   4710/MCGRF Giving and Receiving Feedback .5 day $2,318.38 
+   4710/MCIPP Improving Performance and Productivity .5 day $2,318.38 
+   4710/MCCI Inﬂuencing .5 day $2,318.38 
+   4710/MIT Interviewing Techniques .5 day $2,318.38 
+   4710/MDEC Making Effective Decisions .5 day $2,318.38 
+   4710/MCMB Managing Burnout .5 day $2,318.38 
+   4710/MCCHG Managing Change .5 day $2,318.38 
+   4710/MCO Managing Conﬂict .5 day $2,318.38 
+   4710/MCS Managing Customer Service .5 day $2,318.38 
+   4710/MCMPRJ Managing Projects .5 day $2,318.38 
+   4710/MCM Mentoring .5 day $2,318.38 
+   4710/MCN Negotiating .5 day $2,318.38 
+   4710/MCPEW Preparing Effective Writing .5 day $2,318.38 
+   4710/MCCI Promoting Creativity and Innovation .5 day $2,318.38 
+   4710/MCRTT Retaining Top Talent .5 day $2,318.38 
+   4710/MCREM Running Effective Meetings .5 day $2,318.38 
+   4710/MCTS Thinking Strategically .5 day $2,318.38 
+   4710/MCFBP Working Within the Federal Budget Process  .5 day $2,318.38 
+   4710/MCWE Writing Essentials .5 day $2,318.38 
+   Government Awarded Prices (Net Prices) 
+   Project Executive $194.04 
+   Project Manager $139.16 
+   Subject Matter Expert 4 $318.50 
+   Subject Matter Expert 3 $259.70 
+   Subject Matter Expert 2 $166.60 
+   Subject Matter Expert 1 $127.40 
+   Business Analyst 3 $114.66 
+   Business Analyst 2 $93.10 
+   Business Analyst 1 $73.50 
+   Graphics Designer $55.86 
+   Administrative Assistant $45.08 
+   OE PRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per 
+   Price of 5 
+   Price Per 
+   Price of 10 
+   Pricer Per Per-
+   Price of 50 
+   Price Per 
+   Price of OE 
+   Information Technology (IT) Acquisition 1001 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Administration Of Cost-Reimbursement Contracts 1005 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Advanced Source Selection 1012 $889.15 $4,445 $841.38 $8,413.00 $793.48 $39,674.00 $745.68 $74,568.00 
+   Federal Contract Negotiation Techniques 1016 $928.21 $4,641.00 $878.24 $8,782.00 $828.34 $41,417.00 $778.44 $77,844.00 
+   Acquisition Of Commercial Items 1018 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Changes Under Government Contracts 1019 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Construction Claims 1020 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Contract Administration 1022 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Contract Claims 1023 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Contract Closeout 1024 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Contracting With Small Business Concerns 1027 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Lease Administration 1028 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Cost And Price Analysis 1030 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Cost And Price Analysis Of Lease Proposals 1031 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Ethics In Federal Contracting 1034 $610.13 $3,050.00 $577.35 $5,773.00 $544.48 $27,224.00 $511.68 $51,168.00 
+   Micro-Purchase Procedures 1035 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Cybersecurity for Contracting Professionals 1040 $832.41 $4,162.00 $787.69 $7,876.00 $742.85 $37,142.00 $698.10 $69,810.00 
+   Introduction to Agile Contracting for IT 1041 $640.83 $3,204.00 $606.39 $6,063.00 $571.87 $28,593.00 $537.42 $53,742.00 
+   fessionals 1042 $803.63 $4,018.00 $760.32 $7,603.00 $717.12 $35,856.00 $673.92 $67,392.00 
+   Training 1046 $1,096.55 $5,482.00 $1,037.64 $10,376.00 $978.57 $48,928.00 $919.62 $91,962.00 
+   Federal Contract Law 1047 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Introduction To Federal Contracting 1048 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Federal Real Property Leasing Refresher 1049 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Federal Real Property Lease Law 1050 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Appropriations Law for Contracting Professionals 1051 $889.15 $4,445.00 $841.38 $8,413.00 $793.48 $39,674.00 $745.68 $74,568.00 
+   Cost Rates 1052 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Federal Acquisition Regulation (FAR) Overview 1058 $896.64 $4,483.00 $848.32 $8,483.00 $800.12 $40,006.00 $751.92 $75,192.00 
+   Procurement Innovation - FAR Flexibilities 1059 $1,022.16 $5,110.00 $967.12 $9,671.00 $912.17 $45,608.00 $857.22 $85,722.00 
+   Contracting Officer’s Representative Course 1070 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   COR Level 1 Refresher 1071 $610.13 $3,050.00 $577.35 $5,773.00 $544.48 $27,224.00 $511.68 $51,168.00 
+   Advanced COR Workshop 1072 $1,214.68 $6,073.00 $1,149.32 $11,493.00 $1,083.98 $54,199.00 $1,018.68 $101,868.00 
+   Basic (Level 1) Contracting Officer's Representative 1073 $590.60 $2,953.00 $558.86 $5,588.00 $527.05 $26,352.00 $495.30 $49,530.00 
+   Best Value Source Selection Using Tradeoffs 1074 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Performance-Based Service Acquisition 1076 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Simplified Acquisition Procedures 1077 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Source Selection 1078 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Writing Performance Work Statements 1079 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Leases 1081 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   Terminating Contracts 1082 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Types Of Contracts 1084 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Market Research 1089 $610.13 $3,050.00 $577.35 $5,773.00 $544.48 $27,224.00 $511.68 $51,168.00 
+   Strategic Sourcing Workshop 1090 $798.01 $3,990.00 $755.04 $7,550.00 $712.14 $35,607.00 $669.24 $66,924.00 
+   Statement of Work (SOW) Workshop 1091 $798.01 $3,990.00 $755.04 $7,550.00 $712.14 $35,607.00 $669.24 $66,924.00 
+   Task And Delivery Order Contracting 1120 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Developing the Independent Government Cost Esti-
+   mate 1125 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Evaluating A Contractor’s Performance 1126 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Incentive Contracts 1127 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Managing Contracting Organizations 1403 $1,215.61 $6,078.00 $1,150.29 $11,502.00 $1,084.81 $54,240.00 $1,019.46 $101,946.00 
+   Simplified Acquisition Refresher 1153 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Service Contract Labor Standards Statute Overview 1162 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Advanced Simplified Acquisition Procedures 1177 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   tion Course 1235 $1,487.19 $7,435.00 $1,407.12 $14,071.00 $1,327.17 $66,358.00 $1,247.22 $124,722.00 
+   Emergency Contracting Basics Course 1525 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   Lease Acquisition Training 1597 $1,132.84 $5,664.00 $1,071.88 $10,718.00 $1,010.94 $50,547.00 $950.04 $95,004.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   Price Per Seat (15-
+   20) Price for 15-20 Tier Price Per Seat (21-
+   Price for  
+   Price Per Seat (26-
+   30) Price for 26-30 Tier 
+   Information Technology (IT) Acquisition 1001 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Administration Of Cost-Reimbursement 
+   Contracts 1005 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Advanced Source Selection 1012 $640.64 $12,812.00 $554.53 $13,863.00 $487.59 $14,627.00 
+   Federal Contract Negotiation Techniques 1016 $668.79 $13,375.00 $578.89 $14,472.00 $509.01 $15,270.00 
+   Acquisition Of Commercial Items 1018 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   Changes Under Government Contracts 1019 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Construction Claims 1020 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Contract Administration 1022 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Contract Claims 1023 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Contract Closeout 1024 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   cerns 1027 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Lease Administration 1028 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Cost And Price Analysis 1030 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Cost And Price Analysis Of Lease Pro-
+   posals 1031 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Ethics In Federal Contracting 1034 $439.61 $8,792.00 $380.51 $9,512.00 $334.58 $10,037.00 
+   Micro-Purchase Procedures 1035 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   sionals 1040 $599.76 $11,995.00 $519.14 $12,978.00 $456.47 $13,694.00 
+   Introduction to Agile Contracting for IT 1041 $461.71 $9,234.00 $399.66 $9,991.00 $351.41 $10,542.00 
+   tracting Professionals 1042 $578.99 $11,579.00 $501.16 $12,529.00 $440.66 $13,219.00 
+   mation Act Training 1046 $790.08 $15,801.00 $683.88 $17,097.00 $601.32 $18,039.00 
+   Federal Contract Law 1047 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Introduction To Federal Contracting 1048 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Federal Real Property Leasing Refresher 1049 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Federal Real Property Lease Law 1050 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   fessionals 1051 $640.64 $12,812.00 $554.53 $13,863.00 $487.59 $14,627.00 
+   Indirect Cost Rates 1052 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Overview 1058 $646.01 $12,920.00 $559.16 $13,979.00 $491.67 $14,750.00 
+   ties 1059 $736.46 $14,729.00 $637.47 $15,936.00 $560.51 $16,815.00 
+   Course 1070 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   COR Level 1 Refresher 1071 $439.61 $8,792.00 $380.51 $9,512.00 $334.58 $10,037.00 
+   Advanced COR Workshop 1072 $875.18 $17,503.00 $757.54 $18,938.00 $666.10 $19,983.00 
+   resentative 1073 $425.53 $8,510.00 $368.33 $9,208.00 $323.87 $9,716.00 
+   Tradeoffs 1074 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   Performance-Based Service Acquisition 1076 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Simplified Acquisition Procedures 1077 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Source Selection 1078 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Writing Performance Work Statements 1079 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Property Leases 1081 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Terminating Contracts 1082 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Types Of Contracts 1084 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Market Research 1089 $439.61 $8,792.00 $380.51 $9,512.00 $334.58 $10,037.00 
+   Strategic Sourcing Workshop 1090 $574.97 $11,499.00 $497.68 $12,442.00 $437.60 $13,128.00 
+   Statement of Work (SOW) Workshop 1091 $574.97 $11,499.00 $497.68 $12,442.00 $437.60 $13,128.00 
+   Task And Delivery Order Contracting 1120 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   Cost Estimate 1125 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Evaluating A Contractor’s Performance 1126 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Incentive Contracts 1127 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Managing Contracting Organizations 1403 $875.86 $17,517.00 $758.13 $18,953.00 $666.60 $19,998.00 
+   Simplified Acquisition Refresher 1153 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   ute Overview 1162 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   dures 1177 $830.95 $16,619.00 $719.26 $17,981.00 $632.43 $18,972.00 
+   Preparation Course 1235 $1,071.53 $21,430.00 $927.50 $23,187.00 $815.53 $24,465.00 
+   Emergency Contracting Basics Course 1525 $567.60 $11,352.00 $491.30 $12,282.00 $431.99 $12,959.00 
+   Lease Acquisition Training 1597 $816.21 $16,324.00 $706.50 $17,662.00 $621.21 $18,636.00 
+   Price Notes 
+   https://www.managementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be
+   the tier prices above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed
+   Management Concepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem.
+   Concepts facilities.  The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $
+   $1,000/day for computer equipped classrooms.  Alternatively, eligible ordering activities may request Management Concepts to arrange trainin
+   OE PRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per 
+   Price of 5 
+   Price Per 
+   Price of 10 
+   Pricer Per Per-
+   Price of 50 
+   Price Per 
+   Price of OE 
+   Federal Grants Update and Refresher 2023 $798.93 $3,994.00 $755.92 $7,559.00 712.97 $35,648.00 670.02 $67,002.00 
+   2040 $935.66 $4,678.00 $885.38 $8,853.00 $834.98 $41,749.00 $784.68 $78,468.00 
+   2042 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   2043 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   2044 $639.89 $3,199.00 $605.44 $6,054.00 $571.04 $28,552.00 $536.64 $53,664.00 
+   Appropriations Law for Federal Grants 2045 $610.13 $3,050.00 $577.35 $5,773.00 $544.48 $27,224.00 $511.68 $51,168.00 
+   Federal Assistance Law 2046 $935.66 $4,678.00 $885.38 $8,853.00 $834.98 $41,749.00 $784.68 $78,468.00 
+   Ethics in the Grants Environment 2047 $639.89 $3,199.00 $605.44 $6,054.00 $571.04 $28,552.00 $536.64 $53,664.00 
+   Closeout of Grants for Federal Personnel 2048 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   2049 $935.66 $4,678.00 $885.38 $8,853.00 $834.98 $41,749.00 $784.68 $78,468.00 
+   2050 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Cost Principles For Federal Grants:  2 Cfr Part 200 
+   2080 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Advanced Cost Principles: Avoiding Problem Areas 
+   And Responding To Questioned Costs 
+   2084 $639.89 $3,199.00 $605.44 $6,054.00 $571.04 $28,552.00 $536.64 $53,664.00 
+   Developing & Monitoring Indirect/F&A Cost Rate 
+   2085 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Understanding Audits for Federal Personnel 2086 $752.43 $3,762.00 $712.00 $7,120.00 $671.47 $33,573.00 $631.02 $63,102.00 
+   2091 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   2093 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   Price Per Seat 
+   Price for 15-20 
+   Price Per Seat 
+   Price for 21-25 
+   Price Per Seat 
+   Price for 26-30 
+   Federal Grants Update and Refresher 2023 $575.64 $11,512 $498.27 $12,456 $438.12 $13,143 
+   2040 $674.15 $13,483.00 $583.53 $14,588.00 $513.09 $15,392.00 
+   2042 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   eral Personnel 2043 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Cooperative Agreements and Substantial Involvement 2044 $461.05 $9,221.00 $399.07 $9,976.00 $350.90 $10,527.00 
+   Appropriations Law for Federal Grants 2045 $439.61 $8,792.00 $380.51 $9,512.00 $334.58 $10,037.00 
+   Federal Assistance Law 2046 $674.15 $13,483.00 $583.53 $14,588.00 $513.09 $15,392.00 
+   Ethics in the Grants Environment 2047 $461.05 $9,221.00 $399.07 $9,976.00 $350.90 $10,527.00 
+   Closeout of Grants for Federal Personnel 2048 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Grants Administration for Federal Program Personnel 2049 $674.15 $13,483.00 $583.53 $14,588.00 $513.09 $15,392.00 
+   2 CFR 200 (Subparts A-D) 2050 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Cost Principles For Federal Grants:  2 Cfr Part 200 (Sub-
+   part E) And Far 31.2 2080 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Advanced Cost Principles: Avoiding Problem Areas And 
+   Responding To Questioned Costs 2084 $461.05 $9,221.00 $399.07 $9,976.00 $350.90 $10,527.00 
+   Developing & Monitoring Indirect/F&A Cost Rate Pro-
+   posals 2085 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Understanding Audits for Federal Personnel 2086 $542.14 $10,842.00 $469.26 $11,731.00 $412.61 $12,378.00 
+   And Reporting Grant Performance 2091 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   jects 2093 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Price Notes 
+   agementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be added to the t
+   above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed to by Managemen
+   cepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem. In the event 
+   The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $800/day; and $1,000/da
+   OE PRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per 
+   Price of 5 
+   Price Per 
+   Price of 10 
+   Pricer Per Per-
+   Price of 50 
+   Price Per 
+   Price of OE 
+   Leadership & Management Skills for Non-Managers 4000 $965.42 $4,827.00 $913.44 $9,134.00 $861.54 $43,077.00 $809.64 $80,964.00 
+   Leadership Skills & Techniques 4001 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   Advanced Leadership Skills & Techniques 4002 $1,074.24 $5,371.00 $1,016.40 $10,164.00 $958.65 $47,932.00 $900.90 $90,090.00 
+   Engaging Leadership 4003 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Emotionally Intelligent Leadership 4004 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   4046 $1,100.28 $5,501.00 $1,041.04 $10,410.00 $981.89 $49,094.00 $922.74 $92,274.00 
+   Critical Thinking For Problem Solving 4060 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   From Tactical To Strategic Thinking 4062 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Breakthrough Problem Solving 4063 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   4080 $860.32 $4,301.00 $814.01 $8,140.00 $767.75 $38,387.00 $721.50 $72,150.00 
+   Generating Executive Leadership 4085 $1,790.30 $8,951.00 $1,694.04 $16,940.00 $1,597.75 $79,887.00 $1,501.50 $150,150.00 
+   Running Effective Meetings 4106 $538.54 $2,692.00 $509.58 $5,095.00 $480.57 $24,028.00 $451.62 $45,162.00 
+   Grammar Refresher 4316 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Business Writing 4317 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Briefing And Presentation Skills 4318 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   Group Facilitation 4319 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   Communicating Strategically 4320 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Persuasive Speaking 4340 $1,068.65 $5,343.00 $1,011.23 $10,112.00 $953.67 $47,683.00 $896.22 $89,622.00 
+   360 Degree Assessment Workshop 4350 $1,096.55 $5,482.00 $1,037.52 $10,375.00 $978.57 $48,928.00 $919.62 $91,962.00 
+   Influencing Skills 4363 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Resolving Conflict 4364 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Negotiation Skills 4365 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   4367 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   Working on a Virtual Team 4370 $449.23 $2,246.00 $425.09 $4,250.00 $400.89 $20,044.00 $376.74 $37,674.00 
+   MBTI Workshop 4373 $519.91 $2,599.00 $491.98 $4,919.00 $463.97 $23,198.00 $436.02 $43,602.00 
+   Customer Service Skills And Techniques 4374 $699.42 $3,497.00 $661.83 $6,618.00 $624.16 $31,208.00 $586.56 $58,656.00 
+   Fostering a Public Service Mindset 4380 $538.49 $2,692.00 $509.52 $5,095.00 $480.57 $24,028.00 $451.62 $45,162.00 
+   Principles of Analytics 4601 $1,044.47 $5,222.00 $988.24 $9,882.00 $932.09 $46,604.00 $875.94 $87,594.00 
+   Data-Driven Decision Making 4604 $908.69 $4,543.00 $859.86 $8,598.00 $810.91 $40,545.00 $762.06 $76,206.00 
+   Data Visualization 4606 $908.69 $4,543.00 $859.86 $8,598.00 $810.91 $40,545.00 $762.06 $76,206.00 
+   Data Collection Techniques 4610 $1,636.94 $8,184.00 $1,548.80 $15,488.00 $1,460.80 $73,040.00 $1,372.80 $137,280.00 
+   Data Analysis & Modeling Techniques 4615 $1,636.94 $8,184.00 $1,548.80 $15,488.00 $1,460.80 $73,040.00 $1,372.80 $137,280.00 
+   Analytics Capstone 4625 $1,952.12 $9,760.00 $1,847.16 $18,471.00 $1,742.17 $87,108.00 $1,637.22 $163,722.00 
+   Decision Making 4645 $429.69 $2,148.00 $406.61 $4,066.00 $383.46 $19,173.00 $360.36 $36,036.00 
+   Analytics Boot Camp 4650 $1,715.06 $8,575.00 $1,622.76 $16,227.00 $1,530.52 $76,526.00 $1,438.32 $143,832.00 
+   Evaluating and Presenting Analysis Results 4665 $1,271.42 $6,357.00 $1,203.09 $12,030.00 $1,134.61 $56,730.00 $1,066.26 $106,626.00 
+   Anytime Coaching 4700 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   Building And Sustaining Teams 4704 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   HR Essentials for Government Supervisors 4708 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Professional Government Supervisor Program 4710 $1,483.47 $7,417.00 $1,403.60 $14,036.00 $1,323.85 $66,192.00 $1,244.10 $124,410.00 
+   Navigating Change in Turbulent Times 4712 $1,024.95 $5,124.00 $969.87 $9,698.00 $914.66 $45,733.00 $859.56 $85,956.00 
+   Supervising Employee Performance 4713 $965.42 $4,827.00 $913.44 $9,134.00 $861.54 $43,077.00 $809.64 $80,964.00 
+   Supervisor's Workshop 4723 $2,194.05 $10,970.00 $2,075.92 $20,759.00 $1,957.97 $97,898.00 $1,840.02 $184,002.00 
+   Managing a Virtual Team 4730 $402.72 $2,013.00 $381.09 $3,810.00 $359.39 $17,969.00 $337.74 $33,774.00 
+   Strategic Planning in Federal Agencies 4750 $899.44 $4,497.00 $851.05 $8,510.00 $802.61 $40,130.00 $754.26 $75,426.00 
+   Federal Workforce Planning 4906 $778.47 $3,892.00 $736.64 $7,366.00 $694.71 $34,735.00 $652.86 $65,286.00 
+   HR Analytics 4911 $784.05 $3,920.00 $741.84 $7,418.00 $699.69 $34,984.00 $657.54 $65,754.00 
+   Position Classification 4913 $995.23 $4,976.00 $941.60 $9,416.00 $888.10 $44,405.00 $834.60 $83,460.00 
+   Position Management 4914 $817.53 $4,087.00 $773.52 $7,735.00 $729.57 $36,478.00 $685.62 $68,562.00 
+   Employee Relations 4917 $699.42 $3,497.00 $661.83 $6,618.00 $624.16 $31,208.00 $586.56 $58,656.00 
+   Supporting Professional Growth in Organizations 4918 $511.60 $2,558.00 $484.06 $4,840.00 $456.50 $22,825.00 $429.00 $42,900.00 
+   Getting Efficient: Optimizing HR Operations 4919 $511.60 $2,558.00 $484.06 $4,840.00 $456.50 $22,825.00 $429.00 $42,900.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   TEMPORARY PRICE REDUCTION: Until March12,2026, Orders for 50-99 registrations receive a 17% discount and Orders of 100+ registrations receiv
+   Price Per Seat 
+   Price for 15-20 
+   Price Per Seat 
+   Price for 21-25 
+   Price Per Seat 
+   Price for 26-30 
+   Managers 4000 $695.59 $13,911.00 $602.10 $15,052.00 $529.41 $15,882.00 
+   Leadership Skills & Techniques 4001 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   Advanced Leadership Skills & Techniques 4002 $773.99 $15,479.00 $669.95 $16,748.00 $589.08 $17,672.00 
+   Engaging Leadership 4003 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Emotionally Intelligent Leadership 4004 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   ment Workshop 4046 $792.76 $15,855.00 $686.20 $17,155.00 $603.36 $18,100.00 
+   Critical Thinking For Problem Solving 4060 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   From Tactical To Strategic Thinking 4062 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Breakthrough Problem Solving 4063 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   silience 4080 $619.87 $12,397.00 $536.54 $13,413.00 $471.78 $14,153.00 
+   Generating Executive Leadership 4085 $1,289.99 $25,799.00 $1,116.59 $27,914.00 $981.80 $29,454.00 
+   Running Effective Meetings 4106 $388.00 $7,760.00 $335.85 $8,396.00 $295.30 $8,859.00 
+   Grammar Refresher 4316 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Business Writing 4317 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Briefing And Presentation Skills 4318 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   Group Facilitation 4319 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   Communicating Strategically 4320 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Persuasive Speaking 4340 $769.97 $15,399.00 $666.48 $16,662.00 $586.02 $17,580.00 
+   360 Degree Assessment Workshop 4350 $790.08 $15,801.00 $683.88 $17,097.00 $601.32 $18,039.00 
+   Influencing Skills 4363 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Resolving Conflict 4364 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Negotiation Skills 4365 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   lationships 4367 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   Working on a Virtual Team 4370 $323.67 $6,473.00 $280.16 $7,004.00 $246.34 $7,390.00 
+   MBTI Workshop 4373 $374.60 $7,492.00 $324.25 $8,106.00 $285.11 $8,553.00 
+   Customer Service Skills And Techniques 4374 $503.94 $10,078.00 $436.20 $10,905.00 $383.54 $11,506.00 
+   Fostering a Public Service Mindset 4380 $388.00 $7,760.00 $335.85 $8,396.00 $295.30 $8,859.00 
+   Principles of Analytics 4601 $752.55 $15,051.00 $651.40 $16,285.00 $572.76 $17,182.00 
+   Data-Driven Decision Making 4604 $654.71 $13,094.00 $566.71 $14,167.00 $498.30 $14,949.00 
+   Data Visualization 4606 $654.71 $13,094.00 $566.71 $14,167.00 $498.30 $14,949.00 
+   Data Collection Techniques 4610 $1,179.43 $23,588.00 $1,020.89 $25,522.00 $897.64 $26,929.00 
+   Data Analysis & Modeling Techniques 4615 $1,179.43 $23,588.00 $1,020.89 $25,522.00 $897.64 $26,929.00 
+   Analytics Capstone 4625 $1,406.59 $28,131.00 $1,217.52 $30,438.00 $1,070.54 $32,116.00 
+   Decision Making 4645 $309.60 $6,192.00 $267.98 $6,699.00 $235.63 $7,068.00 
+   Analytics Boot Camp 4650 $1,235.71 $24,714.00 $1,069.61 $26,740.00 $940.48 $28,214.00 
+   Evaluating and Presenting Analysis Results 4665 $916.06 $18,321.00 $792.93 $19,823.00 $697.21 $20,916.00 
+   Anytime Coaching 4700 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   Building And Sustaining Teams 4704 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   HR Essentials for Government Supervisors 4708 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Professional Government Supervisor Program 4710 $1,068.85 $21,377.00 $925.18 $23,129.00 $813.49 $24,404.00 
+   Navigating Change in Turbulent Times 4712 $738.48 $14,769.00 $639.21 $15,980.00 $562.05 $16,861.00 
+   Supervising Employee Performance 4713 $695.59 $13,911.00 $602.10 $15,052.00 $529.41 $15,882.00 
+   Supervisor's Workshop 4723 $1,580.83 $31,616.00 $1,368.34 $34,208.00 $1,203.15 $36,094.00 
+   Managing a Virtual Team 4730 $290.17 $5,803.00 $251.16 $6,279.00 $220.84 $6,625.00 
+   Strategic Planning in Federal Agencies 4750 $648.01 $12,960.00 $560.91 $14,022.00 $493.20 $14,796.00 
+   Federal Workforce Planning 4906 $560.90 $11,218.00 $485.50 $12,137.00 $426.89 $12,806.00 
+   HR Analytics 4911 $564.92 $11,298.00 $488.99 $12,224.00 $429.95 $12,898.00 
+   Position Classification 4913 $717.04 $14,340.00 $620.65 $15,516.00 $545.72 $16,371.00 
+   Position Management 4914 $589.04 $11,780.00 $509.86 $12,746.00 $448.31 $13,449.00 
+   Employee Relations 4917 $503.94 $10,078.00 $436.20 $10,905.00 $383.54 $11,506.00 
+   tions 4918 $368.57 $7,371.00 $319.03 $7,975.00 $280.51 $8,415.00 
+   Getting Efficient: Optimizing HR Operations 4919 $368.57 $7,371.00 $319.03 $7,975.00 $280.51 $8,415.00 
+   Price Notes 
+   agementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be added to the t
+   above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed to by Managemen
+   cepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem. In the event 
+   The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $800/day; and $1,000/da
+   OEPRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per 
+   Price of 5 
+   Price Per 
+   Price of 10 
+   Pricer Per Per-
+   Price of 50 
+   Price Per 
+   Price of OE 
+   5000 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Improper Payments 5036 $452.02 $2,260.00 $427.73 $4,277.00 $403.38 $20,169.00 $379.08 $37,908.00 
+   Federal Financial Management Overview 5051 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Federal Travel Regulation Workshop: TDY 5080 $891.94 $4,459.00 $843.92 $8,439.00 $795.97 $39,798.00 $748.02 $74,802.00 
+   Joint Travel Regulations Workshop: TDY 5081 $891.99 $4,459.00 $844.02 $8,440.00 $795.97 $39,798.00 $748.02 $74,802.00 
+   5082 $891.94 $4,459.00 $844.02 $8,440.00 $795.97 $39,798.00 $748.02 $74,802.00 
+   5083 $1,077.95 $5,389.00 $1,019.92 $10,199.00 $961.97 $48,098.00 $904.02 $90,402.00 
+   The Federal Budget Process 5090 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   5091 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Accounting for Business Operations In Government 5102 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Budgeting and Accounting: Making the Connection 5106 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Overview of Internal Control Guidance 5108 $452.02 $2,260.00 $427.73 $4,277.00 $403.38 $20,169.00 $379.08 $37,908.00 
+   Appropriations Law Seminar 5111 $1,034.25 $5,171.00 $978.67 $9,786.00 $922.96 $46,148.00 $867.36 $86,736.00 
+   5112 $1,034.25 $5,171.00 $978.67 $9,786.00 $922.96 $46,148.00 $867.36 $86,736.00 
+   Federal Accounting Fundamentals 5113 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   5115 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Budget Formulation 5118 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   5120 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Budget Execution 5122 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   5123 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   The Antideficiency Act 5127 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   5134 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   The Prompt Payment Act and Voucher Examination 5136 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   G-Invoicing and the Intragovernmental Process 5138 $1,050.06 $5,250.00 $993.52 $9,935.00 $937.07 $46,853.00 $880.62 $88,062.00 
+   5147 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Budget Estimating Using Microsoft Excel 5155 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Appropriations Law Refresher and Update 5157 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Appropriations Law: Advanced Applications 5159 $891.94 $4,459.00 $843.92 $8,439.00 $795.97 $39,798.00 $748.02 $74,802.00 
+   Program and Budget Analysis Using Microsoft Excel 5182 $1,034.25 $5,171.00 $978.67 $9,786.00 $922.96 $46,148.00 $867.36 $86,736.00 
+   The Legislative Process: Working with Congress 5189 $870.55 $4,352.00 $823.78 $8,237.00 $776.88 $38,844.00 $730.08 $73,008.00 
+   Appropriations Law (two-days) 5211 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Preparation and Analysis of the SF 133 5233 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Reconciling with and Reporting to Treasury 5281 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   5318 $1,034.25 $5,171.00 $978.67 $9,786.00 $922.96 $46,148.00 $867.36 $86,736.00 
+   Managing for Success in a Performance Audit 5320 $870.55 $4,352.00 $823.78 $8,237.00 $776.88 $38,844.00 $730.08 $73,008.00 
+   5321 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   5330 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Cost-Benefit Analysis Using Microsoft Excel* 5405 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Fiscal Law in DoD 5511 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Advanced Internal Controls 5728 $659.43 $3,297.00 $623.99 $6,239.00 $588.47 $29,423.00 $553.02 $55,302.00 
+   Army PPBES Workshop 5730 $1,132.84 $5,664.00 $1,071.84 $10,718.00 $1,010.94 $50,547.00 $950.04 $95,004.00 
+   5750 $659.43 $3,297.00 $623.99 $6,239.00 $588.47 $29,423.00 $553.02 $55,302.00 
+   Preparing High-Impact Audit Reports 5802 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Intermediate Internal Controls 5808 $659.43 $3,297.00 $623.99 $6,239.00 $588.47 $29,423.00 $553.02 $55,302.00 
+   5810 $736.62 $3,683.00 $697.04 $6,970.00 $657.36 $32,868.00 $617.76 $61,776.00 
+   Internal Control Over Financial Reporting 5812 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Information Systems Auditing 5815 $1,077.95 $5,389.00 $1,019.92 $10,199.00 $961.97 $48,098.00 $904.02 $90,402.00 
+   Audit Boot Camp 5820 $1,132.84 $5,664.00 $1,071.84 $10,718.00 $1,010.94 $50,547.00 $950.04 $95,004.00 
+   5824 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Key to Audit Success: Focus on Objectives 5825 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   5830 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Audit Interviews:  Skills for Success 5848 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Auditing Fundamentals in the Federal Environment 5882 $689.22 $3,446.00 $652.15 $6,521.00 $615.03 $30,751.00 $577.98 $57,798.00 
+   Federal Financial Statement Audits 5886 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   Performance Auditing 5888 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   5892 $566.42 $2,832.00 $535.98 $5,359.00 $505.47 $25,273.00 $475.02 $47,502.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   TEMPORARY PRICE REDUCTION: Until March 12, 2026, Orders for 50-99 registrations receive a 17% discount and Orders of 100+ registrations rece
+   Price Per Seat 
+   Price for 15-20 
+   Price Per Seat 
+   Price for 21-25 
+   Price Per Seat 
+   Price for 26-30 
+   ard General Ledger 5000 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Improper Payments 5036 $325.68 $6,513.00 $281.90 $7,047.00 $247.87 $7,436.00 
+   Federal Financial Management Overview 5051 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Federal Travel Regulation Workshop: TDY 5080 $642.65 $12,853.00 $556.27 $13,906.00 $489.12 $14,673.00 
+   Joint Travel Regulations Workshop: TDY 5081 $642.65 $12,853.00 $556.27 $13,906.00 $489.12 $14,673.00 
+   Federal Travel Regulation: PCS for Federal Civilian Employees 5082 $642.65 $12,853.00 $556.27 $13,906.00 $489.12 $14,673.00 
+   Joint Travel Regulations: PCS for DoD Civilian Employees 5083 $776.68 $15,533.00 $672.28 $16,807.00 $591.12 $17,733.00 
+   The Federal Budget Process 5090 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Statements of Federal Financial Accounting Standards: SFFAS 5091 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Accounting for Business Operations In Government 5102 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Budgeting and Accounting: Making the Connection 5106 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Overview of Internal Control Guidance 5108 $325.68 $6,513.00 $281.90 $7,047.00 $247.87 $7,436.00 
+   Appropriations Law Seminar 5111 $745.18 $14,903.00 $645.02 $16,125.00 $567.14 $17,014.00 
+   ability 5112 $745.18 $14,903.00 $645.02 $16,125.00 $567.14 $17,014.00 
+   Federal Accounting Fundamentals 5113 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   U.S. Standard General Ledger: Practical Applications 5115 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Budget Formulation 5118 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Budget Justification: Effective Preparation and Submission 5120 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Budget Execution 5122 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   and Execution 5123 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   The Antideficiency Act 5127 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Financial Management of Business Operations in Government 5134 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   The Prompt Payment Act and Voucher Examination 5136 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   G-Invoicing and the Intragovernmental Process 5138 $756.57 $15,131.00 $654.88 $16,372.00 $575.82 $17,274.00 
+   Appropriations Law for Business Operations in Government 5147 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Budget Estimating Using Microsoft Excel 5155 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Appropriations Law Refresher and Update 5157 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Appropriations Law: Advanced Applications 5159 $642.65 $12,853.00 $556.27 $13,906.00 $489.12 $14,673.00 
+   Program and Budget Analysis Using Microsoft Excel 5182 $745.18 $14,903.00 $645.02 $16,125.00 $567.14 $17,014.00 
+   The Legislative Process: Working with Congress 5189 $627.23 $12,544.00 $542.93 $13,573.00 $477.38 $14,321.00 
+   Appropriations Law (two-days) 5211 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Preparation and Analysis of the SF 133 5233 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Reconciling with and Reporting to Treasury 5281 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Data Analysis for Financial Managers Using Microsoft Excel 5318 $745.18 $14,903.00 $645.02 $16,125.00 $567.14 $17,014.00 
+   Managing for Success in a Performance Audit 5320 $627.23 $12,544.00 $542.93 $13,573.00 $477.38 $14,321.00 
+   and Execution 5321 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Financial Management of Defense Working Capital Funds 5330 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Cost-Benefit Analysis Using Microsoft Excel* 5405 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Fiscal Law in DoD 5511 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Advanced Internal Controls 5728 $475.12 $9,502.00 $411.25 $10,281.00 $361.61 $10,848.00 
+   Army PPBES Workshop 5730 $816.21 $16,324.00 $706.50 $17,662.00 $621.21 $18,636.00 
+   Contemporary Issues in Federal Financial Management 5750 $475.12 $9,502.00 $411.25 $10,281.00 $361.61 $10,848.00 
+   Preparing High-Impact Audit Reports 5802 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Intermediate Internal Controls 5808 $475.12 $9,502.00 $411.25 $10,281.00 $361.61 $10,848.00 
+   Manage Risk Through Effective Enterprise Risk Management 5810 $530.74 $10,614.00 $459.40 $11,485.00 $403.94 $12,118.00 
+   Internal Control Over Financial Reporting 5812 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Information Systems Auditing 5815 $776.68 $15,533.00 $672.28 $16,807.00 $591.12 $17,733.00 
+   Audit Boot Camp 5820 $816.21 $16,324.00 $706.50 $17,662.00 $621.21 $18,636.00 
+   Keeping the Audit on Track: Critical Skills for Audit Managers 5824 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Key to Audit Success: Focus on Objectives 5825 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Forensic Auditing: Detection and Prevention of Fraud 5830 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Audit Interviews:  Skills for Success 5848 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Auditing Fundamentals in the Federal Environment 5882 $496.56 $9,931.00 $429.81 $10,745.00 $377.92 $11,337.00 
+   Federal Financial Statement Audits 5886 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   Performance Auditing 5888 $610.49 $12,209.00 $528.42 $13,210.00 $464.63 $13,938.00 
+   trols, And Fraud Prevention In the Federal Environment 5892 $408.11 $8,162.00 $353.25 $8,831.00 $310.61 $9,318.00 
+   Price Notes 
+   agementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be added to the t
+   above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed to by Managemen
+   cepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem. In the event 
+   The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $800/day; and $1,000/da
+   OE PRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per 
+   Price of 5 
+   Price Per 
+   Price of 10 
+   Pricer Per Per-
+   Price of 50 
+   Price Per 
+   Price of OE 
+   Acquisition of Agile Services Workshop 6002 $1,655.54 $8,277.00 $1,566.40 $15,664.00 $1,477.40 $73,870.00 $1,388.40 $138,840.00 
+   Government Product Owner 6004 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   6005 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Transitioning to Agile: A Federal Executive Overview 6006 $501.31 $2,506.00 $474.38 $4,743.00 $447.37 $22,368.00 $420.42 $42,042.00 
+   6007 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   6010 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Microsoft Project Level 1 6011 $600.83 $3,004.00 $568.54 $5,685.00 $536.18 $26,809.00 $503.88 $50,388.00 
+   IT PM I: Initiating and Planning Successful Projects 6015 $1,655.54 $8,277.00 $1,566.49 $15,664.00 $1,477.40 $73,870.00 $1,388.40 $138,840.0
+   6016 $1,407.12 $7,035.00 $1,331.47 $13,314.00 $1,255.79 $62,789.00 $1,180.14 $118,014.00 
+   Project Management Principles 6100 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   6101 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Making Decisions Using Earned Value 6102 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Project Risk Management 6103 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Managing Project Quality 6105 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Project Management Simulation 6106 $1,952.12 $9,760.00 $1,847.16 $18,471.00 $1,742.17 $87,108.00 $1,637.22 $163,722.00 
+   Project Cost Estimating 6111 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Managing Multiple Projects 6124 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Procurement for Project Managers 6126 $1,261.18 $6,305.00 $1,193.35 $11,933.00 $1,125.48 $56,274.00 $1,057.68 $105,768.00 
+   6131 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Requirements Management for Project Managers 6134 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Managing Scope, Schedule, And Cost 6135 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   6136 $1,952.12 $9,760.00 $1,847.16 $18,471.00 $1,742.17 $87,108.00 $1,637.22 $163,722.00 
+   Managing Complex Projects 6138 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   6162 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   6183 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   6184 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Strategic Portfolio and Resource Management 6187 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   6188 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Program Management 6190 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Facilitation Skills for Business Analysts 6304 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Principles Of Business Analysis 6310 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   6601 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   6602 $1,330.94 $6,654.00 $1,259.36 $12,593.00 $1,187.73 $59,386.00 $1,116.18 $111,618.00 
+   Project Risk Management (Virtual Classroom) 6603 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   Managing Project Quality (Virtual Classroom) 6605 $1,577.32 $7,886.00 $1,492.56 $14,925.00 $1,407.68 $70,384.00 $1,322.88 $132,288.00 
+   6606 $1,952.12 $9,760.00 $1,847.16 $18,471.00 $1,742.17 $87,108.00 $1,637.22 $163,722.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   TEMPORARY PRICE REDUCTION: March 26, 2026, Orders for 50-99 registrations receive a 17% discount and Orders of 100+ registrations receive a 
+   Price Per Seat 
+   Price for 15-20 
+   Price Per Seat 
+   Price for 21-25 
+   Price Per Seat 
+   Price for 26-30 
+   Acquisition of Agile Services Workshop 6002 $641.16 $12,823.00 $569.60 $14,240.00 $480.64 $14,419.00 
+   Government Product Owner 6004 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Environment 6005 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Transitioning to Agile: A Federal Executive Overview 6006 $194.15 $3,883.00 $172.48 $4,312.00 $145.54 $4,366.00 
+   Federal Environment 6007 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Agile Project Management for the Federal Environment 6010 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Microsoft Project Level 1 6011 $232.70 $4,654.00 $206.72 $5,168.00 $174.44 $5,233.00 
+   IT PM I: Initiating and Planning Successful Projects 6015 $641.16 $12,823.00 $569.60 $14,240.00 $480.64 $14,419.00 
+   Projects 6016 $544.99 $10,899.00 $484.16 $12,104.00 $408.54 $12,256.00 
+   Project Management Principles 6100 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   ers 6101 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Making Decisions Using Earned Value 6102 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Project Risk Management 6103 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Managing Project Quality 6105 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Project Management Simulation 6106 $756.06 $15,121.00 $671.68 $16,792.00 $566.78 $17,003.00 
+   Project Cost Estimating 6111 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Managing Multiple Projects 6124 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Procurement for Project Managers 6126 $488.43 $9,768.00 $433.92 $10,848.00 $366.16 $10,984.00 
+   ers 6131 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Requirements Management for Project Managers 6134 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Managing Scope, Schedule, And Cost 6135 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   tencies: Managing IT Projects 6136 $756.06 $15,121.00 $671.68 $16,792.00 $566.78 $17,003.00 
+   Managing Complex Projects 6138 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Managing Stakeholder Expectations and Relationships 6162 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Leading and Managing High-Performing Project Teams 6183 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Assessing and Recovering Troubled Projects 6184 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Strategic Portfolio and Resource Management 6187 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Action 6188 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Program Management 6190 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Facilitation Skills for Business Analysts 6304 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Principles Of Business Analysis 6310 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   agers (Virtual Classroom) 6601 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   room) 6602 $515.45 $10,309.00 $457.92 $11,448.00 $386.41 $11,592.00 
+   Project Risk Management (Virtual Classroom) 6603 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Managing Project Quality (Virtual Classroom) 6605 $610.90 $12,218.00 $542.72 $13,568.00 $457.96 $13,738.00 
+   Project Management Simulation (Virtual Classroom) 6606 $756.06 $15,121.00 $671.68 $16,792.00 $566.78 $17,003.00 
+   Price Notes 
+   agementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be added to the t
+   above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed to by Managemen
+   cepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem. In the event 
+   The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $800/day; and $1,000/da
+   OE PRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per Per-
+   Price of 5 OE 
+   Price Per 
+   Price of 10 
+   Pricer Per 
+   Price of 50 
+   Price Per 
+   Price of OE 
+   6019 $2,048.96 $10,244.00 $1,938.68 $19,386.00 $1,828.49 $91,424.00 $1,718.34 $171,834.00 
+   6020 $2,048.96 $10,244.00 $1,938.68 $19,386.00 $1,828.49 $91,424.00 $1,718.34 $171,834.00 
+   Fundamentals of Leading Projects and Programs 6876 $1,281.64 $6,408.00 $1,212.65 $12,126.00 $1,143.74 $57,187.00 $1,074.84 $107,484.00 
+   Fundamentals of Business, Cost & Financial Man-
+   6877 $1,547.65 $7,738.00 $1,464.33 $14,643.00 $1,381.12 $69,056.00 $1,297.92 $129,792.00 
+   Fundamentals of Contracting 6878 $1,547.65 $7,738.00 $1,464.33 $14,643.00 $1,381.12 $69,056.00 $1,297.92 $129,792.00 
+   Fundamentals of Project & Program Management 6879 $1,873.17 $9,365.00 $1,772.36 $17,723.00 $1,671.62 $83,581.00 $1,570.92 $157,092.00 
+   Applied Leadership in Projects & Programs 6886 $1,281.64 $6,408.00 $1,212.65 $12,126.00 $1,143.74 $57,187.00 $1,074.84 $107,484.00 
+   Applications in Business, Cost & Financial Manage-
+   6887 $1,547.65 $7,738.00 $1,464.33 $14,643.00 $1,381.12 $69,056.00 $1,297.92 $129,792.00 
+   Applications in Contracting 6888 $1,547.65 $7,738.00 $1,464.33 $14,643.00 $1,381.12 $69,056.00 $1,297.92 $129,792.00 
+   Applications in Project & Program Management 6889 $1,873.17 $9,365.00 $1,772.36 $17,723.00 $1,671.62 $83,581.00 $1,570.92 $157,092.00 
+   Progressive Leadership in Program Management 6891 $1,463.94 $7,319.00 $1,385.14 $13,851.00 $1,306.42 $65,321.00 $1,227.72 $122,772.00 
+   Progressive Business, Cost & Financial Manage-
+   6892 $1,722.50 $8,612.00 $1,629.85 $16,298.00 $1,537.16 $76,858.00 $1,444.56 $144,456.00 
+   Progressive Contracting Strategies for Programs 6893 $1,722.50 $8,612.00 $1,629.85 $16,298.00 $1,537.16 $76,858.00 $1,444.56 $144,456.00 
+   Progressive Concepts in Program Management 6894 $2,134.52 $10,672.00 $2,019.65 $20,196.00 $1,904.85 $95,242.00 $1,790.10 $179,010.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   TEMPORARY PRICE REDUCTION: Until March 26, 2026, Orders for 50-99 registrations receive a 17% discount and Orders of 100+ registrations rece
+   Price Per Seat 
+   Price for 15-20 
+   Price Per Seat 
+   Price for 21-25 
+   Price Per Seat 
+   Price for 26-30 
+   and Performance 6019 $749.13 $14,982.00 $616.84 $15,421.00 $528.83 $15,864.00 
+   chitectural Design 6020 $749.13 $14,982.00 $616.84 $15,421.00 $528.83 $15,864.00 
+   Fundamentals of Leading Projects and Programs 6876 $468.59 $9,371.00 $385.84 $9,646.00 $330.79 $9,923.00 
+   Fundamentals of Business, Cost & Financial Man-
+   agement 6877 $565.84 $11,316.00 $465.92 $11,648.00 $399.45 $11,983.00 
+   Fundamentals of Contracting 6878 $565.84 $11,316.00 $465.92 $11,648.00 $399.45 $11,983.00 
+   Fundamentals of Project & Program Management 6879 $684.87 $13,697.00 $563.92 $14,098.00 $483.47 $14,504.00 
+   Applied Leadership in Projects & Programs 6886 $468.59 $9,371.00 $385.84 $9,646.00 $330.79 $9,923.00 
+   Applications in Business, Cost & Financial Man-
+   agement 6887 $565.84 $11,316.00 $465.92 $11,648.00 $399.45 $11,983.00 
+   Applications in Contracting 6888 $565.84 $11,316.00 $465.92 $11,648.00 $399.45 $11,983.00 
+   Applications in Project & Program Management 6889 $684.87 $13,697.00 $563.92 $14,098.00 $483.47 $14,504.00 
+   Progressive Leadership in Program Management 6891 $535.24 $10,704.00 $440.72 $11,018.00 $377.84 $11,335.00 
+   Progressive Business, Cost & Financial Manage-
+   ment 6892 $629.77 $12,595.00 $518.56 $12,964.00 $444.57 $13,337.00 
+   Progressive Contracting Strategies for Programs 6893 $629.77 $12,595.00 $518.56 $12,964.00 $444.57 $13,337.00 
+   Progressive Concepts in Program Management 6894 $780.41 $15,608.00 $642.60 $16,065.00 $550.91 $16,527.00 
+   Price Notes 
+   https://www.managementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be
+   the tier prices above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed
+   agement Concepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem. In
+   cepts facilities.  The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $800
+   $1,000/day for computer equipped classrooms.  Alternatively, eligible ordering activities may request Management Concepts to arrange trainin
+   Project Manager $216.09 
+   Deputy Project Manager $128.62 
+   Task Leader $91.14 
+   Senior Subject Matter Expert $216.09 
+   Subject Matter Expert $146.12 
+   Senior Practitioner $93.10 
+   Practitioner $73.50 
+   Researcher $58.80 
+   Business Analyst $77.18 
+   Sr. Instructional Technologist $117.60 
+   Instructional Technologist $67.62 
+   Senior Instructional Designer $91.14 
+   Instructional Designer  $65.66 
+   Senior Computer Programmer $164.64 
+   Computer Programmer $128.63 
+   Programmer $77.18 
+   Graphic Designer $65.66 
+   Graphic Artist $52.92 
+   Technical Editor $55.86 
+   Testing Analyst $87.47 
+   Administrative Specialist $49.98 
+   Administrative Assistant $45.08 
+   * Prices exclude reimbursable expenses for travel, including per diem.  In the event Management Concepts 
+   Concepts facilities. The additional price for delivery of a course at a Management Concepts facility is: 1-24 
+   students = $600/day; 25-Max students = $800/day; and $1,000/day for computer equipped classrooms.  
+   demonstrate the relative organizational benefits and costs of different approaches to the contracted solution. 
+   OE PRICING** TEMPORARY OE PRICE REDUCTION  
+   Price Per 
+   Price of 5 OE 
+   Price Per 
+   Price of 10 
+   Pricer Per 
+   Price of 50 
+   Price Per 
+   Price of OE 
+   CON 244: Construction Contracting 1021 $1,153.23 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   CON 243: Architect-Engineer Services Contracting 1032 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   CON 091: Contract Fundamentals 1093 $2,891.45 $14,457.00 $2,735.95 $27,359.00 $2,580.47 $129,023.00 $2,425.02 $242,502.00 
+   1100 $984.95 $4,924.00 $931.92 $9,319.00 $878.97 $43,948.00 $826.02 $82,602.00 
+   1101 $984.95 $4,924.00 $931.92 $9,319.00 $878.97 $43,948.00 $826.02 $82,602.00 
+   CON 170: Fundamentals of Cost and Price Analysis 1170 $2,192.19 $10,960.00 $2,074.21 $20,742.00 $1,956.31 $97,815.00 $1,838.46 $183,846.00 
+   CON 090:  FAR Fundamentals 1190 $3,323.91 $16,619.00 $3,145.16 $31,451.00 $2,966.42 $148,321.00 $2,787.72 $278,772.00 
+   FCN 190:  FAR Fundamentals 1191 $2,504.55 $12,522.00 $2,369.86 $23,698.00 $2,235.19 $111,759.00 $2,100.54 $210,054.00 
+   CON 200: Business Decisions for Contracting 1200 $847.29 $4,236.00 $801.77 $8,017.00 $756.13 $37,806.00 $710.58 $71,058.00 
+   CON 216: Legal Considerations In Contracting 1216 $1,153.29 $5,766.00 $1,091.20 $10,912.00 $1,029.20 $51,460.00 $967.20 $96,720.00 
+   CON 1100: Contract Fundamentals 1231 $2,584.54 $12,922.00 $2,445.52 $24,455.00 $2,306.57 $115,328.00 $2,167.62 $216,762.00 
+   CON 1200: Contract Pre-award 1232 $2,584.68 $12,923.00 $2,445.52 $24,455.00 $2,306.57 $115,328.00 $2,167.62 $216,762.00 
+   CON 1300: Contract Award 1233 $2,584.54 $12,922.00 $2,445.52 $24,455.00 $2,306.57 $115,328.00 $2,167.62 $216,762.00 
+   CON 1400: Contract Post-Award  1234 $2,584.68 $12,923.00 $2,445.52 $24,455.00 $2,306.57 $115,328.00 $2,167.62 $216,762.00 
+   ACQ 265: Mission-Focused Services Acquisition 1265 $1,100.28 $5,501.00 $1,041.04 $10,410.00 $981.89 $49,094.00 $922.74 $92,274.00 
+   CON 270: Intermediate Cost and Price Analysis 1270 $2,504.55 $12,522.00 $2,369.86 $23,698.00 $2,235.19 $111,759.00 $2,100.54 $210,054.00 
+   1280 $2,504.55 $12,522.00 $2,369.86 $23,698.00 $2,235.19 $111,759.00 $2,100.54 $210,054.00 
+   1290 $2,504.55 $12,522.00 $2,369.86 $23,698.00 $2,235.19 $111,759.00 $2,100.54 $210,054.00 
+   CON 121: Contract Planning 1321 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   CON 124: Contract Execution 1324 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   CON 127: Contract Management 1327 $787.82 $3,939.00 $745.44 $7,454.00 $703.01 $35,150.00 $660.66 $66,066.00 
+   CON 360: Contracting for Decision Makers 1360 $2,192.19 $10,960.00 $2,074.21 $20,742.00 $1,956.31 $97,815.00 $1,838.46 $183,846.00 
+   ACQ 370: Acquisition Law 1370 $1,186.78 $5,933.00 $1,122.92 $11,229.00 $1,059.08 $52,954.00 $995.28 $99,528.00 
+   Price Notes 
+   *An Order for less than 5 registrations (i.e., 1-4 registrations) is not priced under this contract and is not available unless the order mi
+   number of student seats purchased per Order. Prices shown in the table reflect prices when 5, 10, 50, or 100 seats are purchased on a single
+   the prices above the for the course(s) attended.   
+   TEMPORARY PRICE REDUCTION: Until March 26, 2026, Orders for 50-99 registrations receive a 17% discount and Orders of 100+ registrations rece
+   Price Per Seat 
+   Price for 15-20 
+   Price Per Seat 
+   Price for 21-25 
+   Price Per Seat 
+   Price for 26-30 
+   CON 244: Construction Contracting 1021 $520.87 $10,417.00 $471.26 $11,781.00 $421.66 $12,649.00 
+   CON 243: Architect-Engineer Services Contracting 1032 $520.87 $10,417.00 $471.26 $11,781.00 $421.66 $12,649.00 
+   CON 091: Contract Fundamentals 1093 $1,305.93 $26,118.00 $1,181.57 $29,539.00 $1,057.22 $31,716.00 
+   day) 1100 $444.84 $8,896.00 $402.47 $10,061.00 $360.11 $10,803.00 
+   day) 1101 $444.84 $8,896.00 $402.47 $10,061.00 $360.11 $10,803.00 
+   CON 170: Fundamentals of Cost and Price Analysis 1170 $990.06 $19,801.00 $895.78 $22,394.00 $801.50 $24,045.00 
+   CON 090:  FAR Fundamentals 1190 $1,501.26 $30,025.00 $1,358.30 $33,957.00 $1,215.35 $36,460.00 
+   FCN 190:  FAR Fundamentals 1191 $1,131.19 $22,623.00 $1,023.48 $25,587.00 $915.76 $27,472.00 
+   CON 200: Business Decisions for Contracting 1200 $382.67 $7,653.00 $346.23 $8,655.00 $309.78 $9,293.00 
+   CON 216: Legal Considerations In Contracting 1216 $520.87 $10,417.00 $471.26 $11,781.00 $421.66 $12,649.00 
+   CON 1100: Contract Fundamentals 1231 $1,167.32 $23,346.00 $1,056.16 $26,404.00 $945.00 $28,350.00 
+   CON 1200: Contract Pre-award 1232 $1,167.32 $23,346.00 $1,056.16 $26,404.00 $945.00 $28,350.00 
+   CON 1300: Contract Award 1233 $1,167.32 $23,346.00 $1,056.16 $26,404.00 $945.00 $28,350.00 
+   CON 1400: Contract Post-Award  1234 $1,167.32 $23,346.00 $1,056.16 $26,404.00 $945.00 $28,350.00 
+   ACQ 265: Mission-Focused Services Acquisition 1265 $496.92 $9,938.00 $449.60 $11,240.00 $402.28 $12,068.00 
+   CON 270: Intermediate Cost and Price Analysis 1270 $1,131.19 $22,623.00 $1,023.48 $25,587.00 $915.76 $27,472.00 
+   Service Contracts 1280 $1,131.19 $22,623.00 $1,023.48 $25,587.00 $915.76 $27,472.00 
+   Techniques in a Supply Environment   1290 $1,131.19 $22,623.00 $1,023.48 $25,587.00 $915.76 $27,472.00 
+   CON 121: Contract Planning 1321 $355.78 $7,115.00 $321.90 $8,047.00 $288.02 $8,640.00 
+   CON 124: Contract Execution 1324 $355.78 $7,115.00 $321.90 $8,047.00 $288.02 $8,640.00 
+   CON 127: Contract Management 1327 $355.78 $7,115.00 $321.90 $8,047.00 $288.02 $8,640.00 
+   CON 360: Contracting for Decision Makers 1360 $990.06 $19,801.00 $895.78 $22,394.00 $801.50 $24,045.00 
+   ACQ 370: Acquisition Law 1370 $535.98 $10,719.00 $484.95 $12,123.00 $433.90 $13,017.00 
+   Price Notes 
+   https://www.managementconcepts.com/Training/Training-Modalities/Private-Group-Training. For in-person training, a flat fee of $1,150 will be
+   the tier prices above (any discounts offered to customers will be for the course price only and not for the flat fee unless otherwise agreed
+   agement Concepts). For orders of in-person OS deliveries, prices exclude reimbursable expenses for instructor travel, including per diem. In
+   cepts facilities.  The price for delivery of a course at a Management Concepts facility is: 1-24 students = $600/day; 25-Max students = $800
+   $1,000/day for computer equipped classrooms.  Alternatively, eligible ordering activities may request Management Concepts to arrange trainin
+
+=== 4606.pdf pages 5 price None
+  (?i)price -> no
+  (?i)tuition -> no
+  (?i)cost -> no
+  \$\d -> no
+  Course Number:\s*\d+ -> yes
+
