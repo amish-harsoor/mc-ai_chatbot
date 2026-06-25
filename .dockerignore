@@ -1,0 +1,17 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.env
+.pytest_cache/
+.hypothesis/
+.git/
+.gitignore
+README.md
+production_readiness_report.md

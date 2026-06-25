@@ -1,178 +1,309 @@
 # MC AI Chatbot
 
-An AI-powered course assistant chatbot for the **Management Concepts (MC)** online learning platform. It answers student questions about courses, fees, schedules, instructors, and FAQs using a Retrieval-Augmented Generation (RAG) pipeline backed by a PostgreSQL vector store.
+A **RAG-powered course advisor** for Management Concepts. It answers questions about courses using a PostgreSQL/pgvector knowledge base and streams responses over a simple HTTP API.
+
+Use it in three ways:
+
+1. **Standalone microservice** — deploy on its own; any app calls it over HTTP *(recommended)*
+2. **Mounted FastAPI router** — embed routes inside an existing FastAPI app
+3. **React widget** — drop-in chat UI that talks to the API
 
 ---
 
-## Features
+## Integration at a glance
 
-- **RAG-powered answers** — Retrieves relevant course content before generating responses, keeping answers grounded in real data.
-- **Conversational memory** — Each user session maintains its own chat history (token-capped to prevent prompt bloat).
-- **PostgreSQL + pgvector** — Embeddings are stored and queried directly in a Postgres database using the `pgvector` extension.
-- **FastAPI backend** — Lightweight, async REST API with session management.
-- **Plain HTML frontend** — A simple chat widget that communicates with the backend via `fetch`.
-- **Local embeddings** — Uses `all-MiniLM-L6-v2` from HuggingFace (runs offline, no API key required for embeddings).
-- **OpenRouter LLM** — Routes LLM calls to `meta-llama/llama-3.1-8b-instruct` (free tier) via OpenRouter.
+| Your app | Recommended approach | Effort |
+|----------|---------------------|--------|
+| FastAPI, Django, Node, etc. | Call the service over HTTP with `ChatbotClient` or `fetch` | Low |
+| Existing FastAPI app | Mount `router` + call `startup_chatbot()` | Medium |
+| Website / LMS | Use the React widget + point `VITE_API_BASE_URL` at the API | Low |
 
----
-
-## Project Structure
-
+```text
+┌─────────────────────┐         HTTP          ┌──────────────────────┐
+│  Your app           │  ──────────────────►  │  MC AI Chatbot       │
+│  (FastAPI / Django) │  /session/start       │  (FastAPI service)   │
+│                     │  /chat/stream         │                      │
+│  Optional: React    │  /session/.../history └──────────┬───────────┘
+│  widget             │                                    │
+└─────────────────────┘                                    ▼
+                                                  ┌──────────────────────┐
+                                                  │  Postgres + pgvector │
+                                                  └──────────────────────┘
 ```
-mc-ai_chatbot/
-├── data/               # Place your course PDFs, text files, and documents here
-├── config.py           # Global LlamaIndex settings (LLM, embeddings, chunking)
-├── ingest.py           # One-time script to load, chunk, embed, and store documents
-├── chatbot.py          # Loads the vector index and creates per-session chat engines
-├── main.py             # FastAPI app with /session/start, /chat, and /health endpoints
-├── index.html          # Minimal browser-based chat UI
-├── .env                # API keys and database connection string (not committed)
-├── .gitignore
-└── README.md
+
+---
+
+## Quick start (standalone service)
+
+### 1. Environment variables
+
+Create a `.env` file in the project root:
+
+```env
+# LLM (pick one provider)
+OPENROUTER_API_KEY=your_key_here
+LLM_PROVIDER=openrouter
+# Or: GROQ_API_KEY=... and LLM_PROVIDER=groq
+
+# Database — local Postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=coursebot
+
+# Or Supabase (see src/db/vector_config.py)
+# USE_SUPABASE=true
+# SUPABASE_DB_HOST=...
 ```
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| LLM | Llama 3.1 8B via [OpenRouter](https://openrouter.ai) |
-| Embeddings | `all-MiniLM-L6-v2` (HuggingFace, 384-dim) |
-| RAG Framework | [LlamaIndex](https://docs.llamaindex.ai) |
-| Vector Store | PostgreSQL + `pgvector` |
-| API Server | [FastAPI](https://fastapi.tiangolo.com) + Uvicorn |
-| Frontend | HTML + Vanilla JavaScript |
-
----
-
-## Quick Start (5-Step Process)
-
-1. **Install Dependencies**: Run `pip install -r requirements.txt` (or install the packages listed in the Setup section).
-2. **Initialize Database**: Create a PostgreSQL database and enable the vector extension: `CREATE EXTENSION vector;`.
-3. **Add Data**: Place your course PDFs or text files into the `data/` folder.
-4. **Run Ingestion**: Execute `python ingest.py` to chunk, embed, and store your documents.
-5. **Start Application**: Run `uvicorn main:app --reload` and open `index.html` in your browser.
-
----
-
-## Setup
-
-### 1. Prerequisites
-
-- Python 3.10+
-- PostgreSQL with the [`pgvector`](https://github.com/pgvector/pgvector) extension installed
-- An [OpenRouter](https://openrouter.ai) account and API key
-
-### 2. Create and activate a virtual environment
+### 2. Run with Docker
 
 ```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# macOS/Linux
-source venv/bin/activate
+docker build -t mc-ai-chatbot .
+docker run -p 8000:8000 --env-file .env mc-ai-chatbot
 ```
 
-### 3. Install dependencies
+### 3. Run locally (no Docker)
 
 ```bash
-pip install fastapi uvicorn python-dotenv llama-index llama-index-vector-stores-postgres llama-index-embeddings-huggingface llama-index-llms-openai-like psycopg2-binary
+pip install -r requirements.txt
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 4. Set up the PostgreSQL database
-
-Connect to Postgres and run:
-
-```sql
-CREATE DATABASE coursebot;
-\c coursebot
-CREATE EXTENSION vector;
-```
-
-### 5. Add your course documents
-
-Place your PDFs, text files, or other course documents inside the `data/` folder:
-
-```
-data/
-├── course_catalog.pdf
-├── faq.txt
-└── ...
-```
-
-### 6. Ingest documents (run once)
-
-This step chunks, embeds, and stores your documents in the vector database:
+### 4. Verify it works
 
 ```bash
-python ingest.py
+curl http://localhost:8000/health
+# {"status":"ok"}
+
+curl -X POST http://localhost:8000/session/start
+# {"session_id":"<uuid>"}
 ```
 
-> You only need to re-run this when your course documents change.
-
-### 7. Start the API server
-
-```bash
-uvicorn main:app --reload
-```
-
-The API will be available at `http://localhost:8000`.
-
-### 8. Open the chat UI
-
-Open `index.html` directly in your browser. It will automatically connect to the backend and start a session.
+Interactive API docs: **http://localhost:8000/docs**
 
 ---
 
-## API Reference
+## Integrating with other apps
 
-### `POST /session/start`
+### Option A — HTTP microservice (recommended)
 
-Creates a new chat session with fresh memory. Call this when a user opens the chat.
+Run the chatbot as its own service. Your host app never imports LlamaIndex or embedding models — it just makes HTTP calls.
 
-**Response:**
-```json
-{
-  "session_id": "550e8400-e29b-41d4-a716-446655440000"
+**Python (any framework)** — use the built-in client:
+
+```python
+from src.client import ChatbotClient
+
+client = ChatbotClient(
+    "http://localhost:8000",
+    api_key="your-secret",          # optional, if CHATBOT_API_KEY is set
+    prefix="/api/v1/chatbot",       # optional, if CHATBOT_API_PREFIX is set
+)
+
+# 1. Start a session when the user opens chat
+session = client.start_session()
+session_id = session["session_id"]
+
+# 2. Stream a response
+for chunk in client.chat_stream(session_id, "Recommend project management courses"):
+    print(chunk, end="", flush=True)
+
+# 3. Load history (e.g. on page reload)
+history = client.get_history(session_id)
+```
+
+**FastAPI BFF** — proxy through your app so the browser only talks to one origin:
+
+```python
+import httpx
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+
+app = FastAPI()
+CHATBOT = "http://chatbot-service:8000"
+
+@app.post("/api/chat/stream")
+async def chat(body: dict):
+    async with httpx.AsyncClient() as client:
+        req = client.build_request("POST", f"{CHATBOT}/chat/stream", json=body)
+        resp = await client.send(req, stream=True)
+
+        async def forward():
+            async for chunk in resp.aiter_text():
+                yield chunk
+
+        return StreamingResponse(forward(), media_type="text/plain")
+```
+
+**curl / JavaScript / any language** — same JSON contract:
+
+```bash
+# Start session
+curl -X POST http://localhost:8000/session/start
+
+# Chat (streaming)
+curl -N -X POST http://localhost:8000/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"session_id":"<uuid>","message":"What budgeting courses do you offer?"}'
+```
+
+```javascript
+const res = await fetch("http://localhost:8000/chat/stream", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ session_id, message: "Hello" }),
+});
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  console.log(decoder.decode(value));
 }
 ```
 
 ---
 
-### `POST /chat`
+### Option B — Mount into an existing FastAPI app
 
-Sends a user message and returns the AI's answer.
+Import the router and wire up startup/shutdown. Full working example: [`examples/fastapi_mount.py`](examples/fastapi_mount.py).
 
-**Request body:**
-```json
-{
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "What courses do you offer in project management?"
-}
+```python
+from fastapi import FastAPI
+from src.api.router import router
+from src.api.app import startup_chatbot, shutdown_chatbot
+
+app = FastAPI(title="My Host App")
+app.include_router(router, prefix="/api/v1/chatbot")
+
+@app.on_event("startup")
+async def init_chatbot():
+    await startup_chatbot()
+
+@app.on_event("shutdown")
+async def cleanup_chatbot():
+    await shutdown_chatbot()
 ```
 
-**Response:**
-```json
-{
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "answer": "We offer several project management courses including..."
-}
+Routes are then available at `/api/v1/chatbot/health`, `/api/v1/chatbot/chat/stream`, etc.
+
+Or use the app factory for a self-contained chatbot app:
+
+```python
+from src.api import create_app
+
+app = create_app(prefix="/api/v1/chatbot")
 ```
 
 ---
 
-### `GET /health`
+### Option C — Django
 
-Returns the health status and number of active sessions.
+Django cannot mount FastAPI routers directly. Proxy requests to the chatbot service instead.
 
-**Response:**
+Full example view: [`examples/django_proxy.py`](examples/django_proxy.py).
+
+```python
+# urls.py
+from django.urls import path
+from examples.django_proxy import chat_stream_proxy
+
+urlpatterns = [
+    path("api/chat/stream/", chat_stream_proxy),
+]
+```
+
+Set in Django's environment:
+
+```env
+CHATBOT_SERVICE_URL=http://localhost:8000
+CHATBOT_API_PREFIX=          # leave empty unless you set CHATBOT_API_PREFIX on the service
+CHATBOT_API_KEY=your-secret  # optional
+```
+
+For other endpoints (`/session/start`, `/history`), add similar proxy views or call `ChatbotClient` from Django views.
+
+---
+
+### Option D — React chat widget
+
+The widget lives in `frontend/ChatbotUI/`.
+
+```bash
+cd frontend/ChatbotUI
+npm install
+```
+
+Create `frontend/ChatbotUI/.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+If the API is behind a prefix or BFF, include the full base:
+
+```env
+VITE_API_BASE_URL=http://localhost:9000/api/v1/chatbot
+```
+
+```bash
+npm run dev      # development
+npm run build    # production bundle in dist/
+```
+
+The widget calls `/session/start`, `/chat/stream`, and `/session/{id}/history` on that base URL.
+
+---
+
+## API reference
+
+All paths below are relative to the service root. If `CHATBOT_API_PREFIX=/api/v1/chatbot` is set, prepend that prefix (e.g. `/api/v1/chatbot/health`).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Health check (no auth required) |
+| `POST` | `/session/start` | Create a new chat session; returns `{ "session_id": "..." }` |
+| `POST` | `/chat/stream` | Send a message; returns streaming `text/plain` |
+| `GET` | `/session/{session_id}/history` | Full message history for a session |
+| `POST` | `/session/{session_id}/message` | Persist a client-side message (e.g. onboarding UI) |
+| `POST` | `/upload-document` | Upload PDF/MD/TXT and ingest into the vector store |
+| `POST` | `/upload-pdf` | PDF-only upload (alias) |
+| `POST` | `/ingest-url` | Fetch and ingest a web page |
+
+### `POST /chat/stream` body
+
 ```json
 {
-  "status": "ok",
-  "active_sessions": 3
+  "session_id": "uuid-from-session-start",
+  "message": "Recommend courses for a new project manager",
+  "display_message": "Optional UI-friendly version of the user message",
+  "silent_response": false,
+  "metadata": {
+    "step": "goal",
+    "profile_complete": true,
+    "profile": {
+      "experience": "Entry-level",
+      "department": "Finance",
+      "goal": "Get a promotion"
+    }
+  }
+}
+```
+
+- `display_message` — stored in history for the UI; LLM still sees `message`
+- `silent_response` — if `true`, assistant reply is saved but marked not visible in history
+- `metadata` — onboarding/profile context; partial onboarding steps skip the LLM and only persist the user message
+
+### `POST /session/{session_id}/message` body
+
+```json
+{
+  "role": "assistant",
+  "content": "Welcome! What is your experience level?",
+  "display_content": "Welcome!",
+  "metadata": { "step": "welcome", "type": "onboarding" }
 }
 ```
 
@@ -180,31 +311,153 @@ Returns the health status and number of active sessions.
 
 ## Configuration
 
-All LLM and embedding settings are centralized in `config.py`:
+### Service / integration
 
-| Setting | Value |
-|---|---|
-| Embedding model | `sentence-transformers/all-MiniLM-L6-v2` |
-| Embedding dimensions | 384 |
-| LLM | `meta-llama/llama-3.1-8b-instruct:free` |
-| LLM temperature | 0.3 |
-| Max tokens | 1024 |
-| Chunk size | 512 tokens |
-| Chunk overlap | 50 tokens |
-| Retrieval top-k | 4 chunks |
-| Chat memory limit | 3000 tokens |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHATBOT_API_PREFIX` | *(empty)* | URL prefix for all routes, e.g. `/api/v1/chatbot` |
+| `CHATBOT_API_KEY` | *(empty)* | If set, clients must send `X-API-Key` header (except `/health`) |
+| `API_PREFIX` | *(empty)* | Alias for `CHATBOT_API_PREFIX` |
+| `API_KEY` | *(empty)* | Alias for `CHATBOT_API_KEY` |
+
+### LLM
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_PROVIDER` | `openrouter` | `openrouter` or `groq` |
+| `OPENROUTER_API_KEY` | — | Required when `LLM_PROVIDER=openrouter` |
+| `GROQ_API_KEY` | — | Required when `LLM_PROVIDER=groq` |
+
+### Embeddings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EMBED_PROVIDER` | `huggingface` | `huggingface`, `fastembed`, `openrouter`, or `openai` |
+| `EMBED_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model name |
+
+### Database
+
+| Variable | Description |
+|----------|-------------|
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Local Postgres |
+| `USE_SUPABASE` | Set `true` to use Supabase connection vars (see `src/db/vector_config.py`) |
+
+### Chat behaviour
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHAT_MEMORY_TOKEN_LIMIT` | `3000` | Max tokens in chat memory |
+| `SESSION_ENGINE_TTL_SECONDS` | `1800` | Session engine cache TTL |
+| `SESSION_ENGINE_CACHE_MAX_SIZE` | `200` | Max cached session engines |
 
 ---
 
-## Notes
+## Install as a Python package
 
-- **Session isolation**: Each call to `POST /session/start` creates an independent chat engine. Users cannot see each other's conversation history.
-- **Re-ingestion**: Running `ingest.py` again will add documents to the existing table. If you want a clean slate, drop and recreate the `course_embeddings` table in Postgres first.
-- **Switching LLMs**: Update the `model` and `api_base` parameters in `config.py`. Make sure to also update your `.env` with the appropriate API key.
-- **Switching embedding models**: If you change the embedding model, you must also update `embed_dim` in both `ingest.py` and `chatbot.py`, and re-run `ingest.py` from scratch.
+```bash
+pip install -e .
+```
+
+Exports:
+
+```python
+from src.api import create_app, router, startup_chatbot, shutdown_chatbot
+from src.client import ChatbotClient
+```
 
 ---
 
-## License
+## Project structure
 
-This project is for internal use by the Management Concepts team.
+```text
+mc-ai_chatbot/
+├── Dockerfile
+├── pyproject.toml              # pip-installable package
+├── requirements.txt
+├── examples/
+│   ├── fastapi_mount.py        # mount router in another FastAPI app
+│   └── django_proxy.py         # Django streaming proxy example
+├── frontend/ChatbotUI/         # React chat widget
+└── src/
+    ├── api/
+    │   ├── main.py             # standalone entry: uvicorn src.api.main:app
+    │   ├── app.py              # create_app(), startup/shutdown helpers
+    │   ├── router.py           # APIRouter — mount into host apps
+    │   ├── schemas.py          # Pydantic request/response models
+    │   └── settings.py         # API prefix & key config
+    ├── client.py               # ChatbotClient HTTP SDK
+    ├── chatbot/                # RAG engine, retrieval, chat logic
+    ├── db/                     # Postgres session store, vector config
+    ├── ingestion/              # Document ingestion pipeline
+    └── config.py               # LLM & embedding configuration
+```
+
+---
+
+## Data ingestion
+
+To update the knowledge base:
+
+1. Place PDFs or text files in `data/`
+2. Ensure Postgres/Supabase is running
+3. Run ingestion:
+
+```bash
+# Local Postgres
+python src/ingestion/ingest.py
+
+# Supabase
+python src/ingestion/ingest.py --supabase
+```
+
+Or ingest at runtime via the API:
+
+```bash
+curl -X POST http://localhost:8000/upload-document \
+  -F "file=@data/my-course.pdf"
+
+curl -X POST http://localhost:8000/ingest-url \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/courses", "force": false}'
+```
+
+---
+
+## Development
+
+```bash
+pip install -r requirements.txt
+pytest tests/ -q
+```
+
+Key modules for contributors:
+
+- `src/chatbot/chatbot.py` — chat engine, session cache, `get_index()`
+- `src/chatbot/retrieval.py` — hybrid search + reranking
+- `src/ingestion/pipeline.py` — chunking, dedup, vector upsert
+
+---
+
+## Architecture
+
+| Layer | Technology |
+|-------|------------|
+| API | FastAPI |
+| RAG | LlamaIndex |
+| Vector DB | PostgreSQL + pgvector (or Supabase) |
+| Embeddings | `all-MiniLM-L6-v2` locally by default (no API key) |
+| LLM | Groq or OpenRouter (configurable) |
+| Frontend | React + Vite widget |
+
+---
+
+## Typical integration checklist
+
+- [ ] Deploy chatbot service (Docker or uvicorn) with `.env` configured
+- [ ] Confirm `GET /health` returns `{"status":"ok"}`
+- [ ] In host app: `POST /session/start` when user opens chat
+- [ ] Stream replies via `POST /chat/stream` with the `session_id`
+- [ ] On reload: `GET /session/{id}/history` to restore the thread
+- [ ] (Optional) Set `CHATBOT_API_KEY` and pass `X-API-Key` from your BFF
+- [ ] (Optional) Point React widget `VITE_API_BASE_URL` at service or BFF
+- [ ] (Optional) Mount `router` in FastAPI if you want in-process routes
