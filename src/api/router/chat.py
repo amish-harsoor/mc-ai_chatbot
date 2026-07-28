@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -16,15 +15,11 @@ logger = logging.getLogger("mc_ai_chatbot")
 
 router = APIRouter(tags=["chat"])
 
-# Inject "Register Now" links after bold course IDs in streamed markdown.
-_COURSE_ID_LINK_RE = re.compile(
-    r"\*\*(\d+)\*\*(?!\s*\n\[Register Now\])",
-)
-_COURSE_ID_LINK_SUB = r"**\1**\n[Register Now](https://www.managementconcepts.com/product/\1)"
-
-
 def _linkify_course_ids(text: str) -> str:
-    return _COURSE_ID_LINK_RE.sub(_COURSE_ID_LINK_SUB, text)
+    """Normalize course cards: plain titles + a single Register Now CTA each."""
+    from src.chatbot.course_cards import normalize_course_markdown
+
+    return normalize_course_markdown(text)
 
 
 @router.post("/chat/stream")

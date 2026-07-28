@@ -13,6 +13,7 @@ from typing import Any
 
 from llama_index.core.schema import NodeWithScore, QueryBundle
 
+from src.chatbot.course_cards import format_course_card_from_metadata
 from src.chatbot.query_context import UserProfile, build_user_profile
 from src.ingestion.course_catalog import apply_official_catalog, get_course
 
@@ -72,13 +73,6 @@ def build_profile_search_query(profile: UserProfile) -> str:
         parts.append("Management Concepts course recommendations")
     parts.append("recommend core catalog courses")
     return " ".join(parts)
-
-
-def _course_url(course_id: str, metadata: dict[str, Any]) -> str:
-    url = (metadata.get("url") or "").strip()
-    if url:
-        return url
-    return f"https://www.managementconcepts.com/product/{course_id}"
 
 
 def _official_metadata(raw: dict[str, Any] | None) -> dict[str, Any]:
@@ -162,33 +156,12 @@ def format_course_card(
     description: str,
     why: str | None = None,
 ) -> str | None:
-    """Render one course in the same markdown shape the LLM path uses."""
-    course_id = str(metadata.get("course_id") or "").strip()
-    if not course_id:
-        return None
-
-    title = (
-        metadata.get("course_title")
-        or metadata.get("title")
-        or f"Course {course_id}"
+    """Render one course card: plain title + single Register Now CTA."""
+    return format_course_card_from_metadata(
+        metadata,
+        description=description,
+        why=why,
     )
-    title = str(title).strip()
-    url = _course_url(course_id, metadata)
-
-    lines = [
-        f"**{course_id}** [{title}]({url})",
-    ]
-    if metadata.get("duration"):
-        lines.append(f"Duration: {metadata['duration']}")
-    if metadata.get("level"):
-        lines.append(f"Level: {metadata['level']}")
-    if metadata.get("price"):
-        lines.append(f"Cost: {metadata['price']}")
-    if description:
-        lines.append(f"Description: {description}")
-    if why:
-        lines.append(why)
-    return "\n".join(lines)
 
 
 def nodes_to_course_cards(

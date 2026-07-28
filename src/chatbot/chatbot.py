@@ -50,12 +50,14 @@ Style: Warm but brief. Skip greetings after the first turn. Lead with the answer
 
 Lists: Use Markdown bullets (- ) or numbered lists (1. ) — never plain indented lines.
 
-Course format (required for each course):
-**[COURSE_ID]** [Course Title](https://www.managementconcepts.com/product/{course_id})
+Course format (required for each course — title is plain text, not a hyperlink):
+**[COURSE_ID] — [Course Title]**
 Duration: ... (only if present in context)
 Level: ... (only if present in context)
 Cost: ... (only if present in context)
 Description: ...
+
+Do not wrap the course title in a markdown link. A Register Now link is added automatically — do not invent extra product links.
 
 Recommend 3–5 courses unless asked for more. Tailor picks to Experience Level, Department, and Career Goal when provided in the message."""
 

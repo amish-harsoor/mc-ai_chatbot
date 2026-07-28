@@ -67,8 +67,10 @@ def test_format_course_card_preserves_official_fields():
         why="Fits your Finance focus.",
     )
     assert card is not None
-    assert "**4606**" in card
-    assert "[Federal Budgeting for Non-Budget Personnel]" in card
+    assert "**4606 — Federal Budgeting for Non-Budget Personnel**" in card
+    # Title is plain text, not a second hyperlink
+    assert "[Federal Budgeting for Non-Budget Personnel](" not in card
+    assert card.count("[Register Now](") == 1
     assert "https://www.managementconcepts.com/product/4606" in card
     assert "Duration: 3 Days" in card
     assert "Level: Intermediate" in card
@@ -84,7 +86,8 @@ def test_format_course_card_omits_missing_optional_fields():
     assert "Duration:" not in card
     assert "Level:" not in card
     assert "Cost:" not in card
-    assert "**1001** [IT Acquisition]" in card
+    assert "**1001 — IT Acquisition**" in card
+    assert "[Register Now](" in card
 
 
 def test_nodes_to_course_cards_uses_official_catalog_overlay():
@@ -173,8 +176,9 @@ def test_nodes_to_course_cards_dedupes_by_course_id():
     ):
         cards = nodes_to_course_cards(nodes, profile, max_courses=5)
     assert len(cards) == 2
-    assert "**1001**" in cards[0]
-    assert "**1005**" in cards[1]
+    assert "**1001 — First**" in cards[0]
+    assert "**1005 — Second**" in cards[1]
+    assert cards[0].count("[Register Now](") == 1
 
 
 def test_build_intro_includes_profile():
@@ -191,11 +195,12 @@ def test_chat_stream_profile_complete_skips_llm():
     template_reply = (
         "Based on your profile (Finance · Entry-level · Get a promotion), "
         "here are courses from the Management Concepts catalog:\n\n"
-        "**4606** [Federal Budgeting](https://www.managementconcepts.com/product/4606)\n"
+        "**4606 — Federal Budgeting**\n"
         "Duration: 3 Days\n"
         "Level: Intermediate\n"
         "Cost: $1,429\n"
-        "Description: Budget basics."
+        "Description: Budget basics.\n"
+        "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
 
     with patch.object(session_manager, "save_message") as save_mock, \
@@ -232,8 +237,9 @@ def test_chat_stream_profile_complete_skips_llm():
 
     assert response.status_code == 200
     assert "Federal Budgeting" in response.text
-    assert "**4606**" in response.text
-    assert "[Register Now](https://www.managementconcepts.com/product/4606)" in response.text
+    assert "**4606 — Federal Budgeting**" in response.text
+    assert response.text.count("[Register Now](") == 1
+    assert "[Federal Budgeting](" not in response.text
     rec_mock.assert_called_once()
     engine_mock.assert_not_called()
     stream_mock.assert_not_called()

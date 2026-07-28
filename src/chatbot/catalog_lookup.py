@@ -9,6 +9,7 @@ import os
 import re
 from typing import Any, Literal
 
+from src.chatbot.course_cards import format_course_card_markdown, product_url
 from src.chatbot.query_context import YEAR_LIKE_ID_PATTERN, extract_course_ids_from_text
 from src.ingestion.course_catalog import get_course
 
@@ -174,36 +175,19 @@ def _resolve_course_entry(course_id: str) -> dict[str, Any] | None:
         except Exception:
             pass
     if not out.get("url"):
-        out["url"] = f"https://www.managementconcepts.com/product/{course_id}"
+        out["url"] = product_url(course_id)
     return out
 
 
-def _field_line(field: FactField, entry: dict[str, Any]) -> str | None:
-    if field == "cost":
-        if entry.get("price"):
-            return f"Cost: {entry['price']}"
-        return "Cost: not listed in the catalog for this course."
-    if field == "duration":
-        if entry.get("duration"):
-            return f"Duration: {entry['duration']}"
-        return "Duration: not listed in the catalog for this course."
-    if field == "level":
-        if entry.get("level"):
-            return f"Level: {entry['level']}"
-        return "Level: not listed in the catalog for this course."
-    if field == "credits":
-        if entry.get("credits"):
-            return f"Credits: {entry['credits']}"
-        return "Credits: not listed in the catalog for this course."
-    if field == "title":
-        title = entry.get("title") or entry.get("course_title")
-        if title:
-            return f"Title: {title}"
-        return "Title: not listed in the catalog for this course."
-    if field == "url":
-        url = entry.get("url") or f"https://www.managementconcepts.com/product/{entry.get('course_id', '')}"
-        return f"Link: {url}"
-    return None
+def _missing_field_note(field: FactField) -> str | None:
+    labels = {
+        "cost": "Cost: not listed in the catalog for this course.",
+        "duration": "Duration: not listed in the catalog for this course.",
+        "level": "Level: not listed in the catalog for this course.",
+        "credits": "Credits: not listed in the catalog for this course.",
+        "title": "Title: not listed in the catalog for this course.",
+    }
+    return labels.get(field)
 
 
 def format_course_fact_card(
@@ -211,47 +195,44 @@ def format_course_fact_card(
     *,
     fields: list[FactField] | None = None,
 ) -> str:
-    """Markdown card using official catalog fields only."""
+    """Clean card from official catalog fields — plain title, one Register Now CTA."""
     course_id = str(entry.get("course_id") or "").strip()
     title = (entry.get("title") or entry.get("course_title") or f"Course {course_id}").strip()
-    url = entry.get("url") or f"https://www.managementconcepts.com/product/{course_id}"
+    url = entry.get("url") or product_url(course_id)
 
-    lines = [f"**{course_id}** [{title}]({url})"]
+    requested = [f for f in (fields or []) if f not in ("overview", "url", "title")]
+    extra: list[str] = []
 
-    requested = fields or []
-    # Specific field question → lead with those answers, still include other known facts
-    if requested and set(requested) != {"overview"}:
+    # If user asked for a field that is missing, note it explicitly once.
+    if requested:
         for field in requested:
-            if field == "overview":
-                continue
-            line = _field_line(field, entry)
-            if line:
-                lines.append(line)
-        # Always attach remaining standard facts for context (avoid inventing)
-        shown = set(requested)
-        for field in ("duration", "level", "cost", "credits"):
-            if field in shown:
-                continue
-            # Only add if catalog has a real value (skip "not listed" padding)
-            if field == "cost" and entry.get("price"):
-                lines.append(f"Cost: {entry['price']}")
-            elif field == "duration" and entry.get("duration"):
-                lines.append(f"Duration: {entry['duration']}")
-            elif field == "level" and entry.get("level"):
-                lines.append(f"Level: {entry['level']}")
-            elif field == "credits" and entry.get("credits"):
-                lines.append(f"Credits: {entry['credits']}")
-    else:
-        if entry.get("duration"):
-            lines.append(f"Duration: {entry['duration']}")
-        if entry.get("level"):
-            lines.append(f"Level: {entry['level']}")
-        if entry.get("price"):
-            lines.append(f"Cost: {entry['price']}")
-        if entry.get("credits"):
-            lines.append(f"Credits: {entry['credits']}")
+            if field == "cost" and not entry.get("price"):
+                note = _missing_field_note("cost")
+                if note:
+                    extra.append(note)
+            elif field == "duration" and not entry.get("duration"):
+                note = _missing_field_note("duration")
+                if note:
+                    extra.append(note)
+            elif field == "level" and not entry.get("level"):
+                note = _missing_field_note("level")
+                if note:
+                    extra.append(note)
+            elif field == "credits" and not entry.get("credits"):
+                note = _missing_field_note("credits")
+                if note:
+                    extra.append(note)
 
-    return "\n".join(lines)
+    return format_course_card_markdown(
+        course_id=course_id,
+        title=title,
+        url=url,
+        duration=entry.get("duration"),
+        level=entry.get("level"),
+        price=entry.get("price"),
+        credits=entry.get("credits"),
+        extra_lines=extra or None,
+    )
 
 
 def build_catalog_lookup_reply(message: str) -> str | None:

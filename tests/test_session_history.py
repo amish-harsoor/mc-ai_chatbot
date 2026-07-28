@@ -38,8 +38,9 @@ def test_chat_stream_profile_complete_uses_template_not_llm():
     """Profile-complete onboarding recommendations are templated (no LLM)."""
     session_id = str(uuid.uuid4())
     template_reply = (
-        "**4606** [Federal Budgeting](https://www.managementconcepts.com/product/4606)\n"
-        "Duration: 3 Days"
+        "**4606 — Federal Budgeting**\n"
+        "Duration: 3 Days\n"
+        "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
 
     with patch.object(session_manager, "save_message") as save_mock, \

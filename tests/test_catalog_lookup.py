@@ -87,8 +87,9 @@ def test_detect_requested_fields():
 
 def test_format_course_fact_card_preserves_official_fields():
     card = format_course_fact_card(SAMPLE_4606, fields=["cost"])
-    assert "**4606**" in card
-    assert "Introduction to Data Visualization" in card
+    assert "**4606 — Introduction to Data Visualization**" in card
+    assert "[Introduction to Data Visualization](" not in card
+    assert card.count("[Register Now](") == 1
     assert "Cost: $1409.00" in card
     assert "Duration: 2 Days" in card
     assert "Level: Intermediate" in card
@@ -104,7 +105,8 @@ def test_build_reply_cost_question():
     assert reply is not None
     assert "Introduction to Data Visualization" in reply
     assert "$1409.00" in reply
-    assert "**4606**" in reply
+    assert "**4606 — Introduction to Data Visualization**" in reply
+    assert reply.count("[Register Now](") == 1
 
 
 def test_build_reply_unknown_course():
@@ -140,10 +142,9 @@ def test_build_reply_two_courses():
             "What is the cost of course 4606 and course 1001?"
         )
     assert reply is not None
-    assert "**4606**" in reply
-    assert "**1001**" in reply
-    assert "Introduction to Data Visualization" in reply
-    assert "Information Technology (IT) Acquisition" in reply
+    assert "**4606 — Introduction to Data Visualization**" in reply
+    assert "**1001 — Information Technology (IT) Acquisition**" in reply
+    assert reply.count("[Register Now](") == 2
 
 
 def test_chat_stream_catalog_lookup_skips_llm():
@@ -166,9 +167,10 @@ def test_chat_stream_catalog_lookup_skips_llm():
         )
 
     assert response.status_code == 200
-    assert "Introduction to Data Visualization" in response.text
+    assert "**4606 — Introduction to Data Visualization**" in response.text
     assert "$1409.00" in response.text
-    assert "[Register Now](https://www.managementconcepts.com/product/4606)" in response.text
+    assert response.text.count("[Register Now](") == 1
+    assert "[Introduction to Data Visualization](" not in response.text
     engine_mock.assert_not_called()
     stream_mock.assert_not_called()
     assert save_mock.call_count == 2
