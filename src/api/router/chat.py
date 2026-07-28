@@ -130,6 +130,46 @@ async def chat_stream(request: ChatRequest):
 
         return StreamingResponse(ood_generator(), media_type="text/plain")
 
+    # Single-course fact questions ("cost of course 4606") → catalog JSON only (no LLM).
+    from src.chatbot.catalog_lookup import (
+        build_catalog_lookup_reply,
+        should_use_catalog_lookup,
+    )
+
+    if should_use_catalog_lookup(request.message, metadata=request.metadata):
+        reply = build_catalog_lookup_reply(request.message)
+        if reply:
+            reply = _linkify_course_ids(reply)
+            user_metadata = dict(request.metadata) if request.metadata else {}
+            user_metadata.setdefault("type", "catalog_lookup")
+
+            def catalog_generator():
+                save_message(
+                    request.session_id,
+                    "user",
+                    request.message,
+                    display_content=request.display_message or request.message,
+                    metadata=user_metadata or None,
+                    user_id=user_id,
+                    guest_id=guest_id,
+                )
+                save_message(
+                    request.session_id,
+                    "assistant",
+                    reply,
+                    display_content=reply,
+                    metadata={
+                        "visible": not request.silent_response,
+                        "type": "catalog_lookup",
+                        "template": True,
+                    },
+                    user_id=user_id,
+                    guest_id=guest_id,
+                )
+                yield reply
+
+            return StreamingResponse(catalog_generator(), media_type="text/plain")
+
     # Profile-complete onboarding / goal refresh → retrieve + template (no LLM).
     # Titles, duration, level, cost still come from the official catalog postprocessor.
     from src.chatbot.recommendations import (
