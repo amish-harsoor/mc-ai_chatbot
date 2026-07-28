@@ -60,22 +60,26 @@ def test_format_course_card_preserves_official_fields():
             "course_title": "Federal Budgeting for Non-Budget Personnel",
             "duration": "3 Days",
             "level": "Intermediate",
+            "credits": "CLP: 24 | CPE: 24",
             "price": "$1,429",
             "url": "https://www.managementconcepts.com/product/4606",
         },
         description="Learn federal budget formulation and execution basics.",
-        why="Fits your Finance focus.",
     )
     assert card is not None
-    assert "**4606 — Federal Budgeting for Non-Budget Personnel**" in card
-    # Title is plain text, not a second hyperlink
-    assert "[Federal Budgeting for Non-Budget Personnel](" not in card
-    assert card.count("[Register Now](") == 1
-    assert "https://www.managementconcepts.com/product/4606" in card
-    assert "Duration: 3 Days" in card
-    assert "Level: Intermediate" in card
-    assert "Cost: $1,429" in card
-    assert "Description: Learn federal budget" in card
+    assert card == (
+        "**Federal Budgeting for Non-Budget Personnel**\n"
+        "\n"
+        "Duration: 3 Days\n"
+        "\n"
+        "Credits: CLP: 24 | CPE: 24\n"
+        "\n"
+        "Cost: $1,429\n"
+        "\n"
+        "[Register Now](https://www.managementconcepts.com/product/4606)"
+    )
+    assert "Learn federal budget" not in card
+    assert "Level:" not in card
 
 
 def test_format_course_card_omits_missing_optional_fields():
@@ -86,7 +90,8 @@ def test_format_course_card_omits_missing_optional_fields():
     assert "Duration:" not in card
     assert "Level:" not in card
     assert "Cost:" not in card
-    assert "**1001 — IT Acquisition**" in card
+    assert "**IT Acquisition**" in card
+    assert "Overview of IT acquisition." not in card
     assert "[Register Now](" in card
 
 
@@ -134,10 +139,10 @@ def test_nodes_to_course_cards_uses_official_catalog_overlay():
         cards = nodes_to_course_cards([weak_node], profile, max_courses=3)
 
     assert len(cards) == 1
-    assert "Official Catalog Title" in cards[0]
+    assert "**Official Catalog Title**" in cards[0]
     assert "Bad Title From Chunk" not in cards[0]
     assert "Duration: 4 Days" in cards[0]
-    assert "Level: Intermediate" in cards[0]
+    assert "Level:" not in cards[0]
     assert "Cost: $999" in cards[0]
 
 
@@ -176,8 +181,8 @@ def test_nodes_to_course_cards_dedupes_by_course_id():
     ):
         cards = nodes_to_course_cards(nodes, profile, max_courses=5)
     assert len(cards) == 2
-    assert "**1001 — First**" in cards[0]
-    assert "**1005 — Second**" in cards[1]
+    assert "**First**" in cards[0]
+    assert "**Second**" in cards[1]
     assert cards[0].count("[Register Now](") == 1
 
 
@@ -195,11 +200,14 @@ def test_chat_stream_profile_complete_skips_llm():
     template_reply = (
         "Based on your profile (Finance · Entry-level · Get a promotion), "
         "here are courses from the Management Concepts catalog:\n\n"
-        "**4606 — Federal Budgeting**\n"
+        "**Federal Budgeting**\n"
+        "\n"
         "Duration: 3 Days\n"
-        "Level: Intermediate\n"
+        "\n"
+        "Credits: CLP: 24 | CPE: 24\n"
+        "\n"
         "Cost: $1,429\n"
-        "Description: Budget basics.\n"
+        "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
 
@@ -236,8 +244,8 @@ def test_chat_stream_profile_complete_skips_llm():
         )
 
     assert response.status_code == 200
-    assert "Federal Budgeting" in response.text
-    assert "**4606 — Federal Budgeting**" in response.text
+    assert "**Federal Budgeting**" in response.text
+    assert "Duration: 3 Days" in response.text
     assert response.text.count("[Register Now](") == 1
     assert "[Federal Budgeting](" not in response.text
     rec_mock.assert_called_once()

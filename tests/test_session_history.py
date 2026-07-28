@@ -38,8 +38,14 @@ def test_chat_stream_profile_complete_uses_template_not_llm():
     """Profile-complete onboarding recommendations are templated (no LLM)."""
     session_id = str(uuid.uuid4())
     template_reply = (
-        "**4606 — Federal Budgeting**\n"
+        "**Federal Budgeting**\n"
+        "\n"
         "Duration: 3 Days\n"
+        "\n"
+        "Credits: CLP: 24 | CPE: 24\n"
+        "\n"
+        "Cost: $1,429\n"
+        "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
 

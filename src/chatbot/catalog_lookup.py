@@ -228,9 +228,8 @@ def format_course_fact_card(
         title=title,
         url=url,
         duration=entry.get("duration"),
-        level=entry.get("level"),
-        price=entry.get("price"),
         credits=entry.get("credits"),
+        price=entry.get("price"),
         extra_lines=extra or None,
     )
 

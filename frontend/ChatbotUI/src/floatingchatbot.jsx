@@ -151,11 +151,12 @@ const styles = `
     background: #1e3a8a; color: #ffffff;
     border-top-right-radius: 4px;
   }
-  .bubble p { margin: 0 0 10px; }
+  .bubble p { margin: 0 0 6px; }
   .bubble p:last-child { margin-bottom: 0; }
   .bubble a { color: #2563eb; text-decoration: underline; }
   .bubble.user a { color: #bfdbfe; }
   .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
+  /* Preserve intentional line breaks if the model emits single newlines */
   .stream-plain { margin: 0; white-space: pre-wrap; }
 
   .options-container {
@@ -209,13 +210,6 @@ const styles = `
   .input-wrapper:focus-within {
     border-color: #d4d4d8;
   }
-  .icon-btn {
-    background: transparent; border: none; cursor: pointer;
-    color: #a1a1aa; display: flex; align-items: center; justify-content: center;
-    padding: 0; margin: 0;
-  }
-  .icon-btn:hover { color: #71717a; }
-  
   .chat-input {
     flex: 1; border: none; background: transparent; outline: none;
     font-family: 'Open Sans', sans-serif;
@@ -842,6 +836,13 @@ function MessageContent({ msg }) {
     return <p className="stream-plain">{msg.text}</p>;
   }
 
+  // Ensure course fact rows stay on separate lines even if a reply uses
+  // single newlines (Markdown otherwise collapses them into one paragraph).
+  const text = String(msg.text || "").replace(
+    /(^|\n)(Duration:|Credits:|Cost:|Level:|\[Register Now\])/g,
+    "\n\n$2"
+  ).replace(/\n{3,}/g, "\n\n").trim();
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -864,7 +865,7 @@ function MessageContent({ msg }) {
         },
       }}
     >
-      {msg.text}
+      {text}
     </ReactMarkdown>
   );
 }
@@ -1661,19 +1662,6 @@ export default function FloatingChatbot() {
 
         <div className="chat-input-area">
           <div className="input-wrapper">
-            <button className="icon-btn" title="Attach file">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-              </svg>
-            </button>
-            <button className="icon-btn" title="Add emoji">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                <line x1="9" y1="9" x2="9.01" y2="9"/>
-                <line x1="15" y1="9" x2="15.01" y2="9"/>
-              </svg>
-            </button>
             <input
               ref={inputRef}
               className="chat-input"

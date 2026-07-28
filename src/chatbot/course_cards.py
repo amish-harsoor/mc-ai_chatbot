@@ -1,4 +1,4 @@
-"""Shared course card markdown — one clean CTA, no duplicate hyperlinks."""
+"""Shared course card markdown — concise facts + single Register Now CTA."""
 
 from __future__ import annotations
 
@@ -19,46 +19,46 @@ def format_course_card_markdown(
     title: str,
     url: str | None = None,
     duration: str | None = None,
-    level: str | None = None,
-    price: str | None = None,
     credits: str | None = None,
-    description: str | None = None,
-    why: str | None = None,
+    price: str | None = None,
+    description: str | None = None,  # ignored — layout is title + facts only
+    why: str | None = None,  # ignored
+    level: str | None = None,  # ignored
     extra_lines: list[str] | None = None,
 ) -> str:
     """
-    Clean learner-facing course block:
+    Concise learner-facing course block.
 
-      **4606 — Course Title**
+    Uses blank lines between rows so Markdown renders each fact on its own line
+    (single newlines collapse into one paragraph in CommonMark/GFM).
+
+      **Course Title**
+
       Duration: …
-      Level: …
-      Cost: …
-      Description: …
-      [Register Now](url)
 
-    Title is plain bold text (not a link). Single register CTA only.
+      Credits: …
+
+      Cost: …
+
+      [Register Now](url)
     """
+    del description, why, level
     cid = str(course_id).strip()
     display_title = (title or f"Course {cid}").strip()
     link = product_url(cid, url)
 
-    lines = [f"**{cid} — {display_title}**"]
+    parts = [f"**{display_title}**"]
     if duration:
-        lines.append(f"Duration: {duration}")
-    if level:
-        lines.append(f"Level: {level}")
-    if price:
-        lines.append(f"Cost: {price}")
+        parts.append(f"Duration: {duration}")
     if credits:
-        lines.append(f"Credits: {credits}")
-    if description:
-        lines.append(f"Description: {description}")
-    if why:
-        lines.append(why)
+        parts.append(f"Credits: {credits}")
+    if price:
+        parts.append(f"Cost: {price}")
     if extra_lines:
-        lines.extend(extra_lines)
-    lines.append(f"[Register Now]({link})")
-    return "\n".join(lines)
+        parts.extend(extra_lines)
+    parts.append(f"[Register Now]({link})")
+    # Double newlines → separate <p> tags in the chat markdown renderer
+    return "\n\n".join(parts)
 
 
 def format_course_card_from_metadata(
@@ -66,7 +66,7 @@ def format_course_card_from_metadata(
     *,
     description: str | None = None,
     why: str | None = None,
-    include_credits: bool = False,
+    include_credits: bool = True,
 ) -> str | None:
     course_id = str(metadata.get("course_id") or "").strip()
     if not course_id:
@@ -81,9 +81,8 @@ def format_course_card_from_metadata(
         title=str(title).strip(),
         url=metadata.get("url"),
         duration=metadata.get("duration"),
-        level=metadata.get("level"),
-        price=metadata.get("price"),
         credits=metadata.get("credits") if include_credits else None,
+        price=metadata.get("price"),
         description=description,
         why=why,
     )
@@ -91,18 +90,15 @@ def format_course_card_from_metadata(
 
 # --- Stream post-processing (LLM + any leftover dual-link shapes) ---
 
-# [Title](https://www.managementconcepts.com/product/1234) → Title
 _PRODUCT_MD_LINK_RE = re.compile(
     r"\[([^\]]+)\]\(https?://(?:www\.)?managementconcepts\.com/product/(\d+)/?\)",
     re.IGNORECASE,
 )
 
-# **4606** or **4606 — Title** (title may already be plain)
-_COURSE_HEADER_RE = re.compile(
+_COURSE_ID_HEADER_RE = re.compile(
     r"\*\*(\d{4,6})(?:\s*[—–-]\s*[^*]+)?\*\*",
 )
 
-# Already has Register Now for this id nearby
 _REGISTER_NEAR_RE = re.compile(
     r"\[Register Now\]\(https?://(?:www\.)?managementconcepts\.com/product/(\d+)/?\)",
     re.IGNORECASE,
@@ -114,12 +110,11 @@ def normalize_course_markdown(text: str) -> str:
     Clean streamed course markdown for display:
 
     1. Convert product title hyperlinks to plain text (avoid dual links).
-    2. Ensure each course block has exactly one Register Now (if missing).
+    2. For legacy **course_id** headers, ensure a Register Now CTA exists.
     """
     if not text:
         return text
 
-    # Keep Register Now labels; plain-out other product markdown links (titles).
     def _demote_product_links(match: re.Match[str]) -> str:
         label = match.group(1).strip()
         if label.lower() == "register now":
@@ -127,11 +122,10 @@ def normalize_course_markdown(text: str) -> str:
         return label
 
     cleaned = _PRODUCT_MD_LINK_RE.sub(_demote_product_links, text)
-    headers = list(_COURSE_HEADER_RE.finditer(cleaned))
+    headers = list(_COURSE_ID_HEADER_RE.finditer(cleaned))
     if not headers:
         return cleaned
 
-    # Insert Register Now only when missing between this header and the next.
     inserts: list[tuple[int, str]] = []
     for i, match in enumerate(headers):
         course_id = match.group(1)
