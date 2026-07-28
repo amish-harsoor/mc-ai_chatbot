@@ -11,8 +11,9 @@ load_dotenv()
 def get_db_connection():
     return get_connection()
 
+
 def init_db():
-    """Create the chat_messages table and ensure display/metadata columns exist."""
+    """Create chat_messages plus guest/registered session + profile tables."""
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -41,6 +42,11 @@ def init_db():
     finally:
         conn.close()
 
+    from src.db.profiles import init_profile_tables
+
+    init_profile_tables()
+
+
 _SCRIPTED_ONBOARDING_STEPS = frozenset({"welcome", "experience", "department", "goal"})
 
 
@@ -48,7 +54,10 @@ def should_include_in_llm_history(role: str, metadata: dict | None) -> bool:
     """Return False for onboarding KV pairs and scripted bot prompts."""
     metadata = metadata or {}
 
-    if metadata.get("type") == "onboarding_selection":
+    if metadata.get("visible") is False:
+        return False
+
+    if metadata.get("type") in ("onboarding_selection", "preference_update"):
         return False
 
     if role == "user" and metadata.get("step") in ("experience", "department"):
@@ -59,33 +68,8 @@ def should_include_in_llm_history(role: str, metadata: dict | None) -> bool:
             return False
         if metadata.get("step") in _SCRIPTED_ONBOARDING_STEPS:
             return False
-        if metadata.get("visible") is False:
-            return False
 
     return True
-
-
-def get_session_history(session_id: str) -> list[ChatMessage]:
-    """Retrieve all messages for a given session, formatted for LlamaIndex."""
-    conn = get_db_connection()
-    messages = []
-    try:
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute("""
-                SELECT role, content 
-                FROM chat_messages 
-                WHERE session_id = %s 
-                ORDER BY created_at ASC
-            """, (session_id,))
-            rows = cur.fetchall()
-            
-            for row in rows:
-                role = MessageRole.USER if row['role'] == 'user' else MessageRole.ASSISTANT
-                messages.append(ChatMessage(role=role, content=row['content']))
-    finally:
-        conn.close()
-    
-    return messages
 
 
 def get_llm_session_history(session_id: str) -> list[ChatMessage]:
@@ -113,6 +97,7 @@ def get_llm_session_history(session_id: str) -> list[ChatMessage]:
 
     return messages
 
+
 def _normalize_metadata(raw_metadata) -> dict | None:
     if raw_metadata is None:
         return None
@@ -125,6 +110,7 @@ def _normalize_metadata(raw_metadata) -> dict | None:
             return None
     return None
 
+
 def get_session_history_raw(session_id: str) -> list[dict]:
     """Retrieve all messages for a given session as raw dictionaries."""
     conn = get_db_connection()
@@ -132,13 +118,13 @@ def get_session_history_raw(session_id: str) -> list[dict]:
     try:
         with conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute("""
-                SELECT role, content, display_content, metadata, created_at 
-                FROM chat_messages 
-                WHERE session_id = %s 
+                SELECT role, content, display_content, metadata, created_at
+                FROM chat_messages
+                WHERE session_id = %s
                 ORDER BY created_at ASC
             """, (session_id,))
             rows = cur.fetchall()
-            
+
             for row in rows:
                 metadata = _normalize_metadata(row['metadata'])
                 messages.append({
@@ -150,8 +136,9 @@ def get_session_history_raw(session_id: str) -> list[dict]:
                 })
     finally:
         conn.close()
-    
+
     return messages
+
 
 def save_message(
     session_id: str,
@@ -159,8 +146,16 @@ def save_message(
     content: str,
     display_content: str | None = None,
     metadata: dict | None = None,
+    *,
+    user_id: str | None = None,
+    guest_id: str | None = None,
 ):
-    """Save a single message to the database."""
+    """
+    Persist a full chat message (always) and update condensed session/profile snapshots.
+
+    Full text goes to chat_messages for history + future recommendation features.
+    Condensed prefs/stats go to chat_sessions + learner_profiles.
+    """
     if display_content is None:
         display_content = content
 
@@ -180,3 +175,18 @@ def save_message(
         conn.commit()
     finally:
         conn.close()
+
+    try:
+        from src.db.profiles import record_message
+
+        record_message(
+            session_id,
+            role=role,
+            content=display_content or content,
+            metadata=metadata,
+            user_id=user_id,
+            guest_id=guest_id,
+        )
+    except Exception:
+        # Primary message write already committed; snapshot is best-effort
+        pass

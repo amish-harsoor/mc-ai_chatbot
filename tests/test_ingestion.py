@@ -84,6 +84,33 @@ def test_extract_course_title_from_pdf_header():
     assert extract_course_title(text) == "Introduction to Data Visualization"
 
 
+def test_extract_course_title_joins_wrapped_pdf_lines():
+    text = (
+        "888.545.8574 | ManagementConcepts.com | © 2025 Management Concepts\n\n"
+        "Project Management Essentials for Non-Project\n"
+        "Managers\n"
+        "Course Number: 6131\n"
+        "Length: 2 Days\n"
+    )
+    title = extract_course_title(text)
+    assert title is not None
+    assert "Project Management Essentials" in title
+    assert "Managers" in title
+    assert title != "Managers"
+
+
+def test_extract_course_title_prefers_full_over_weak_metadata():
+    text = (
+        "Federal Financial Management Systems\n"
+        "Requirements\n"
+        "Course Number: 5117\n"
+        "Length: 2 Days\n"
+    )
+    title = extract_course_title(text, base_metadata={"course_title": "Requirements"})
+    assert title is not None
+    assert "Federal Financial Management" in title
+
+
 def test_build_course_metadata_extracts_structured_fields():
     text = (
         "Introduction to Data Visualization\n"

@@ -18,11 +18,7 @@ from src.ingestion.metadata import (
     source_id_for_path,
     source_id_for_url,
 )
-from src.ingestion.pricing import (
-    apply_catalog_prices,
-    is_gsa_price_list,
-    update_price_catalog_from_text,
-)
+from src.ingestion.pricing import apply_catalog_prices, is_gsa_price_list
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +149,7 @@ def load_pdf(path: str | Path) -> list[Document]:
         )
     full_text = "\n".join(doc.text for doc in documents)
     if is_gsa_price_list(path, full_text):
-        update_price_catalog_from_text(full_text)
+        # GSA bulk lists are not the official price source — strip any parsed price.
         for document in documents:
             document.metadata.pop("price", None)
     else:

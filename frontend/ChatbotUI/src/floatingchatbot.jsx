@@ -121,10 +121,6 @@ const styles = `
   .msg-meta.user { margin-left: 0; margin-right: 4px; flex-direction: row-reverse; }
   
   .sender-name { font-size: 13px; color: #1a1a1a; font-weight: 600; }
-  .bot-badge {
-    font-size: 10px; background: #e5e7eb; color: #4b5563;
-    padding: 2px 6px; border-radius: 4px; font-weight: 600;
-  }
   .msg-time { font-size: 12px; color: #888; }
 
   .msg-row {
@@ -240,6 +236,258 @@ const styles = `
   }
   .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+  /* —— Preference memory (subtle, always-on cues) —— */
+  .pref-bar {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 16px 12px;
+    background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+    border-bottom: 1px solid #f0f0f1;
+    position: relative;
+    z-index: 20;
+  }
+  .pref-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .pref-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #71717a;
+    font-weight: 500;
+    min-width: 0;
+  }
+  .pref-status-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: #9A1B22;
+    opacity: 0.75;
+  }
+  .pref-status strong {
+    color: #52525b;
+    font-weight: 600;
+  }
+  .pref-saved-flash {
+    font-size: 10px;
+    font-weight: 600;
+    color: #166534;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    animation: pref-flash-in 0.25s ease both;
+  }
+  @keyframes pref-flash-in {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .pref-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pref-chip-wrap {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+  }
+  .pref-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 1.3;
+    color: #3f3f46;
+    background: #f4f4f5;
+    border: 1px solid #e4e4e7;
+    border-radius: 999px;
+    padding: 3px 8px 3px 6px;
+    animation: pref-chip-in 0.28s cubic-bezier(.4,0,.2,1) both;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pref-chip:hover:not(:disabled) {
+    background: #ececef;
+    border-color: #d4d4d8;
+  }
+  .pref-chip:focus-visible {
+    outline: 2px solid rgba(154, 27, 34, 0.35);
+    outline-offset: 2px;
+  }
+  .pref-chip.open {
+    border-color: #9A1B22;
+    background: #faf7f7;
+    box-shadow: 0 0 0 2px rgba(154, 27, 34, 0.12);
+  }
+  .pref-chip.empty {
+    color: #a1a1aa;
+    background: #fafafa;
+    border-style: dashed;
+  }
+  .pref-chip.empty:hover:not(:disabled) {
+    background: #f4f4f5;
+    border-color: #c4c4c8;
+    border-style: dashed;
+  }
+  .pref-chip:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .pref-chip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #9A1B22;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .pref-chip.empty .pref-chip-dot {
+    background: #d4d4d8;
+    opacity: 1;
+  }
+  .pref-chip-label {
+    color: #a1a1aa;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 9px;
+  }
+  .pref-chip-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+    font-weight: 600;
+  }
+  .pref-chip-caret {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    color: #a1a1aa;
+    opacity: 0.85;
+    transition: transform 0.15s ease;
+  }
+  .pref-chip.open .pref-chip-caret {
+    transform: rotate(180deg);
+    color: #9A1B22;
+  }
+  .pref-chip-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 40;
+    min-width: 200px;
+    max-width: min(280px, 70vw);
+    padding: 6px;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: pref-menu-in 0.16s ease both;
+  }
+  .pref-chip-menu-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 10px 6px;
+  }
+  .pref-chip-option {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: #18181b;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .pref-chip-option:hover:not(:disabled) {
+    background: #f4f4f5;
+  }
+  .pref-chip-option.selected {
+    background: #faf7f7;
+    color: #9A1B22;
+  }
+  .pref-chip-option:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  @keyframes pref-chip-in {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pref-menu-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .pref-welcome {
+    margin: 0 0 4px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #faf7f7;
+    border: 1px solid #f0e4e5;
+    color: #52525b;
+    font-size: 11px;
+    line-height: 1.45;
+    animation: msg-in 0.28s both;
+  }
+  .pref-welcome strong {
+    color: #9A1B22;
+    font-weight: 600;
+  }
+  .pref-note {
+    align-self: flex-end;
+    margin-top: 2px;
+    font-size: 10px;
+    color: #a1a1aa;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    animation: pref-flash-in 0.3s ease both;
+  }
+  .pref-note svg {
+    width: 11px;
+    height: 11px;
+    color: #9A1B22;
+    opacity: 0.65;
+  }
+  .pref-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 10px;
+    color: #a1a1aa;
+    letter-spacing: 0.01em;
+    padding: 0 4px;
+  }
+  .pref-footer svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
   @media (max-width: 600px) {
     .chat-window {
       position: fixed;
@@ -255,6 +503,31 @@ const styles = `
 `;
 
 const SESSION_STORAGE_KEY = "mc_chat_session_id";
+const GUEST_STORAGE_KEY = "mc_guest_id";
+
+/** Optional host-app registered user (set window.__MC_USER_ID__ or VITE_USER_ID). */
+function getRegisteredUserId() {
+  if (typeof window !== "undefined" && window.__MC_USER_ID__) {
+    return String(window.__MC_USER_ID__);
+  }
+  const fromEnv = import.meta.env && import.meta.env.VITE_USER_ID;
+  return fromEnv ? String(fromEnv) : null;
+}
+
+function getOrCreateGuestId() {
+  let guestId = localStorage.getItem(GUEST_STORAGE_KEY);
+  if (!guestId) {
+    guestId = `guest_${crypto.randomUUID()}`;
+    localStorage.setItem(GUEST_STORAGE_KEY, guestId);
+  }
+  return guestId;
+}
+
+function identityPayload() {
+  const userId = getRegisteredUserId();
+  if (userId) return { user_id: userId };
+  return { guest_id: getOrCreateGuestId() };
+}
 
 const EXPERIENCE_OPTIONS = [
   "Entry-level (0–2 years)",
@@ -267,6 +540,56 @@ const GOAL_OPTIONS = [
   "Get a promotion",
   "Upskill / personal growth",
 ];
+
+const SPEAK_WITH_AGENT_OPTION = "Speak with Agent";
+
+/** Detect fixed support/ticket acknowledgments so we can restore Speak with Agent when appropriate. */
+function isSupportHandoffText(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("sent to our support team") ||
+    lower.includes("password change request has been sent") ||
+    lower.includes("certificate request has been received") ||
+    lower.includes("will be generated shortly") ||
+    lower.includes("speak with an agent has been sent") ||
+    // legacy contact-style copy from older sessions
+    lower.includes("844-876-7476") ||
+    lower.includes("technicalsupport@managementconcepts.com") ||
+    lower.includes("speak with agent below")
+  );
+}
+
+/** True when the bot already confirmed an agent/ticket/certificate — no Speak with Agent chip. */
+function isSupportConfirmationOnly(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("speak with an agent has been sent") ||
+    lower.includes("certificate request has been received") ||
+    lower.includes("will be generated shortly") ||
+    lower.includes("specialist will pick this up") ||
+    lower.includes("specialist can help")
+  );
+}
+
+/**
+ * Onboarding option chips lock free-text until a choice is made.
+ * Support chips (Speak with Agent) must not lock the input — learners can keep typing
+ * password / certificate / other requests without leaving the chat.
+ */
+function optionsLockFreeText(msg) {
+  if (!msg?.options?.length || msg.optionsDisabled) return false;
+  const onlySupportChip = msg.options.every(
+    (o) => String(o).trim().toLowerCase() === SPEAK_WITH_AGENT_OPTION.toLowerCase()
+  );
+  return !onlySupportChip;
+}
+
+function isSpeakWithAgentSelection(text) {
+  const t = (text || "").trim().toLowerCase();
+  return t === "speak with agent" || t === "speak with an agent";
+}
 
 function newMessageId() {
   return crypto.randomUUID();
@@ -308,15 +631,204 @@ function mapHistoryToMessages(apiMessages) {
   const visible = apiMessages.filter((m) => m.metadata?.visible !== false);
   return visible.map((m, i, arr) => {
     const hasReplyAfter = arr.slice(i + 1).some((next) => next.role === "user");
+    const step = m.metadata?.step;
+    const text = m.display_content || m.content;
+    const prefSaved =
+      m.role === "user" &&
+      (step === "experience" ||
+        step === "department" ||
+        step === "goal" ||
+        step === "free" ||
+        m.metadata?.type === "onboarding_selection");
+    // Restore Speak with Agent on password/generic tickets when options were not stored.
+    // Skip agent/certificate confirmations — those are already final in-chat acknowledgments.
+    let options = m.metadata?.options;
+    if (
+      m.role === "assistant" &&
+      !options &&
+      isSupportHandoffText(text) &&
+      !isSupportConfirmationOnly(text)
+    ) {
+      options = [SPEAK_WITH_AGENT_OPTION];
+    }
     return {
       id: newMessageId(),
-      text: m.display_content || m.content,
+      text,
       sender: m.role === "user" ? "user" : "bot",
       time: formatTimeFromIso(m.created_at),
-      options: m.metadata?.options,
-      optionsDisabled: m.metadata?.options ? hasReplyAfter : undefined,
+      options,
+      optionsDisabled: options ? hasReplyAfter : undefined,
+      prefSaved: !!prefSaved,
+      prefLabel:
+        step === "experience"
+          ? "Experience saved"
+          : step === "department"
+            ? "Department saved"
+            : step === "goal"
+              ? "Goal saved"
+              : prefSaved
+                ? "Noted in your preferences"
+                : null,
     };
   });
+}
+
+function profileHasAny(profile) {
+  return !!(profile?.experience || profile?.department || profile?.goal);
+}
+
+function profileIsComplete(profile) {
+  return !!(profile?.experience && profile?.department && profile?.goal);
+}
+
+const PREF_CHIP_OPTIONS = {
+  experience: EXPERIENCE_OPTIONS,
+  department: DEPARTMENT_OPTIONS,
+  goal: GOAL_OPTIONS,
+};
+
+const PREF_CHIP_TITLES = {
+  experience: "Experience level",
+  department: "Department",
+  goal: "Career goal",
+};
+
+function PreferenceBar({ profile, saveFlash, identityLabel, onSelectPreference, disabled }) {
+  const [openKey, setOpenKey] = useState(null);
+  const barRef = useRef(null);
+
+  const chips = [
+    { key: "experience", label: "Exp", value: profile.experience },
+    { key: "department", label: "Dept", value: profile.department },
+    { key: "goal", label: "Goal", value: profile.goal },
+  ];
+  const filled = chips.filter((c) => c.value).length;
+  const statusText =
+    filled === 0
+      ? "Click a chip to set preferences"
+      : filled < 3
+        ? `${filled} of 3 · click a chip to change`
+        : "Click a chip to change anytime";
+
+  useEffect(() => {
+    if (!openKey) return undefined;
+    const onPointerDown = (e) => {
+      if (barRef.current && !barRef.current.contains(e.target)) {
+        setOpenKey(null);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpenKey(null);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openKey]);
+
+  useEffect(() => {
+    if (disabled) setOpenKey(null);
+  }, [disabled]);
+
+  const handleChipClick = (key) => {
+    if (disabled) return;
+    setOpenKey((prev) => (prev === key ? null : key));
+  };
+
+  const handleOptionClick = (key, value) => {
+    if (disabled) return;
+    setOpenKey(null);
+    if (value && value !== profile[key]) {
+      onSelectPreference?.(key, value);
+    }
+  };
+
+  return (
+    <div className="pref-bar" aria-live="polite" ref={barRef}>
+      <div className="pref-bar-top">
+        <div className="pref-status">
+          <svg className="pref-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          <span>
+            <strong>{statusText}</strong>
+            {identityLabel ? ` · ${identityLabel}` : ""}
+          </span>
+        </div>
+        {saveFlash ? <span className="pref-saved-flash">{saveFlash}</span> : null}
+      </div>
+      <div className="pref-chips">
+        {chips.map((chip) => {
+          const isOpen = openKey === chip.key;
+          const options = PREF_CHIP_OPTIONS[chip.key] || [];
+          return (
+            <div key={chip.key} className="pref-chip-wrap">
+              <button
+                type="button"
+                className={`pref-chip${chip.value ? "" : " empty"}${isOpen ? " open" : ""}`}
+                title={
+                  chip.value
+                    ? `Change ${PREF_CHIP_TITLES[chip.key]}`
+                    : `Set ${PREF_CHIP_TITLES[chip.key]}`
+                }
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-label={`${PREF_CHIP_TITLES[chip.key]}: ${chip.value || "not set"}. Click to change.`}
+                disabled={disabled}
+                onClick={() => handleChipClick(chip.key)}
+              >
+                <span className="pref-chip-dot" />
+                <span className="pref-chip-label">{chip.label}</span>
+                <span className="pref-chip-value">
+                  {chip.value || "—"}
+                </span>
+                <svg className="pref-chip-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {isOpen ? (
+                <div className="pref-chip-menu" role="listbox" aria-label={PREF_CHIP_TITLES[chip.key]}>
+                  <div className="pref-chip-menu-title">{PREF_CHIP_TITLES[chip.key]}</div>
+                  {options.map((opt) => {
+                    const selected = chip.value === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        className={`pref-chip-option${selected ? " selected" : ""}`}
+                        disabled={disabled}
+                        onClick={() => handleOptionClick(chip.key, opt)}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PrefSavedNote({ label }) {
+  if (!label) return null;
+  return (
+    <span className="pref-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      {label}
+    </span>
+  );
 }
 
 function MessageContent({ msg }) {
@@ -329,9 +841,21 @@ function MessageContent({ msg }) {
       remarkPlugins={[remarkGfm]}
       components={{
         p: ({ children }) => <p>{children}</p>,
-        a: ({ node, ...props }) => (
-          <a {...props} target="_blank" rel="noopener noreferrer" />
-        ),
+        a: ({ node, href, children, ...props }) => {
+          const isContact =
+            (href && (href.startsWith("tel:") || href.startsWith("mailto:"))) ||
+            false;
+          return (
+            <a
+              {...props}
+              href={href}
+              target={isContact ? undefined : "_blank"}
+              rel={isContact ? undefined : "noopener noreferrer"}
+            >
+              {children}
+            </a>
+          );
+        },
       }}
     >
       {msg.text}
@@ -366,25 +890,51 @@ export default function FloatingChatbot() {
   const [loading, setLoading] = useState(false);
   const [sessionInitializing, setSessionInitializing] = useState(false);
   const [conversationStep, setConversationStep] = useState("experience");
+  const [profile, setProfile] = useState({});
+  const [saveFlash, setSaveFlash] = useState(null);
+  const [welcomeBack, setWelcomeBack] = useState(null);
   const stepRef = useRef("experience");
   const profileRef = useRef({});
   const sendingRef = useRef(false);
   const streamAbortRef = useRef(null);
   const sessionInitStarted = useRef(false);
   const timeoutsRef = useRef([]);
+  const saveFlashTimerRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
   const isMobile = useIsMobile();
+
+  const identityLabel = getRegisteredUserId() ? "Signed in" : "Guest";
 
   const abortActiveStream = () => {
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
   };
 
+  const syncProfile = (next) => {
+    const cleaned = {
+      experience: next.experience || undefined,
+      department: next.department || undefined,
+      goal: next.goal || undefined,
+    };
+    profileRef.current = cleaned;
+    setProfile(cleaned);
+  };
+
+  const flashPreferenceSaved = (label) => {
+    if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
+    setSaveFlash(label);
+    saveFlashTimerRef.current = setTimeout(() => {
+      setSaveFlash(null);
+      saveFlashTimerRef.current = null;
+    }, 2200);
+  };
+
   useEffect(() => {
     return () => {
       abortActiveStream();
       timeoutsRef.current.forEach(clearTimeout);
+      if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
     };
   }, []);
 
@@ -402,6 +952,7 @@ export default function FloatingChatbot() {
           content: text,
           display_content: text,
           metadata,
+          ...identityPayload(),
         }),
       });
     } catch {
@@ -409,11 +960,32 @@ export default function FloatingChatbot() {
     }
   };
 
-  const persistUserSelection = async (sid, step, value) => {
+  const persistUserSelection = async (sid, step, value, { silent = false, profileSnapshot = null } = {}) => {
     const content =
       step === "experience"
         ? `My experience level is: ${value}.`
-        : `My department is: ${value}.`;
+        : step === "department"
+          ? `My department is: ${value}.`
+          : step === "goal"
+            ? `My career goal is: ${value}.`
+            : value;
+    const metadata = {
+      step,
+      value,
+      type: silent ? "preference_update" : "onboarding_selection",
+      [step]: value,
+    };
+    if (silent) metadata.visible = false;
+    if (profileSnapshot && profileHasAny(profileSnapshot)) {
+      metadata.profile = {
+        experience: profileSnapshot.experience,
+        department: profileSnapshot.department,
+        goal: profileSnapshot.goal,
+      };
+      if (profileIsComplete(profileSnapshot)) {
+        metadata.profile_complete = true;
+      }
+    }
     await fetch(`${API_BASE}/session/${sid}/message`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -421,217 +993,49 @@ export default function FloatingChatbot() {
         role: "user",
         content,
         display_content: value,
-        metadata: { step, value, type: "onboarding_selection" },
+        metadata,
+        ...identityPayload(),
       }),
     });
   };
 
-  const scheduleMsg = (delay, msg, sid) => {
-    const id = setTimeout(() => {
-      const withTime = { ...msg, id: newMessageId(), time: getTime() };
-      setMessages((prev) => [...prev, withTime]);
-      if (sid) {
-        persistBotMessage(sid, msg.text, msg.metadata || { type: "onboarding" });
-      }
-    }, delay);
-    timeoutsRef.current.push(id);
+  const flashLabels = {
+    experience: "Experience updated",
+    department: "Department updated",
+    goal: "Goal updated",
   };
 
-  const showWelcomeFlow = (sid) => {
-    const welcomeText = "Welcome! I'm here to help you find the perfect courses.";
-    setMessages([{
-      id: newMessageId(),
-      sender: "bot",
-      time: getTime(),
-      text: welcomeText,
-    }]);
-    persistBotMessage(sid, welcomeText, { step: "welcome", type: "onboarding" });
-
-    scheduleMsg(1000, {
-      sender: "bot",
-      text: "To get started, what's your current experience level?",
-      options: EXPERIENCE_OPTIONS,
-      metadata: { step: "experience", type: "onboarding", options: EXPERIENCE_OPTIONS },
-    }, sid);
-  };
-
-  const startNewChat = async () => {
-    abortActiveStream();
-    sendingRef.current = false;
-    timeoutsRef.current.forEach(clearTimeout);
-    timeoutsRef.current = [];
-    localStorage.removeItem(SESSION_STORAGE_KEY);
-    setMessages([]);
-    setConversationStep("experience");
-    stepRef.current = "experience";
-    profileRef.current = {};
-    setLoading(false);
-    setInput("");
-
-    try {
-      const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
-      const data = await res.json();
-      const newId = data.session_id;
-      setSessionId(newId);
-      localStorage.setItem(SESSION_STORAGE_KEY, newId);
-      showWelcomeFlow(newId);
-    } catch {
-      setSessionId(null);
-      setMessages([{
-        id: newMessageId(),
-        text: "Error connecting to server. Make sure the backend is running.",
-        sender: "bot",
-        time: getTime(),
-      }]);
-    }
-  };
-
-  const initSession = async () => {
-    if (sessionInitStarted.current) return;
-    sessionInitStarted.current = true;
-    setSessionInitializing(true);
-
-    try {
-      const storedId = localStorage.getItem(SESSION_STORAGE_KEY);
-      if (storedId) {
-        const historyRes = await fetch(`${API_BASE}/session/${storedId}/history`);
-        if (historyRes.ok) {
-          const historyData = await historyRes.json();
-          if (historyData.messages?.length > 0) {
-            setSessionId(storedId);
-            setMessages(mapHistoryToMessages(historyData.messages));
-            const step = inferConversationStep(historyData.messages);
-            setConversationStep(step);
-            stepRef.current = step;
-            profileRef.current = extractProfileFromHistory(historyData.messages);
-            return;
-          }
-        }
-      }
-
-      const res = await fetch(`${API_BASE}/session/start`, { method: "POST" });
-      const data = await res.json();
-      const newId = data.session_id;
-      setSessionId(newId);
-      localStorage.setItem(SESSION_STORAGE_KEY, newId);
-      showWelcomeFlow(newId);
-    } catch {
-      setMessages([{
-        id: newMessageId(),
-        text: "Error connecting to server. Make sure the backend is running.",
-        sender: "bot",
-        time: getTime(),
-      }]);
-    } finally {
-      setSessionInitializing(false);
-    }
-  };
-
-  const sendMessage = async (overrideText) => {
-    const messageToSend = typeof overrideText === "string" ? overrideText : input;
-    if (!messageToSend.trim() || !sessionId || loading || sendingRef.current) return;
-
-    sendingRef.current = true;
-    const currentStep = stepRef.current;
-    const isOnboardingKv = currentStep === "experience" || currentStep === "department";
-
-    const userMessage = {
-      id: newMessageId(),
-      text: messageToSend,
-      sender: "user",
-      time: getTime(),
-    };
-
-    setMessages((prev) => {
-      const updatedPrev = prev.map(msg =>
-        msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
-      );
-      return [...updatedPrev, userMessage];
-    });
-    setInput("");
-
-    // Experience & department: store as KV pairs only — no LLM call, no typing indicator
-    if (isOnboardingKv) {
-      try {
-        await persistUserSelection(sessionId, currentStep, messageToSend);
-        profileRef.current[currentStep] = messageToSend;
-
-        if (currentStep === "experience") {
-          scheduleMsg(600, {
-            sender: "bot",
-            text: "Got it! Which department are you in?",
-            options: DEPARTMENT_OPTIONS,
-            metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
-          }, sessionId);
-          setConversationStep("department");
-          stepRef.current = "department";
-        } else {
-          scheduleMsg(600, {
-            sender: "bot",
-            text: "Are you looking to earn a specific certification, get a promotion, or just upskill?",
-            options: GOAL_OPTIONS,
-            metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
-          }, sessionId);
-          setConversationStep("goal");
-          stepRef.current = "goal";
-        }
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: newMessageId(),
-            text: "Sorry, something went wrong saving your selection.",
-            sender: "bot",
-            time: getTime(),
-          },
-        ]);
-      } finally {
-        sendingRef.current = false;
-      }
-      return;
-    }
-
-    abortActiveStream();
-    setLoading(true);
-
-    let backendMessage = messageToSend;
-    let stepMetadata = { step: currentStep };
-
-    if (currentStep === "goal") {
-      const profile = { ...profileRef.current, goal: messageToSend };
-      profileRef.current = profile;
-      backendMessage =
-        `My experience level is: ${profile.experience}. ` +
-        `My department is: ${profile.department}. ` +
-        `My career goal is: ${profile.goal}. ` +
-        `Please recommend courses based on my profile.`;
-      stepMetadata = {
-        step: "goal",
-        value: messageToSend,
-        profile_complete: true,
-        profile: {
-          experience: profile.experience,
-          department: profile.department,
-          goal: profile.goal,
-        },
+  const buildRecommendationPayload = (profile) => ({
+    backendMessage:
+      `My experience level is: ${profile.experience}. ` +
+      `My department is: ${profile.department}. ` +
+      `My career goal is: ${profile.goal}. ` +
+      `Please recommend courses based on my profile.`,
+    metadata: {
+      step: "goal",
+      value: profile.goal,
+      profile_complete: true,
+      profile: {
         experience: profile.experience,
         department: profile.department,
         goal: profile.goal,
-      };
-    } else {
-      const profile = profileRef.current;
-      stepMetadata = { step: "free" };
-      if (profile.experience) stepMetadata.experience = profile.experience;
-      if (profile.department) stepMetadata.department = profile.department;
-      if (profile.goal) stepMetadata.goal = profile.goal;
-      if (profile.experience && profile.department && profile.goal) {
-        stepMetadata.profile = {
-          experience: profile.experience,
-          department: profile.department,
-          goal: profile.goal,
-        };
-      }
-    }
+      },
+      experience: profile.experience,
+      department: profile.department,
+      goal: profile.goal,
+    },
+  });
+
+  /** Stream a bot reply into the message list. Caller owns sendingRef. */
+  const streamChatResponse = async ({
+    sid,
+    backendMessage,
+    displayMessage,
+    metadata,
+    supportCheckText,
+  }) => {
+    abortActiveStream();
+    setLoading(true);
 
     const botMessageId = newMessageId();
     let streamStarted = false;
@@ -639,6 +1043,16 @@ export default function FloatingChatbot() {
     let pendingStreamText = "";
 
     const applyBotMessage = (text, streaming) => {
+      // Only offer Speak with Agent after password/generic tickets — not after
+      // agent or certificate confirmations (those are final in-chat acks).
+      const supportOpts =
+        !streaming &&
+        isSupportHandoffText(text) &&
+        !isSupportConfirmationOnly(text) &&
+        !isSpeakWithAgentSelection(supportCheckText)
+          ? [SPEAK_WITH_AGENT_OPTION]
+          : undefined;
+
       if (!streamStarted) {
         streamStarted = true;
         setMessages((prev) => [
@@ -649,13 +1063,24 @@ export default function FloatingChatbot() {
             sender: "bot",
             time: getTime(),
             streaming,
+            options: supportOpts,
           },
         ]);
         return;
       }
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === botMessageId ? { ...msg, text, streaming } : msg
+          msg.id === botMessageId
+            ? {
+                ...msg,
+                text,
+                streaming,
+                ...(supportOpts ? { options: supportOpts } : {}),
+                ...(!streaming && !supportOpts && msg.options
+                  ? { options: undefined }
+                  : {}),
+              }
+            : msg
         )
       );
     };
@@ -681,10 +1106,11 @@ export default function FloatingChatbot() {
         headers: { "Content-Type": "application/json" },
         signal: abortController.signal,
         body: JSON.stringify({
-          session_id: sessionId,
+          session_id: sid,
           message: backendMessage,
-          display_message: messageToSend,
-          metadata: stepMetadata,
+          display_message: displayMessage,
+          metadata,
+          ...identityPayload(),
         }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -705,30 +1131,387 @@ export default function FloatingChatbot() {
         streamRafId = null;
       }
       applyBotMessage(fullText, false);
-
-      if (currentStep === "goal") {
-        setConversationStep("free");
-        stepRef.current = "free";
-      }
+      return { ok: true, aborted: false, text: fullText };
     } catch (err) {
-      if (err.name === "AbortError") return;
       if (streamRafId !== null) {
         cancelAnimationFrame(streamRafId);
         streamRafId = null;
       }
+      if (err.name === "AbortError") {
+        return { ok: false, aborted: true, text: "" };
+      }
       applyBotMessage("Sorry, something went wrong.", false);
+      return { ok: false, aborted: false, text: "" };
     } finally {
       if (streamAbortRef.current === abortController) {
         streamAbortRef.current = null;
       }
-      sendingRef.current = false;
       setLoading(false);
+    }
+  };
+
+  const updatePreferenceFromChip = async (key, value) => {
+    if (!sessionId || loading || sendingRef.current) return;
+    if (!["experience", "department", "goal"].includes(key)) return;
+    if (!value || value === profileRef.current[key]) return;
+
+    const nextProfile = { ...profileRef.current, [key]: value };
+    const shouldRecommend = key === "goal" && profileIsComplete(nextProfile);
+
+    syncProfile(nextProfile);
+    flashPreferenceSaved(
+      shouldRecommend
+        ? "Goal updated — refreshing recommendations"
+        : flashLabels[key] || "Preference updated"
+    );
+
+    sendingRef.current = true;
+    try {
+      // Goal refresh is persisted by the chat/stream turn (visible in history).
+      // Exp/dept-only chip edits stay silent so the thread is not cluttered.
+      if (!shouldRecommend) {
+        await persistUserSelection(sessionId, key, value, {
+          silent: true,
+          profileSnapshot: nextProfile,
+        });
+        return;
+      }
+
+      // Surface the new goal in the thread, then re-run course recommendations.
+      setMessages((prev) => {
+        const updatedPrev = prev.map((msg) =>
+          msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
+        );
+        return [
+          ...updatedPrev,
+          {
+            id: newMessageId(),
+            text: value,
+            sender: "user",
+            time: getTime(),
+            prefSaved: true,
+            prefLabel: "Goal updated — refreshing recommendations",
+          },
+        ];
+      });
+
+      const { backendMessage, metadata } = buildRecommendationPayload(nextProfile);
+      const result = await streamChatResponse({
+        sid: sessionId,
+        backendMessage,
+        displayMessage: value,
+        metadata: {
+          ...metadata,
+          preference_refresh: true,
+        },
+        supportCheckText: value,
+      });
+
+      if (!result.aborted) {
+        setConversationStep("free");
+        stepRef.current = "free";
+        flashPreferenceSaved("Recommendations updated");
+      }
+    } catch {
+      // Local state already updated; next chat turn can re-sync from server
+      if (shouldRecommend) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: newMessageId(),
+            text: "Sorry, something went wrong refreshing recommendations.",
+            sender: "bot",
+            time: getTime(),
+          },
+        ]);
+      }
+    } finally {
+      sendingRef.current = false;
+    }
+  };
+
+  const scheduleMsg = (delay, msg, sid) => {
+    const id = setTimeout(() => {
+      const withTime = { ...msg, id: newMessageId(), time: getTime() };
+      setMessages((prev) => [...prev, withTime]);
+      if (sid) {
+        persistBotMessage(sid, msg.text, msg.metadata || { type: "onboarding" });
+      }
+    }, delay);
+    timeoutsRef.current.push(id);
+  };
+
+  const showWelcomeFlow = (sid) => {
+    const welcomeText =
+      "Welcome! I'm here to help you find the perfect courses. I'll quietly save your preferences as we go so next time can pick up where you left off.";
+    setMessages([{
+      id: newMessageId(),
+      sender: "bot",
+      time: getTime(),
+      text: welcomeText,
+    }]);
+    persistBotMessage(sid, welcomeText, { step: "welcome", type: "onboarding" });
+
+    scheduleMsg(1000, {
+      sender: "bot",
+      text: "To get started, what's your current experience level?",
+      options: EXPERIENCE_OPTIONS,
+      metadata: { step: "experience", type: "onboarding", options: EXPERIENCE_OPTIONS },
+    }, sid);
+  };
+
+  const startNewChat = async () => {
+    abortActiveStream();
+    sendingRef.current = false;
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setMessages([]);
+    setConversationStep("experience");
+    stepRef.current = "experience";
+    syncProfile({});
+    setWelcomeBack(null);
+    setSaveFlash(null);
+    setLoading(false);
+    setInput("");
+
+    try {
+      getOrCreateGuestId();
+      const res = await fetch(`${API_BASE}/session/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(identityPayload()),
+      });
+      const data = await res.json();
+      const newId = data.session_id;
+      setSessionId(newId);
+      localStorage.setItem(SESSION_STORAGE_KEY, newId);
+      if (data.profile && profileHasAny(data.profile)) {
+        syncProfile({
+          experience: data.profile.experience,
+          department: data.profile.department,
+          goal: data.profile.goal,
+        });
+        setWelcomeBack(
+          profileIsComplete(data.profile)
+            ? "We still have your preferences from earlier — feel free to refine anytime."
+            : "Some of your preferences were restored from earlier visits."
+        );
+      }
+      showWelcomeFlow(newId);
+    } catch {
+      setSessionId(null);
+      setMessages([{
+        id: newMessageId(),
+        text: "Error connecting to server. Make sure the backend is running.",
+        sender: "bot",
+        time: getTime(),
+      }]);
+    }
+  };
+
+  const initSession = async () => {
+    if (sessionInitStarted.current) return;
+    sessionInitStarted.current = true;
+    setSessionInitializing(true);
+
+    try {
+      getOrCreateGuestId();
+      const storedId = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (storedId) {
+        const historyRes = await fetch(`${API_BASE}/session/${storedId}/history`);
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          if (historyData.messages?.length > 0) {
+            setSessionId(storedId);
+            setMessages(mapHistoryToMessages(historyData.messages));
+            const step = inferConversationStep(historyData.messages);
+            setConversationStep(step);
+            stepRef.current = step;
+            const fromHistory = extractProfileFromHistory(historyData.messages);
+            const expanded = historyData.session?.prefs_expanded || {};
+            const restored = {
+              experience: fromHistory.experience || expanded.experience,
+              department: fromHistory.department || expanded.department,
+              goal: fromHistory.goal || expanded.goal,
+            };
+            syncProfile(restored);
+            if (profileHasAny(restored)) {
+              setWelcomeBack(
+                profileIsComplete(restored)
+                  ? "Welcome back — your conversation and preferences were restored."
+                  : "Welcome back — we restored what we already know about your preferences."
+              );
+            } else {
+              setWelcomeBack("Welcome back — your conversation was restored.");
+            }
+            return;
+          }
+        }
+      }
+
+      const res = await fetch(`${API_BASE}/session/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(identityPayload()),
+      });
+      const data = await res.json();
+      const newId = data.session_id;
+      setSessionId(newId);
+      localStorage.setItem(SESSION_STORAGE_KEY, newId);
+      if (data.profile && profileHasAny(data.profile)) {
+        syncProfile({
+          experience: data.profile.experience,
+          department: data.profile.department,
+          goal: data.profile.goal,
+        });
+        setWelcomeBack(
+          profileIsComplete(data.profile)
+            ? "We remembered your preferences from earlier visits."
+            : "Some of your preferences were restored from earlier visits."
+        );
+      }
+      showWelcomeFlow(newId);
+    } catch {
+      setMessages([{
+        id: newMessageId(),
+        text: "Error connecting to server. Make sure the backend is running.",
+        sender: "bot",
+        time: getTime(),
+      }]);
+    } finally {
+      setSessionInitializing(false);
+    }
+  };
+
+  const sendMessage = async (overrideText) => {
+    const messageToSend = typeof overrideText === "string" ? overrideText : input;
+    if (!messageToSend.trim() || !sessionId || loading || sendingRef.current) return;
+
+    sendingRef.current = true;
+    const currentStep = stepRef.current;
+    const isOnboardingKv = currentStep === "experience" || currentStep === "department";
+
+    const prefLabel =
+      currentStep === "experience"
+        ? "Experience saved"
+        : currentStep === "department"
+          ? "Department saved"
+          : currentStep === "goal"
+            ? "Goal saved"
+            : "Noted in your preferences";
+
+    const userMessage = {
+      id: newMessageId(),
+      text: messageToSend,
+      sender: "user",
+      time: getTime(),
+      prefSaved: true,
+      prefLabel,
+    };
+
+    setMessages((prev) => {
+      const updatedPrev = prev.map(msg =>
+        msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
+      );
+      return [...updatedPrev, userMessage];
+    });
+    setInput("");
+
+    // Experience & department: store as KV pairs only — no LLM call, no typing indicator
+    if (isOnboardingKv) {
+      try {
+        await persistUserSelection(sessionId, currentStep, messageToSend);
+        syncProfile({ ...profileRef.current, [currentStep]: messageToSend });
+        flashPreferenceSaved(
+          currentStep === "experience" ? "Experience saved" : "Department saved"
+        );
+
+        if (currentStep === "experience") {
+          scheduleMsg(600, {
+            sender: "bot",
+            text: "Got it — saved. Which department are you in?",
+            options: DEPARTMENT_OPTIONS,
+            metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
+          }, sessionId);
+          setConversationStep("department");
+          stepRef.current = "department";
+        } else {
+          scheduleMsg(600, {
+            sender: "bot",
+            text: "Noted. Are you looking to earn a specific certification, get a promotion, or just upskill?",
+            options: GOAL_OPTIONS,
+            metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
+          }, sessionId);
+          setConversationStep("goal");
+          stepRef.current = "goal";
+        }
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: newMessageId(),
+            text: "Sorry, something went wrong saving your selection.",
+            sender: "bot",
+            time: getTime(),
+          },
+        ]);
+      } finally {
+        sendingRef.current = false;
+      }
+      return;
+    }
+
+    let backendMessage = messageToSend;
+    let stepMetadata = { step: currentStep };
+
+    if (currentStep === "goal") {
+      const nextProfile = { ...profileRef.current, goal: messageToSend };
+      syncProfile(nextProfile);
+      flashPreferenceSaved("Goal saved — profile ready");
+      const rec = buildRecommendationPayload(nextProfile);
+      backendMessage = rec.backendMessage;
+      stepMetadata = rec.metadata;
+    } else {
+      const currentProfile = profileRef.current;
+      stepMetadata = { step: "free" };
+      if (currentProfile.experience) stepMetadata.experience = currentProfile.experience;
+      if (currentProfile.department) stepMetadata.department = currentProfile.department;
+      if (currentProfile.goal) stepMetadata.goal = currentProfile.goal;
+      if (currentProfile.experience && currentProfile.department && currentProfile.goal) {
+        stepMetadata.profile = {
+          experience: currentProfile.experience,
+          department: currentProfile.department,
+          goal: currentProfile.goal,
+        };
+      }
+    }
+
+    try {
+      const result = await streamChatResponse({
+        sid: sessionId,
+        backendMessage,
+        displayMessage: messageToSend,
+        metadata: stepMetadata,
+        supportCheckText: messageToSend,
+      });
+
+      if (result.aborted) return;
+
+      if (currentStep === "goal") {
+        setConversationStep("free");
+        stepRef.current = "free";
+      } else if (currentStep === "free") {
+        flashPreferenceSaved("Preferences updated");
+      }
+    } finally {
+      sendingRef.current = false;
     }
   };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, welcomeBack, saveFlash]);
 
   const handleOpen = () => {
     setOpen((prev) => {
@@ -776,6 +1559,14 @@ export default function FloatingChatbot() {
           </div>
         </div>
 
+        <PreferenceBar
+          profile={profile}
+          saveFlash={saveFlash}
+          identityLabel={identityLabel}
+          onSelectPreference={updatePreferenceFromChip}
+          disabled={sessionInitializing || !sessionId || loading}
+        />
+
         <div className="chat-messages">
           {sessionInitializing && messages.length === 0 && (
             <div className="typing-indicator">
@@ -788,6 +1579,12 @@ export default function FloatingChatbot() {
             </div>
           )}
 
+          {welcomeBack && !sessionInitializing && (
+            <div className="pref-welcome" role="status">
+              <strong>Preferences</strong> — {welcomeBack}
+            </div>
+          )}
+
           {messages.map((msg, i) => {
             const isConsecutive = i > 0 && messages[i - 1].sender === msg.sender;
             return (
@@ -795,7 +1592,6 @@ export default function FloatingChatbot() {
               {msg.sender === "bot" && !isConsecutive && (
                 <div className="msg-meta bot">
                   <span className="sender-name">MCAgent</span>
-                  <span className="bot-badge">BOT</span>
                   <span className="msg-time">{msg.time}</span>
                 </div>
               )}
@@ -818,10 +1614,13 @@ export default function FloatingChatbot() {
                   </div>
                 )}
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', alignItems: msg.sender === "user" ? "flex-end" : "flex-start" }}>
                   <div className={`bubble ${msg.sender}`}>
                     <MessageContent msg={msg} />
                   </div>
+                  {msg.sender === "user" && msg.prefSaved ? (
+                    <PrefSavedNote label={msg.prefLabel || "Saved to your preferences"} />
+                  ) : null}
                 </div>
               </div>
 
@@ -883,16 +1682,30 @@ export default function FloatingChatbot() {
               ref={inputRef}
               className="chat-input"
               type="text"
-              placeholder="Write a message"
+              placeholder={
+                conversationStep === "free" || profileIsComplete(profile)
+                  ? "Ask anything — preferences stay with you"
+                  : "Write a message"
+              }
               value={input}
-              disabled={sessionInitializing || !sessionId || loading || (messages.length > 0 && messages[messages.length - 1].options && !messages[messages.length - 1].optionsDisabled)}
+              disabled={
+                sessionInitializing ||
+                !sessionId ||
+                loading ||
+                (messages.length > 0 && optionsLockFreeText(messages[messages.length - 1]))
+              }
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <button
               className={`send-btn ${input.trim() ? 'active' : ''}`}
               onClick={sendMessage}
-              disabled={sessionInitializing || !sessionId || loading || (messages.length > 0 && messages[messages.length - 1].options && !messages[messages.length - 1].optionsDisabled)}
+              disabled={
+                sessionInitializing ||
+                !sessionId ||
+                loading ||
+                (messages.length > 0 && optionsLockFreeText(messages[messages.length - 1]))
+              }
               title="Send"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -900,6 +1713,16 @@ export default function FloatingChatbot() {
                 <polyline points="5 12 12 5 19 12"/>
               </svg>
             </button>
+          </div>
+          <div className="pref-footer" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>
+              {profileIsComplete(profile)
+                ? "Click chips above to change preferences anytime"
+                : "Click chips above or answer prompts — both save"}
+            </span>
           </div>
         </div>
       </div>

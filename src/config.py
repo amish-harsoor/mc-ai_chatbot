@@ -11,13 +11,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 
-_FASTEMBED_INSTALL_HINT = (
-    "Install FastEmbed (no PyTorch): "
-    "python -m pip install \"fastembed>=0.3,<0.7\" "
-    "\"llama-index-embeddings-fastembed>=0.2,<0.4\""
-)
-
-
 def _preload_torch() -> None:
     """Import PyTorch before other native libs to avoid Windows DLL init failures."""
     import torch  # noqa: F401
@@ -153,8 +146,8 @@ def configure_llm() -> None:
         Settings.llm = Groq(
             model="llama-3.3-70b-versatile",
             api_key=api_key,
-            temperature=0.3,
-            max_tokens=1024,
+            temperature=0.2,
+            max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "700")),
             additional_kwargs={"top_p": 1},
         )
         logger.info("LlamaIndex configured with Groq (model: llama-3.3-70b-versatile)")
@@ -167,15 +160,16 @@ def configure_llm() -> None:
         raise RuntimeError(
             "OPENROUTER_API_KEY is required (or set LLM_PROVIDER=groq + GROQ_API_KEY)"
         )
+    model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.2-3b-instruct:free")
     Settings.llm = OpenAILike(
-        model="meta-llama/llama-3.1-8b-instruct",
+        model=model,
         api_base="https://openrouter.ai/api/v1",
         api_key=api_key,
-        temperature=0.3,
-        max_tokens=1024,
+        temperature=0.2,
+        max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "256")),
         is_chat_model=True,
     )
-    logger.info("LlamaIndex configured with OpenRouter (model: meta-llama/llama-3.1-8b-instruct)")
+    logger.info("LlamaIndex configured with OpenRouter (model: %s)", model)
 
 
 def configure_for_ingest() -> None:

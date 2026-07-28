@@ -30,10 +30,26 @@ def test_upsert_price_catalog_to_db_writes_rows():
         "src.db.course_prices.init_course_prices_table"
     ), patch("src.db.course_prices.execute_values") as execute_values_mock:
         count = course_prices.upsert_price_catalog_to_db(
-            {"4606": "$14,949.00", "5117": "$8,596.00"}
+            {"4606": "$1409.00", "5117": "$8596.00"}
         )
 
     assert count == 2
+    execute_values_mock.assert_called_once()
+    mock_conn.commit.assert_called_once()
+
+
+def test_replace_price_catalog_in_db_deletes_then_inserts():
+    mock_conn, mock_cursor = _mock_db_connection()
+
+    with patch("src.db.course_prices.get_connection", return_value=mock_conn), patch(
+        "src.db.course_prices.init_course_prices_table"
+    ), patch("src.db.course_prices.execute_values") as execute_values_mock:
+        count = course_prices.replace_price_catalog_in_db({"4606": "$1409.00"})
+
+    assert count == 1
+    mock_cursor.execute.assert_called()
+    sql = mock_cursor.execute.call_args[0][0]
+    assert "DELETE FROM" in sql
     execute_values_mock.assert_called_once()
     mock_conn.commit.assert_called_once()
 
@@ -46,8 +62,8 @@ def test_load_price_catalog_prefers_database(tmp_path, monkeypatch):
 
     with patch(
         "src.db.course_prices.load_price_catalog_from_db",
-        return_value={"4606": "$14,949.00"},
+        return_value={"4606": "$1409.00"},
     ):
         catalog = load_price_catalog()
 
-    assert catalog == {"4606": "$14,949.00"}
+    assert catalog == {"4606": "$1409.00"}

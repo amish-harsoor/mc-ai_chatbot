@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 from src.db.connection import db_label, get_connection
 from src.db.status import print_ingestion_status
-from src.db.vector_config import get_db_params, use_supabase, validate_db_env
+from src.db.vector_config import use_supabase, validate_db_env
 from src.ingestion.registry import DocumentRegistry
 from src.ingestion.vector_store import create_vector_store
 from src.db.course_prices import init_course_prices_table
@@ -46,7 +46,7 @@ def init_database(*, configure_embeddings: bool = False) -> bool:
     validate_db_env()
     ensure_pgvector()
     init_db()
-    print("chat_messages table ready.")
+    print("chat_messages, chat_sessions, and learner_profiles tables ready.")
     init_course_prices_table()
     print("course_prices table ready.")
     DocumentRegistry()

@@ -33,10 +33,11 @@ def _env_float(name: str, default: float) -> float:
     return float(os.getenv(name, str(default)))
 
 
-RETRIEVAL_VECTOR_TOP_K = _env_int("RETRIEVAL_VECTOR_TOP_K", 12)
-RETRIEVAL_BM25_TOP_K = _env_int("RETRIEVAL_BM25_TOP_K", 12)
-RETRIEVAL_FUSION_TOP_K = _env_int("RETRIEVAL_FUSION_TOP_K", 10)
-RETRIEVAL_RERANK_TOP_N = _env_int("RETRIEVAL_RERANK_TOP_N", 6)
+RETRIEVAL_VECTOR_TOP_K = _env_int("RETRIEVAL_VECTOR_TOP_K", 8)
+RETRIEVAL_BM25_TOP_K = _env_int("RETRIEVAL_BM25_TOP_K", 8)
+RETRIEVAL_FUSION_TOP_K = _env_int("RETRIEVAL_FUSION_TOP_K", 6)
+RETRIEVAL_RERANK_TOP_N = _env_int("RETRIEVAL_RERANK_TOP_N", 4)
+# Keep at 1: values >1 force an extra LLM call inside QueryFusionRetriever.
 RETRIEVAL_NUM_QUERIES = _env_int("RETRIEVAL_NUM_QUERIES", 1)
 RETRIEVAL_VECTOR_WEIGHT = _env_float("RETRIEVAL_VECTOR_WEIGHT", 0.6)
 RETRIEVAL_BM25_WEIGHT = _env_float("RETRIEVAL_BM25_WEIGHT", 0.4)
@@ -44,20 +45,88 @@ CONTEXT_COMPRESSION_PERCENTILE = _env_float("CONTEXT_COMPRESSION_PERCENTILE", 0.
 RERANK_MODEL = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 ENABLE_CONTEXT_COMPRESSION = os.getenv("ENABLE_CONTEXT_COMPRESSION", "false").lower() == "true"
 
+_course_title_catalog: dict[str, str] | None = None
+
+
+def load_course_title_catalog(force: bool = False) -> dict[str, str]:
+    """Display titles: official JSON catalog first, vector-store recovery as fallback."""
+    global _course_title_catalog
+    if _course_title_catalog is not None and not force:
+        return _course_title_catalog
+
+    from src.ingestion.course_catalog import load_course_catalog, title_map
+    from src.ingestion.metadata import (
+        extract_course_title,
+        is_weak_course_title,
+        prefer_course_title,
+    )
+
+    # Official MC catalog is authoritative for titles
+    load_course_catalog(force=force)
+    catalog: dict[str, str] = dict(title_map())
+
+    # Fill any missing IDs from vector store / multi-line PDF recovery
+    table = get_vector_table_name()
+    try:
+        conn = psycopg2.connect(**get_db_params())
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    f"""
+                    SELECT metadata_->>'course_id' AS course_id,
+                           metadata_->>'course_title' AS course_title,
+                           left(text, 800) AS text
+                    FROM {table}
+                    WHERE metadata_->>'course_id' IS NOT NULL
+                    """
+                )
+                for row in cur.fetchall():
+                    cid = str(row["course_id"] or "").strip()
+                    if not cid or cid in catalog:
+                        continue
+                    stored = (row["course_title"] or "").strip() or None
+                    recovered = extract_course_title(
+                        row["text"] or "",
+                        base_metadata={"course_title": stored},
+                    )
+                    best = prefer_course_title(recovered, stored)
+                    if best and not is_weak_course_title(best):
+                        catalog[cid] = best
+        finally:
+            conn.close()
+    except Exception as exc:
+        logger.warning("Course title catalog fallback load failed: %s", exc)
+
+    _course_title_catalog = catalog
+    if catalog:
+        logger.info("Course title catalog ready (%s courses)", len(catalog))
+    return catalog
+
 
 class CourseMetadataPostprocessor(BaseNodePostprocessor):
-    """Prepend canonical course fields so the LLM always sees accurate IDs, titles, and pricing."""
+    """Prepend official catalog fields (title, duration, level, price, delivery)."""
 
     def _postprocess_nodes(
         self,
         nodes: list[NodeWithScore],
         query_bundle: Optional[QueryBundle] = None,
     ) -> list[NodeWithScore]:
+        from src.ingestion.course_catalog import apply_official_catalog, load_course_catalog
         from src.ingestion.pricing import apply_catalog_prices
+
+        load_course_catalog()
+        load_course_title_catalog()
 
         enriched: list[NodeWithScore] = []
         for node_with_score in nodes:
-            metadata = apply_catalog_prices(dict(node_with_score.node.metadata or {}))
+            metadata = dict(node_with_score.node.metadata or {})
+            # Official JSON wins for title/duration/level/price/url
+            metadata = apply_official_catalog(metadata)
+            # Fill price from price DB/JSON if still missing
+            metadata = apply_catalog_prices(metadata)
+
+            source_text = node_with_score.node.get_content()
+
             header_parts: list[str] = []
             if metadata.get("course_id"):
                 header_parts.append(f"Course ID: {metadata['course_id']}")
@@ -65,6 +134,8 @@ class CourseMetadataPostprocessor(BaseNodePostprocessor):
                 header_parts.append(f"Title: {metadata['course_title']}")
             if metadata.get("duration"):
                 header_parts.append(f"Duration: {metadata['duration']}")
+            if metadata.get("level"):
+                header_parts.append(f"Level: {metadata['level']}")
             if metadata.get("price"):
                 header_parts.append(f"Cost: {metadata['price']}")
             if metadata.get("delivery_method"):
@@ -75,8 +146,10 @@ class CourseMetadataPostprocessor(BaseNodePostprocessor):
                 continue
 
             prefix = " | ".join(header_parts)
-            source_text = node_with_score.node.get_content()
             if source_text.startswith(prefix):
+                # Still refresh metadata on the node for downstream use
+                if hasattr(node_with_score.node, "metadata"):
+                    node_with_score.node.metadata = metadata
                 enriched.append(node_with_score)
                 continue
 
@@ -225,10 +298,17 @@ def _load_bm25_nodes(index: VectorStoreIndex) -> list:
 
 
 def clear_bm25_cache() -> None:
-    global _bm25_nodes_cache, _base_hybrid_retriever, _node_postprocessors
+    global _bm25_nodes_cache, _base_hybrid_retriever, _node_postprocessors, _course_title_catalog
     _bm25_nodes_cache = None
     _base_hybrid_retriever = None
     _node_postprocessors = None
+    _course_title_catalog = None
+    try:
+        from src.ingestion.course_catalog import clear_course_catalog_cache
+
+        clear_course_catalog_cache()
+    except Exception:
+        pass
     try:
         _create_reranker.cache_clear()
     except Exception:
@@ -314,17 +394,21 @@ def get_base_hybrid_retriever(index: VectorStoreIndex) -> BaseRetriever:
 
 
 def initialize_retrieval(index: VectorStoreIndex) -> None:
-    """Pre-warm BM25 index, fusion retriever, and reranker at startup."""
-    import os
-    from src.ingestion.pricing import ensure_price_catalog_from_directory
+    """Pre-warm BM25 index, fusion retriever, official catalog, and reranker."""
+    from src.ingestion.course_catalog import load_course_catalog, sync_prices_to_price_catalog
 
-    data_dir = os.getenv("INGEST_DATA_DIR", "data")
     try:
-        catalog = ensure_price_catalog_from_directory(data_dir)
-        if catalog:
-            logger.info("Course price catalog ready (%s courses)", len(catalog))
+        load_course_catalog(force=True)
+        prices = sync_prices_to_price_catalog()
+        if prices:
+            logger.info("Official course price catalog ready (%s courses)", len(prices))
     except Exception as exc:
-        logger.warning("Course price catalog initialization failed: %s", exc)
+        logger.warning("Official course catalog initialization failed: %s", exc)
+
+    try:
+        load_course_title_catalog(force=True)
+    except Exception as exc:
+        logger.warning("Course title catalog initialization failed: %s", exc)
 
     get_base_hybrid_retriever(index)
     create_node_postprocessors()

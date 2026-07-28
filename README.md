@@ -261,16 +261,33 @@ The widget calls `/session/start`, `/chat/stream`, and `/session/{id}/history` o
 
 All paths below are relative to the service root. If `CHATBOT_API_PREFIX=/api/v1/chatbot` is set, prepend that prefix (e.g. `/api/v1/chatbot/health`).
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Health check (no auth required) |
-| `POST` | `/session/start` | Create a new chat session; returns `{ "session_id": "..." }` |
-| `POST` | `/chat/stream` | Send a message; returns streaming `text/plain` |
-| `GET` | `/session/{session_id}/history` | Full message history for a session |
-| `POST` | `/session/{session_id}/message` | Persist a client-side message (e.g. onboarding UI) |
-| `POST` | `/upload-document` | Upload PDF/MD/TXT and ingest into the vector store |
-| `POST` | `/upload-pdf` | PDF-only upload (alias) |
-| `POST` | `/ingest-url` | Fetch and ingest a web page |
+| Method | Path | Single responsibility |
+|--------|------|----------------------|
+| `GET` | `/health` | Liveness check (no auth) |
+| `POST` | `/session/start` | Create a chat session (returns owner + optional profile snapshot) |
+| `POST` | `/chat/stream` | Generate a bot reply and stream it (`text/plain`) |
+| `GET` | `/session/{session_id}/history` | Load full message history for one session |
+| `POST` | `/session/{session_id}/message` | Persist one message **without** a bot reply (onboarding UI) |
+| `GET` | `/learner/{owner_id}/profile` | Read durable learner profile |
+| `GET` | `/learner/{owner_id}/sessions` | List session snapshots for an owner |
+| `POST` | `/ingest` | Ingest **one** file **or** URL into the vector store |
+
+### Identity (guest vs registered)
+
+Every session and message can include:
+
+- `user_id` — registered host-app user (preferred when present)
+- `guest_id` — stable anonymous id (widget stores `localStorage.mc_guest_id`)
+
+All user/assistant turns are always written to `chat_messages` (full text for history and future recommendation work). Condensed prefs/stats are updated on `chat_sessions` + `learner_profiles` automatically (not opt-in).
+
+### `POST /session/start` body
+
+```json
+{ "guest_id": "guest_…", "user_id": null }
+```
+
+Response includes `session_id`, `owner_id`, `owner_type`, and optional durable `profile`.
 
 ### `POST /chat/stream` body
 
@@ -280,6 +297,7 @@ All paths below are relative to the service root. If `CHATBOT_API_PREFIX=/api/v1
   "message": "Recommend courses for a new project manager",
   "display_message": "Optional UI-friendly version of the user message",
   "silent_response": false,
+  "guest_id": "guest_…",
   "metadata": {
     "step": "goal",
     "profile_complete": true,
@@ -294,7 +312,10 @@ All paths below are relative to the service root. If `CHATBOT_API_PREFIX=/api/v1
 
 - `display_message` — stored in history for the UI; LLM still sees `message`
 - `silent_response` — if `true`, assistant reply is saved but marked not visible in history
-- `metadata` — onboarding/profile context; partial onboarding steps skip the LLM and only persist the user message
+- `metadata` — profile / support context for routing and prefs
+- `guest_id` / `user_id` — owner identity for session + profile tracking
+
+This endpoint always produces a reply (support, out-of-domain, or RAG). To save onboarding selections without a reply, use `POST /session/{id}/message`.
 
 ### `POST /session/{session_id}/message` body
 
@@ -303,8 +324,25 @@ All paths below are relative to the service root. If `CHATBOT_API_PREFIX=/api/v1
   "role": "assistant",
   "content": "Welcome! What is your experience level?",
   "display_content": "Welcome!",
-  "metadata": { "step": "welcome", "type": "onboarding" }
+  "metadata": { "step": "welcome", "type": "onboarding" },
+  "guest_id": "guest_…"
 }
+```
+
+### `POST /ingest`
+
+File (multipart):
+
+```bash
+curl -X POST http://localhost:8000/ingest -F "file=@data/my-course.pdf"
+```
+
+URL (JSON):
+
+```bash
+curl -X POST http://localhost:8000/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/courses", "force": false}'
 ```
 
 ---
@@ -382,7 +420,14 @@ mc-ai_chatbot/
     ├── api/
     │   ├── main.py             # standalone entry: uvicorn src.api.main:app
     │   ├── app.py              # create_app(), startup/shutdown helpers
-    │   ├── router.py           # APIRouter — mount into host apps
+    │   ├── router/             # APIRouter package — mount into host apps
+    │   │   ├── __init__.py     # aggregates domain routers
+    │   │   ├── deps.py         # shared request helpers
+    │   │   ├── health.py       # GET /health
+    │   │   ├── sessions.py     # session start / history / save message
+    │   │   ├── chat.py         # POST /chat/stream
+    │   │   ├── ingest.py       # POST /ingest (file or URL)
+    │   │   └── learners.py     # learner profile & session list
     │   ├── schemas.py          # Pydantic request/response models
     │   └── settings.py         # API prefix & key config
     ├── client.py               # ChatbotClient HTTP SDK
@@ -413,10 +458,9 @@ python src/ingestion/ingest.py --supabase
 Or ingest at runtime via the API:
 
 ```bash
-curl -X POST http://localhost:8000/upload-document \
-  -F "file=@data/my-course.pdf"
+curl -X POST http://localhost:8000/ingest -F "file=@data/my-course.pdf"
 
-curl -X POST http://localhost:8000/ingest-url \
+curl -X POST http://localhost:8000/ingest \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/courses", "force": false}'
 ```

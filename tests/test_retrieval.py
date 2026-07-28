@@ -143,8 +143,10 @@ def test_build_query_expansion_terms():
         latest_message="My department is: Finance. My career goal is: Get a promotion.",
     )
     terms = build_query_expansion_terms(profile)
-    assert any("Finance" in term for term in terms)
-    assert any("promotion" in term for term in terms)
+    joined = " ".join(terms).lower()
+    # Department maps to catalog phrases, not the raw label "Finance".
+    assert "financial management" in joined or "budget" in joined
+    assert "career advancement" in joined or "promotion" in joined
 
 
 def test_build_condense_prompt_includes_profile():
@@ -170,7 +172,7 @@ def test_query_expansion_retriever_merges_profile_terms():
     retriever.retrieve("budget analysis")
 
     assert "budget analysis" in StubRetriever.last_query
-    assert "Finance" in StubRetriever.last_query
+    assert "federal financial management" in StubRetriever.last_query
 
 
 def test_course_metadata_postprocessor_prepends_structured_header():
@@ -197,6 +199,7 @@ def test_course_metadata_postprocessor_fills_price_from_catalog(tmp_path, monkey
 
     monkeypatch.setenv("COURSE_PRICE_CATALOG_PATH", str(tmp_path / "course_prices.json"))
     clear_price_catalog_cache()
+    # GSA-derived value is ignored for 4606 when official MC catalog has a price.
     save_price_catalog({"4606": "$14,949.00"})
 
     node = TextNode(
@@ -211,7 +214,7 @@ def test_course_metadata_postprocessor_fills_price_from_catalog(tmp_path, monkey
     result = processor.postprocess_nodes([NodeWithScore(node=node, score=0.9)])
 
     content = result[0].node.get_content()
-    assert "Cost: $14,949.00" in content
+    assert "Cost: $1409.00" in content
 
 
 def test_load_bm25_nodes_queries_postgres_directly():
