@@ -17,30 +17,37 @@ SupportKind = Literal["agent", "password", "certificate", "generic"]
 # Customer-facing replies (in-chat only — no external page routing)
 # ---------------------------------------------------------------------------
 
-PASSWORD_CHANGE_MESSAGE = (
-    "Got it — your password change request has been sent to our support team. "
-    "They will handle it and follow up with you shortly. "
-    "You can keep browsing courses here anytime."
+SUPPORT_PHONE = "844-876-7476"
+SUPPORT_EMAIL = "technicalsupport@managementconcepts.com"
+
+# Canonical technical-support contact copy (password / login / generic issues).
+# Frontend shows a Speak with Agent chip when this message is used.
+TECHNICAL_SUPPORT_CONTACT_MESSAGE = (
+    "Please contact our technical support team at 844-876-7476, "
+    "via email (technicalsupport@managementconcepts.com), "
+    "or select Speak with Agent below and we'll connect you."
 )
+
+PASSWORD_CHANGE_MESSAGE = TECHNICAL_SUPPORT_CONTACT_MESSAGE
 
 SPEAK_WITH_AGENT_OPTION = "Speak with Agent"
 
+# After the learner already chose Speak with Agent — phone/email only (no chip CTA).
 SPEAK_WITH_AGENT_CONFIRMATION = (
-    "Your request to speak with an agent has been sent to our support team. "
-    "A specialist will pick this up and handle it for you. "
-    "You can keep browsing courses here anytime."
+    "Please contact our technical support team at 844-876-7476, "
+    "via email (technicalsupport@managementconcepts.com), "
+    "or stay in this chat — we'll connect you with a specialist."
 )
 
 CERTIFICATE_REQUEST_MESSAGE = (
     "Your certificate request has been received. It will be generated shortly — "
-    "you'll be notified when it's ready. No need to leave this chat."
+    "you'll be notified when it's ready. "
+    "If you need help, contact technical support at 844-876-7476 "
+    "or technicalsupport@managementconcepts.com."
 )
 
 # Generic account / access / billing / site issues
-SUPPORT_TICKET_MESSAGE = (
-    "I've sent this issue to our support team. They will handle it and get back to you. "
-    "You can keep browsing courses here anytime."
-)
+SUPPORT_TICKET_MESSAGE = TECHNICAL_SUPPORT_CONTACT_MESSAGE
 
 # ---------------------------------------------------------------------------
 # Intent patterns

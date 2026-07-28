@@ -548,26 +548,32 @@ function isSupportHandoffText(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
   return (
-    lower.includes("sent to our support team") ||
-    lower.includes("password change request has been sent") ||
-    lower.includes("certificate request has been received") ||
-    lower.includes("will be generated shortly") ||
-    lower.includes("speak with an agent has been sent") ||
-    // legacy contact-style copy from older sessions
+    lower.includes("contact our technical support") ||
+    lower.includes("technical support team at") ||
     lower.includes("844-876-7476") ||
     lower.includes("technicalsupport@managementconcepts.com") ||
-    lower.includes("speak with agent below")
+    lower.includes("speak with agent below") ||
+    lower.includes("certificate request has been received") ||
+    lower.includes("will be generated shortly") ||
+    // legacy copy from older sessions
+    lower.includes("sent to our support team") ||
+    lower.includes("password change request has been sent") ||
+    lower.includes("speak with an agent has been sent")
   );
 }
 
-/** True when the bot already confirmed an agent/ticket/certificate — no Speak with Agent chip. */
+/** True when the bot already confirmed agent/certificate — no Speak with Agent chip. */
 function isSupportConfirmationOnly(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
+  // Password/generic tickets include "select Speak with Agent below" → show the chip.
+  if (lower.includes("select speak with agent below")) return false;
   return (
-    lower.includes("speak with an agent has been sent") ||
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
+    lower.includes("we'll connect you with a specialist") ||
+    lower.includes("we’ll connect you with a specialist") ||
+    lower.includes("speak with an agent has been sent") ||
     lower.includes("specialist will pick this up") ||
     lower.includes("specialist can help")
   );
@@ -1269,6 +1275,7 @@ export default function FloatingChatbot() {
     setMessages([]);
     setConversationStep("experience");
     stepRef.current = "experience";
+    // Full reset: clear local prefs and tell the API to wipe durable profile.
     syncProfile({});
     setWelcomeBack(null);
     setSaveFlash(null);
@@ -1280,24 +1287,13 @@ export default function FloatingChatbot() {
       const res = await fetch(`${API_BASE}/session/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(identityPayload()),
+        body: JSON.stringify({ ...identityPayload(), reset_profile: true }),
       });
       const data = await res.json();
       const newId = data.session_id;
       setSessionId(newId);
       localStorage.setItem(SESSION_STORAGE_KEY, newId);
-      if (data.profile && profileHasAny(data.profile)) {
-        syncProfile({
-          experience: data.profile.experience,
-          department: data.profile.department,
-          goal: data.profile.goal,
-        });
-        setWelcomeBack(
-          profileIsComplete(data.profile)
-            ? "We still have your preferences from earlier — feel free to refine anytime."
-            : "Some of your preferences were restored from earlier visits."
-        );
-      }
+      // Do not re-apply data.profile — New chat intentionally starts with empty prefs.
       showWelcomeFlow(newId);
     } catch {
       setSessionId(null);
