@@ -130,6 +130,57 @@ async def chat_stream(request: ChatRequest):
 
         return StreamingResponse(ood_generator(), media_type="text/plain")
 
+    # Profile-complete onboarding / goal refresh → retrieve + template (no LLM).
+    # Titles, duration, level, cost still come from the official catalog postprocessor.
+    from src.chatbot.recommendations import (
+        build_template_recommendation_reply,
+        should_use_template_recommendations,
+    )
+
+    if should_use_template_recommendations(request.metadata):
+        try:
+            reply = build_template_recommendation_reply(
+                latest_message=request.message,
+                request_metadata=request.metadata,
+            )
+        except Exception as e:
+            logger.error(
+                "Template profile recommendations failed; falling back to LLM: %s",
+                e,
+                exc_info=True,
+            )
+        else:
+            reply = _linkify_course_ids(reply)
+            user_metadata = dict(request.metadata) if request.metadata else {}
+            user_metadata.setdefault("type", "profile_recommendation")
+
+            def template_generator():
+                save_message(
+                    request.session_id,
+                    "user",
+                    request.message,
+                    display_content=request.display_message or request.message,
+                    metadata=user_metadata or None,
+                    user_id=user_id,
+                    guest_id=guest_id,
+                )
+                save_message(
+                    request.session_id,
+                    "assistant",
+                    reply,
+                    display_content=reply,
+                    metadata={
+                        "visible": not request.silent_response,
+                        "type": "profile_recommendation",
+                        "template": True,
+                    },
+                    user_id=user_id,
+                    guest_id=guest_id,
+                )
+                yield reply
+
+            return StreamingResponse(template_generator(), media_type="text/plain")
+
     chat_history = get_llm_session_history(request.session_id)
     chat_engine = get_or_create_chat_engine(
         request.session_id,

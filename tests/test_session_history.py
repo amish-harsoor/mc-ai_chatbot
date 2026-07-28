@@ -34,19 +34,20 @@ def test_partial_onboarding_uses_message_endpoint_not_chat_stream():
     assert save_mock.call_args.kwargs["guest_id"] == "guest_test_1"
 
 
-def test_chat_stream_calls_llm_when_profile_complete():
+def test_chat_stream_profile_complete_uses_template_not_llm():
+    """Profile-complete onboarding recommendations are templated (no LLM)."""
     session_id = str(uuid.uuid4())
+    template_reply = (
+        "**4606** [Federal Budgeting](https://www.managementconcepts.com/product/4606)\n"
+        "Duration: 3 Days"
+    )
 
-    def fake_stream(engine, message):
-        class FakeResponse:
-            response_gen = iter(["Here are some courses."])
-
-        return FakeResponse()
-
-    with patch.object(session_manager, "get_llm_session_history", return_value=[]), \
-         patch.object(session_manager, "save_message") as save_mock, \
-         patch("src.chatbot.chatbot.get_streaming_response", side_effect=fake_stream), \
-         patch("src.api.router.chat.get_or_create_chat_engine", return_value=object()) as engine_mock:
+    with patch.object(session_manager, "save_message") as save_mock, \
+         patch(
+             "src.chatbot.recommendations.build_template_recommendation_reply",
+             return_value=template_reply,
+         ), \
+         patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
             json={
@@ -69,9 +70,11 @@ def test_chat_stream_calls_llm_when_profile_complete():
         )
 
     assert response.status_code == 200
-    engine_mock.assert_called_once()
+    assert "Federal Budgeting" in response.text
+    engine_mock.assert_not_called()
     assert save_mock.call_count == 2
     assert save_mock.call_args_list[1].args[1] == "assistant"
+    assert save_mock.call_args_list[1].kwargs["metadata"]["template"] is True
 
 
 def test_save_session_message_endpoint():
