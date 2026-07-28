@@ -43,8 +43,9 @@ def test_password_change_is_support_ticket():
     assert is_support_issue("My password reset is not working")
     reply = support_reply_for_message("I need to change my password")
     assert reply == PASSWORD_CHANGE_MESSAGE
-    assert "support team" in reply.lower()
-    assert "password change request has been sent" in reply.lower()
+    assert "844-876-7476" in reply
+    assert "technicalsupport@managementconcepts.com" in reply
+    assert "speak with agent" in reply.lower()
     assert support_options_for_message("I need to change my password") == [
         SPEAK_WITH_AGENT_OPTION
     ]
@@ -62,7 +63,9 @@ def test_agent_request_is_support():
     assert is_support_issue("I want to talk to a real person")
     reply = support_reply_for_message("Speak with Agent")
     assert reply == SPEAK_WITH_AGENT_CONFIRMATION
-    assert "sent to our support team" in reply.lower()
+    assert "844-876-7476" in reply
+    assert "technicalsupport@managementconcepts.com" in reply
+    assert "select speak with agent below" not in reply.lower()
     assert support_options_for_message("Speak with Agent") is None
 
 
@@ -73,6 +76,8 @@ def test_certificate_generation_request():
     reply = support_reply_for_message("Please generate my certificate")
     assert reply == CERTIFICATE_REQUEST_MESSAGE
     assert "generated shortly" in reply.lower()
+    assert "844-876-7476" in reply
+    assert "technicalsupport@managementconcepts.com" in reply
     assert support_options_for_message("Please generate my certificate") is None
 
 
@@ -122,7 +127,9 @@ def test_chat_stream_returns_support_without_llm():
         )
 
     assert response.status_code == 200
-    assert "support team" in response.text.lower()
+    assert "844-876-7476" in response.text
+    assert "technicalsupport@managementconcepts.com" in response.text
+    assert "speak with agent" in response.text.lower()
     engine_mock.assert_not_called()
     assert save_mock.call_count == 2
     assistant_call = save_mock.call_args_list[1]
@@ -169,7 +176,9 @@ def test_chat_stream_password_change():
         )
 
     assert response.status_code == 200
-    assert "password change request has been sent" in response.text.lower()
+    assert "844-876-7476" in response.text
+    assert "technicalsupport@managementconcepts.com" in response.text
+    assert "speak with agent below" in response.text.lower()
     engine_mock.assert_not_called()
     assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
     assert assistant_meta["support_kind"] == "password"
@@ -193,6 +202,8 @@ def test_chat_stream_certificate_request():
 
     assert response.status_code == 200
     assert "generated shortly" in response.text.lower()
+    assert "844-876-7476" in response.text
+    assert "technicalsupport@managementconcepts.com" in response.text
     engine_mock.assert_not_called()
     assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
     assert assistant_meta["support_kind"] == "certificate"
@@ -215,7 +226,9 @@ def test_chat_stream_speak_with_agent_confirmation():
         )
 
     assert response.status_code == 200
-    assert "support team" in response.text.lower()
+    assert "844-876-7476" in response.text
+    assert "technicalsupport@managementconcepts.com" in response.text
+    assert "select speak with agent below" not in response.text.lower()
     engine_mock.assert_not_called()
     assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
     assert assistant_meta["type"] == "support"

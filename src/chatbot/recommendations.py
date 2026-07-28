@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from typing import Any
 
 from llama_index.core.schema import NodeWithScore, QueryBundle
 
+from src.chatbot.course_cards import format_course_card_from_metadata
 from src.chatbot.query_context import UserProfile, build_user_profile
 from src.ingestion.course_catalog import apply_official_catalog, get_course
 
@@ -26,13 +26,6 @@ _TEMPLATE_ENABLED = os.getenv("CHAT_TEMPLATE_PROFILE_RECS", "true").lower() in (
 )
 _MAX_COURSES = int(os.getenv("CHAT_TEMPLATE_RECS_MAX", "5"))
 _MIN_COURSES = 1
-_DESCRIPTION_MAX_CHARS = 220
-
-_HEADER_LINE_RE = re.compile(
-    r"^Course ID:\s*.+?(?:\s*\|\s*.+)*\s*$",
-    re.IGNORECASE,
-)
-_WHITESPACE_RE = re.compile(r"\s+")
 
 
 def template_profile_recs_enabled() -> bool:
@@ -74,13 +67,6 @@ def build_profile_search_query(profile: UserProfile) -> str:
     return " ".join(parts)
 
 
-def _course_url(course_id: str, metadata: dict[str, Any]) -> str:
-    url = (metadata.get("url") or "").strip()
-    if url:
-        return url
-    return f"https://www.managementconcepts.com/product/{course_id}"
-
-
 def _official_metadata(raw: dict[str, Any] | None) -> dict[str, Any]:
     """Apply the same official catalog overlay used in RAG postprocessing."""
     metadata = dict(raw or {})
@@ -106,89 +92,19 @@ def _official_metadata(raw: dict[str, Any] | None) -> dict[str, Any]:
     return metadata
 
 
-def _extract_description(node_text: str, metadata: dict[str, Any]) -> str:
-    """Short description from chunk body; never invent course facts."""
-    text = (node_text or "").strip()
-    if not text:
-        return "Catalog course matching your profile."
-
-    lines = text.splitlines()
-    body_lines: list[str] = []
-    for i, line in enumerate(lines):
-        if i == 0 and _HEADER_LINE_RE.match(line.strip()):
-            continue
-        body_lines.append(line)
-    body = _WHITESPACE_RE.sub(" ", "\n".join(body_lines)).strip()
-
-    # Drop repeated title-only lead-ins
-    title = (metadata.get("course_title") or metadata.get("title") or "").strip()
-    if title and body.lower().startswith(title.lower()):
-        body = body[len(title) :].lstrip(" :-–—|")
-
-    if not body:
-        return "Catalog course matching your profile."
-
-    if len(body) <= _DESCRIPTION_MAX_CHARS:
-        return body
-
-    cut = body[:_DESCRIPTION_MAX_CHARS]
-    # Prefer sentence or word boundary
-    for sep in (". ", "; ", ", "):
-        idx = cut.rfind(sep)
-        if idx >= 80:
-            return cut[: idx + 1].strip()
-    sp = cut.rfind(" ")
-    if sp > 80:
-        return cut[:sp].rstrip() + "…"
-    return cut.rstrip() + "…"
-
-
-def _why_line(profile: UserProfile) -> str:
-    bits: list[str] = []
-    if profile.department:
-        bits.append(f"your {profile.department} focus")
-    if profile.experience:
-        bits.append(f"{profile.experience} experience")
-    if profile.goal:
-        bits.append(f"goal: {profile.goal}")
-    if not bits:
-        return "Strong fit based on your profile."
-    return "Fits " + ", ".join(bits) + "."
-
-
 def format_course_card(
     metadata: dict[str, Any],
     *,
-    description: str,
+    description: str = "",
     why: str | None = None,
 ) -> str | None:
-    """Render one course in the same markdown shape the LLM path uses."""
-    course_id = str(metadata.get("course_id") or "").strip()
-    if not course_id:
-        return None
-
-    title = (
-        metadata.get("course_title")
-        or metadata.get("title")
-        or f"Course {course_id}"
+    """Render one course card: title → duration / credits / cost."""
+    return format_course_card_from_metadata(
+        metadata,
+        description=description,
+        why=why,
+        include_credits=True,
     )
-    title = str(title).strip()
-    url = _course_url(course_id, metadata)
-
-    lines = [
-        f"**{course_id}** [{title}]({url})",
-    ]
-    if metadata.get("duration"):
-        lines.append(f"Duration: {metadata['duration']}")
-    if metadata.get("level"):
-        lines.append(f"Level: {metadata['level']}")
-    if metadata.get("price"):
-        lines.append(f"Cost: {metadata['price']}")
-    if description:
-        lines.append(f"Description: {description}")
-    if why:
-        lines.append(why)
-    return "\n".join(lines)
 
 
 def nodes_to_course_cards(
@@ -199,7 +115,6 @@ def nodes_to_course_cards(
 ) -> list[str]:
     """Dedupe by course_id, apply official catalog fields, format cards."""
     limit = max_courses if max_courses is not None else _MAX_COURSES
-    why = _why_line(profile)
     cards: list[str] = []
     seen: set[str] = set()
 
@@ -211,11 +126,7 @@ def nodes_to_course_cards(
             continue
         seen.add(course_id)
 
-        description = _extract_description(
-            node_with_score.node.get_content(),
-            metadata,
-        )
-        card = format_course_card(metadata, description=description, why=why)
+        card = format_course_card(metadata, description="")
         if card:
             cards.append(card)
         if len(cards) >= limit:

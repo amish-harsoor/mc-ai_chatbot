@@ -151,11 +151,12 @@ const styles = `
     background: #1e3a8a; color: #ffffff;
     border-top-right-radius: 4px;
   }
-  .bubble p { margin: 0 0 10px; }
+  .bubble p { margin: 0 0 6px; }
   .bubble p:last-child { margin-bottom: 0; }
   .bubble a { color: #2563eb; text-decoration: underline; }
   .bubble.user a { color: #bfdbfe; }
   .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
+  /* Preserve intentional line breaks if the model emits single newlines */
   .stream-plain { margin: 0; white-space: pre-wrap; }
 
   .options-container {
@@ -209,13 +210,6 @@ const styles = `
   .input-wrapper:focus-within {
     border-color: #d4d4d8;
   }
-  .icon-btn {
-    background: transparent; border: none; cursor: pointer;
-    color: #a1a1aa; display: flex; align-items: center; justify-content: center;
-    padding: 0; margin: 0;
-  }
-  .icon-btn:hover { color: #71717a; }
-  
   .chat-input {
     flex: 1; border: none; background: transparent; outline: none;
     font-family: 'Open Sans', sans-serif;
@@ -548,26 +542,32 @@ function isSupportHandoffText(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
   return (
-    lower.includes("sent to our support team") ||
-    lower.includes("password change request has been sent") ||
-    lower.includes("certificate request has been received") ||
-    lower.includes("will be generated shortly") ||
-    lower.includes("speak with an agent has been sent") ||
-    // legacy contact-style copy from older sessions
+    lower.includes("contact our technical support") ||
+    lower.includes("technical support team at") ||
     lower.includes("844-876-7476") ||
     lower.includes("technicalsupport@managementconcepts.com") ||
-    lower.includes("speak with agent below")
+    lower.includes("speak with agent below") ||
+    lower.includes("certificate request has been received") ||
+    lower.includes("will be generated shortly") ||
+    // legacy copy from older sessions
+    lower.includes("sent to our support team") ||
+    lower.includes("password change request has been sent") ||
+    lower.includes("speak with an agent has been sent")
   );
 }
 
-/** True when the bot already confirmed an agent/ticket/certificate — no Speak with Agent chip. */
+/** True when the bot already confirmed agent/certificate — no Speak with Agent chip. */
 function isSupportConfirmationOnly(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
+  // Password/generic tickets include "select Speak with Agent below" → show the chip.
+  if (lower.includes("select speak with agent below")) return false;
   return (
-    lower.includes("speak with an agent has been sent") ||
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
+    lower.includes("we'll connect you with a specialist") ||
+    lower.includes("we’ll connect you with a specialist") ||
+    lower.includes("speak with an agent has been sent") ||
     lower.includes("specialist will pick this up") ||
     lower.includes("specialist can help")
   );
@@ -836,6 +836,13 @@ function MessageContent({ msg }) {
     return <p className="stream-plain">{msg.text}</p>;
   }
 
+  // Ensure course fact rows stay on separate lines even if a reply uses
+  // single newlines (Markdown otherwise collapses them into one paragraph).
+  const text = String(msg.text || "").replace(
+    /(^|\n)(\*{0,2}(?:Duration|Credits|Cost|Level)\*{0,2}:|\[Register Now\])/g,
+    "\n\n$2"
+  ).replace(/\n{3,}/g, "\n\n").trim();
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -858,7 +865,7 @@ function MessageContent({ msg }) {
         },
       }}
     >
-      {msg.text}
+      {text}
     </ReactMarkdown>
   );
 }
@@ -1269,6 +1276,7 @@ export default function FloatingChatbot() {
     setMessages([]);
     setConversationStep("experience");
     stepRef.current = "experience";
+    // Full reset: clear local prefs and tell the API to wipe durable profile.
     syncProfile({});
     setWelcomeBack(null);
     setSaveFlash(null);
@@ -1280,24 +1288,13 @@ export default function FloatingChatbot() {
       const res = await fetch(`${API_BASE}/session/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(identityPayload()),
+        body: JSON.stringify({ ...identityPayload(), reset_profile: true }),
       });
       const data = await res.json();
       const newId = data.session_id;
       setSessionId(newId);
       localStorage.setItem(SESSION_STORAGE_KEY, newId);
-      if (data.profile && profileHasAny(data.profile)) {
-        syncProfile({
-          experience: data.profile.experience,
-          department: data.profile.department,
-          goal: data.profile.goal,
-        });
-        setWelcomeBack(
-          profileIsComplete(data.profile)
-            ? "We still have your preferences from earlier — feel free to refine anytime."
-            : "Some of your preferences were restored from earlier visits."
-        );
-      }
+      // Do not re-apply data.profile — New chat intentionally starts with empty prefs.
       showWelcomeFlow(newId);
     } catch {
       setSessionId(null);
@@ -1665,19 +1662,6 @@ export default function FloatingChatbot() {
 
         <div className="chat-input-area">
           <div className="input-wrapper">
-            <button className="icon-btn" title="Attach file">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-              </svg>
-            </button>
-            <button className="icon-btn" title="Add emoji">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                <line x1="9" y1="9" x2="9.01" y2="9"/>
-                <line x1="15" y1="9" x2="15.01" y2="9"/>
-              </svg>
-            </button>
             <input
               ref={inputRef}
               className="chat-input"
