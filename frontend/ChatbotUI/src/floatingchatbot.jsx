@@ -839,7 +839,7 @@ function MessageContent({ msg }) {
   // Ensure course fact rows stay on separate lines even if a reply uses
   // single newlines (Markdown otherwise collapses them into one paragraph).
   const text = String(msg.text || "").replace(
-    /(^|\n)(Duration:|Credits:|Cost:|Level:|\[Register Now\])/g,
+    /(^|\n)(\*{0,2}(?:Duration|Credits|Cost|Level)\*{0,2}:|\[Register Now\])/g,
     "\n\n$2"
   ).replace(/\n{3,}/g, "\n\n").trim();
 

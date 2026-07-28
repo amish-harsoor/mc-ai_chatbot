@@ -90,11 +90,11 @@ def test_format_course_fact_card_preserves_official_fields():
     assert card == (
         "**Introduction to Data Visualization**\n"
         "\n"
-        "Duration: 2 Days\n"
+        "**Duration:** 2 Days\n"
         "\n"
-        "Credits: CLP: 16 | CPE: 16\n"
+        "**Credits:** CLP: 16 | CPE: 16\n"
         "\n"
-        "Cost: $1409.00\n"
+        "**Cost:** $1409.00\n"
         "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )

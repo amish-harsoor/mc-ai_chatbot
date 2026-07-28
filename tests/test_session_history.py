@@ -40,11 +40,11 @@ def test_chat_stream_profile_complete_uses_template_not_llm():
     template_reply = (
         "**Federal Budgeting**\n"
         "\n"
-        "Duration: 3 Days\n"
+        "**Duration:** 3 Days\n"
         "\n"
-        "Credits: CLP: 24 | CPE: 24\n"
+        "**Credits:** CLP: 24 | CPE: 24\n"
         "\n"
-        "Cost: $1,429\n"
+        "**Cost:** $1,429\n"
         "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )

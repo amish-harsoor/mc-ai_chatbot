@@ -49,13 +49,21 @@ def format_course_card_markdown(
 
     parts = [f"**{display_title}**"]
     if duration:
-        parts.append(f"Duration: {duration}")
+        parts.append(f"**Duration:** {duration}")
     if credits:
-        parts.append(f"Credits: {credits}")
+        parts.append(f"**Credits:** {credits}")
     if price:
-        parts.append(f"Cost: {price}")
+        parts.append(f"**Cost:** {price}")
     if extra_lines:
-        parts.extend(extra_lines)
+        for line in extra_lines:
+            if isinstance(line, str):
+                line = re.sub(
+                    r"^(Duration|Credits|Cost|Level):",
+                    r"**\1:**",
+                    line,
+                    count=1,
+                )
+            parts.append(line)
     parts.append(f"[Register Now]({link})")
     # Double newlines → separate <p> tags in the chat markdown renderer
     return "\n\n".join(parts)

@@ -20,11 +20,11 @@ def test_format_card_title_and_facts_only():
     assert card == (
         "**Introduction to Data Visualization**\n"
         "\n"
-        "Duration: 2 Days\n"
+        "**Duration:** 2 Days\n"
         "\n"
-        "Credits: CLP: 16 | CPE: 16\n"
+        "**Credits:** CLP: 16 | CPE: 16\n"
         "\n"
-        "Cost: $1409.00\n"
+        "**Cost:** $1409.00\n"
         "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
@@ -43,7 +43,7 @@ def test_format_card_omits_missing_facts():
     assert card == (
         "**IT Acquisition**\n"
         "\n"
-        "Duration: 3 Days\n"
+        "**Duration:** 3 Days\n"
         "\n"
         "[Register Now](https://www.managementconcepts.com/product/1001)"
     )

@@ -181,11 +181,11 @@ def _resolve_course_entry(course_id: str) -> dict[str, Any] | None:
 
 def _missing_field_note(field: FactField) -> str | None:
     labels = {
-        "cost": "Cost: not listed in the catalog for this course.",
-        "duration": "Duration: not listed in the catalog for this course.",
-        "level": "Level: not listed in the catalog for this course.",
-        "credits": "Credits: not listed in the catalog for this course.",
-        "title": "Title: not listed in the catalog for this course.",
+        "cost": "**Cost:** not listed in the catalog for this course.",
+        "duration": "**Duration:** not listed in the catalog for this course.",
+        "level": "**Level:** not listed in the catalog for this course.",
+        "credits": "**Credits:** not listed in the catalog for this course.",
+        "title": "**Title:** not listed in the catalog for this course.",
     }
     return labels.get(field)
 

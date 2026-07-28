@@ -70,11 +70,11 @@ def test_format_course_card_preserves_official_fields():
     assert card == (
         "**Federal Budgeting for Non-Budget Personnel**\n"
         "\n"
-        "Duration: 3 Days\n"
+        "**Duration:** 3 Days\n"
         "\n"
-        "Credits: CLP: 24 | CPE: 24\n"
+        "**Credits:** CLP: 24 | CPE: 24\n"
         "\n"
-        "Cost: $1,429\n"
+        "**Cost:** $1,429\n"
         "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
@@ -141,9 +141,9 @@ def test_nodes_to_course_cards_uses_official_catalog_overlay():
     assert len(cards) == 1
     assert "**Official Catalog Title**" in cards[0]
     assert "Bad Title From Chunk" not in cards[0]
-    assert "Duration: 4 Days" in cards[0]
+    assert "**Duration:** 4 Days" in cards[0]
     assert "Level:" not in cards[0]
-    assert "Cost: $999" in cards[0]
+    assert "**Cost:** $999" in cards[0]
 
 
 def test_nodes_to_course_cards_dedupes_by_course_id():
@@ -202,11 +202,11 @@ def test_chat_stream_profile_complete_skips_llm():
         "here are courses from the Management Concepts catalog:\n\n"
         "**Federal Budgeting**\n"
         "\n"
-        "Duration: 3 Days\n"
+        "**Duration:** 3 Days\n"
         "\n"
-        "Credits: CLP: 24 | CPE: 24\n"
+        "**Credits:** CLP: 24 | CPE: 24\n"
         "\n"
-        "Cost: $1,429\n"
+        "**Cost:** $1,429\n"
         "\n"
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
@@ -245,7 +245,7 @@ def test_chat_stream_profile_complete_skips_llm():
 
     assert response.status_code == 200
     assert "**Federal Budgeting**" in response.text
-    assert "Duration: 3 Days" in response.text
+    assert "**Duration:** 3 Days" in response.text
     assert response.text.count("[Register Now](") == 1
     assert "[Federal Budgeting](" not in response.text
     rec_mock.assert_called_once()
