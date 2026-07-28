@@ -47,7 +47,7 @@ async def startup_chatbot() -> None:
     try:
         init_db()
         init_course_prices_table()
-        logger.info("chat_messages and course_prices tables initialized")
+        logger.info("chat_messages, sessions/profiles, and course_prices tables initialized")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
 

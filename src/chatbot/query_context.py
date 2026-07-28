@@ -40,9 +40,6 @@ class UserProfile:
     course_ids: list[str] = field(default_factory=list)
     source_types: list[str] = field(default_factory=list)
 
-    def has_filters(self) -> bool:
-        return bool(self.department or self.course_ids or self.source_types)
-
     def summary(self) -> str:
         parts = []
         if self.experience:
@@ -171,14 +168,74 @@ def build_metadata_filters(profile: UserProfile) -> MetadataFilters | None:
     return MetadataFilters(filters=filters, condition=condition)
 
 
+# Department → catalog-focused search phrases (keeps recs on-topic vs coaching/audit drift)
+_DEPARTMENT_SEARCH_TERMS: dict[str, list[str]] = {
+    "finance": [
+        "federal financial management",
+        "budget formulation execution accounting",
+        "appropriations financial systems",
+    ],
+    "it": [
+        "information technology IT project management",
+        "IT systems cybersecurity data",
+        "FAC-P/PM technology",
+    ],
+    "management": [
+        "leadership supervisory management skills",
+        "program management team leadership",
+        "manager development",
+    ],
+}
+
+_GOAL_SEARCH_TERMS: dict[str, list[str]] = {
+    "certification": ["certification preparation FAC-P/PM DoD FM CAPM PMP"],
+    "promotion": ["career advancement supervisory leadership core competencies"],
+    "upskill": ["professional development skills growth"],
+    "personal growth": ["professional development skills growth"],
+}
+
+
+def _norm_key(value: str | None) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
 def build_query_expansion_terms(profile: UserProfile) -> list[str]:
+    """Profile-aware terms that bias retrieval toward core department catalog hits."""
     terms: list[str] = []
-    if profile.department:
-        terms.append(f"{profile.department} courses and training")
-    if profile.experience:
-        terms.append(f"training for {profile.experience} professionals")
-    if profile.goal:
-        terms.append(f"courses to help with {profile.goal}")
+    dept = _norm_key(profile.department)
+    if dept:
+        # Match "finance", "it", or startswith for longer labels
+        for key, phrases in _DEPARTMENT_SEARCH_TERMS.items():
+            if key == dept or key in dept or dept in key:
+                terms.extend(phrases)
+                break
+        else:
+            terms.append(f"{profile.department} courses and training")
+
+    exp = _norm_key(profile.experience)
+    if exp:
+        if "entry" in exp or "0" in exp:
+            terms.append("foundational introductory overview fundamentals entry-level")
+        elif "senior" in exp or "manager" in exp or "8" in exp:
+            terms.append("advanced senior leadership strategic")
+        elif "mid" in exp:
+            terms.append("intermediate applied practitioner")
+
+    goal = _norm_key(profile.goal)
+    if goal:
+        matched_goal = False
+        for key, phrases in _GOAL_SEARCH_TERMS.items():
+            if key in goal:
+                terms.extend(phrases)
+                matched_goal = True
+                break
+        if not matched_goal:
+            terms.append(f"courses to help with {profile.goal}")
+
+    # Prefer core classroom/self-study courses over coaching packages in generic recs
+    if profile.department and not profile.course_ids:
+        terms.append("Course Number catalog training class workshop seminar")
+
     if profile.course_ids:
         terms.extend(f"course {course_id} details" for course_id in profile.course_ids[:3])
     return terms

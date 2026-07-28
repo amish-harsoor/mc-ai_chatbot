@@ -13,6 +13,25 @@ def test_should_exclude_onboarding_selection():
     ) is False
 
 
+def test_should_exclude_preference_update():
+    assert should_include_in_llm_history(
+        "user",
+        {
+            "step": "department",
+            "value": "IT",
+            "type": "preference_update",
+            "visible": False,
+        },
+    ) is False
+
+
+def test_should_exclude_hidden_user_message():
+    assert should_include_in_llm_history(
+        "user",
+        {"step": "goal", "value": "Get a promotion", "visible": False},
+    ) is False
+
+
 def test_should_exclude_scripted_onboarding_bot_prompt():
     assert should_include_in_llm_history(
         "assistant",
