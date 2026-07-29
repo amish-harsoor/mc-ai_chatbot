@@ -107,6 +107,56 @@ def format_course_card(
     )
 
 
+_SOFT_PENALTY_TERMS = (
+    "coaching",
+    "accelerator",
+    "package",
+    "mentoring",
+    "executive coach",
+)
+
+
+def _profile_soft_score(node_with_score: NodeWithScore, profile: UserProfile) -> float:
+    """Lightweight ranking bias for template recs (no extra model calls)."""
+    base = float(node_with_score.score or 0.0)
+    meta = dict(node_with_score.node.metadata or {})
+    title = str(meta.get("course_title") or meta.get("title") or "").lower()
+    level = str(meta.get("level") or "").lower()
+    blob = f"{title} {level}"
+    try:
+        content = (node_with_score.node.get_content() or "")[:400].lower()
+        blob = f"{blob} {content}"
+    except Exception:
+        pass
+
+    score = base
+    dept = (profile.department or "").strip().lower()
+    if dept and dept in blob:
+        score += 0.2
+
+    exp = (profile.experience or "").strip().lower()
+    if exp:
+        if ("entry" in exp or "0" in exp) and any(
+            t in blob for t in ("foundational", "intro", "overview", "basic", "fundamentals")
+        ):
+            score += 0.12
+        elif ("senior" in exp or "manager" in exp or "8" in exp) and any(
+            t in blob for t in ("advanced", "senior", "leadership", "strategic")
+        ):
+            score += 0.12
+        elif "mid" in exp and any(
+            t in blob for t in ("intermediate", "applied", "practitioner")
+        ):
+            score += 0.1
+
+    if any(term in blob for term in _SOFT_PENALTY_TERMS):
+        score -= 0.15
+
+    if meta.get("course_id"):
+        score += 0.05
+    return score
+
+
 def nodes_to_course_cards(
     nodes: list[NodeWithScore],
     profile: UserProfile,
@@ -115,10 +165,15 @@ def nodes_to_course_cards(
 ) -> list[str]:
     """Dedupe by course_id, apply official catalog fields, format cards."""
     limit = max_courses if max_courses is not None else _MAX_COURSES
+    ranked = sorted(
+        nodes,
+        key=lambda n: _profile_soft_score(n, profile),
+        reverse=True,
+    )
     cards: list[str] = []
     seen: set[str] = set()
 
-    for node_with_score in nodes:
+    for node_with_score in ranked:
         raw_meta = dict(node_with_score.node.metadata or {})
         metadata = _official_metadata(raw_meta)
         course_id = str(metadata.get("course_id") or "").strip()
@@ -179,7 +234,8 @@ def retrieve_recommendation_nodes(
     )
     nodes = retriever.retrieve(search_query)
     query_bundle = QueryBundle(query_str=search_query)
-    for postprocessor in create_node_postprocessors():
+    # Template recs: soft rank in Python; skip cross-encoder to keep onboarding fast.
+    for postprocessor in create_node_postprocessors(skip_rerank=True):
         nodes = postprocessor.postprocess_nodes(nodes, query_bundle=query_bundle)
     return nodes
 

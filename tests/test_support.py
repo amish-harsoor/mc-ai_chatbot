@@ -110,10 +110,16 @@ def test_support_reply_content():
     assert support_reply_for_message("Speak with Agent") == SPEAK_WITH_AGENT_CONFIRMATION
 
 
+def _assistant_meta(save_mock):
+    """Extract assistant metadata from a save_messages turn batch."""
+    turn = save_mock.call_args.args[1]
+    return turn[1]["metadata"]
+
+
 def test_chat_stream_returns_support_without_llm():
     session_id = str(uuid.uuid4())
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
@@ -131,17 +137,16 @@ def test_chat_stream_returns_support_without_llm():
     assert "technicalsupport@managementconcepts.com" in response.text
     assert "speak with agent" in response.text.lower()
     engine_mock.assert_not_called()
-    assert save_mock.call_count == 2
-    assistant_call = save_mock.call_args_list[1]
-    assert assistant_call.args[1] == "assistant"
-    assert assistant_call.kwargs["metadata"]["type"] == "support"
-    assert assistant_call.kwargs["metadata"]["options"] == [SPEAK_WITH_AGENT_OPTION]
+    assert save_mock.call_count == 1
+    assert _assistant_meta(save_mock)["type"] == "support"
+    assert _assistant_meta(save_mock)["options"] == [SPEAK_WITH_AGENT_OPTION]
+    assert response.headers.get("x-mc-options")
 
 
 def test_chat_stream_out_of_domain_without_llm():
     session_id = str(uuid.uuid4())
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
@@ -157,13 +162,13 @@ def test_chat_stream_out_of_domain_without_llm():
     assert "Management Concepts courses" in response.text
     assert "product/" not in response.text
     engine_mock.assert_not_called()
-    assert save_mock.call_args_list[1].kwargs["metadata"]["type"] == "out_of_domain"
+    assert _assistant_meta(save_mock)["type"] == "out_of_domain"
 
 
 def test_chat_stream_password_change():
     session_id = str(uuid.uuid4())
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
@@ -180,7 +185,7 @@ def test_chat_stream_password_change():
     assert "technicalsupport@managementconcepts.com" in response.text
     assert "speak with agent below" in response.text.lower()
     engine_mock.assert_not_called()
-    assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
+    assistant_meta = _assistant_meta(save_mock)
     assert assistant_meta["support_kind"] == "password"
     assert assistant_meta["options"] == [SPEAK_WITH_AGENT_OPTION]
 
@@ -188,7 +193,7 @@ def test_chat_stream_password_change():
 def test_chat_stream_certificate_request():
     session_id = str(uuid.uuid4())
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
@@ -205,7 +210,7 @@ def test_chat_stream_certificate_request():
     assert "844-876-7476" in response.text
     assert "technicalsupport@managementconcepts.com" in response.text
     engine_mock.assert_not_called()
-    assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
+    assistant_meta = _assistant_meta(save_mock)
     assert assistant_meta["support_kind"] == "certificate"
     assert "options" not in assistant_meta
 
@@ -213,7 +218,7 @@ def test_chat_stream_certificate_request():
 def test_chat_stream_speak_with_agent_confirmation():
     session_id = str(uuid.uuid4())
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
             "/chat/stream",
@@ -230,7 +235,7 @@ def test_chat_stream_speak_with_agent_confirmation():
     assert "technicalsupport@managementconcepts.com" in response.text
     assert "select speak with agent below" not in response.text.lower()
     engine_mock.assert_not_called()
-    assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
+    assistant_meta = _assistant_meta(save_mock)
     assert assistant_meta["type"] == "support"
     assert assistant_meta.get("support_kind") == "agent"
     assert "options" not in assistant_meta
@@ -246,7 +251,11 @@ def test_chat_stream_course_still_uses_llm():
         return FakeResponse()
 
     with patch.object(session_manager, "get_llm_session_history", return_value=[]), \
-         patch.object(session_manager, "save_message"), \
+         patch.object(session_manager, "save_messages"), \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
+         ), \
          patch("src.chatbot.chatbot.get_streaming_response", side_effect=fake_stream), \
          patch("src.api.router.chat.get_or_create_chat_engine", return_value=object()) as engine_mock:
         response = client.post(

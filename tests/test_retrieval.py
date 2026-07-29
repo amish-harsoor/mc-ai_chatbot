@@ -9,6 +9,7 @@ from src.chatbot.query_context import (
     build_metadata_filters,
     build_query_expansion_terms,
     build_user_profile,
+    enrich_metadata_with_durable_profile,
     extract_course_ids_from_text,
 )
 from src.chatbot.retrieval import (
@@ -17,6 +18,8 @@ from src.chatbot.retrieval import (
     QueryExpansionRetriever,
     _load_bm25_nodes,
     build_condense_prompt,
+    create_hybrid_retriever,
+    create_node_postprocessors,
 )
 
 
@@ -38,6 +41,54 @@ def test_build_user_profile_from_free_step_metadata():
     )
     assert profile.department == "Finance"
     assert profile.goal == "Earn a certification"
+
+
+def test_enrich_metadata_with_durable_profile_fills_gaps():
+    with patch(
+        "src.db.profiles.get_session",
+        return_value={
+            "owner_id": "guest_1",
+            "prefs_expanded": {
+                "experience": "Entry-level",
+                "department": "Finance",
+                "goal": "Get a promotion",
+            },
+        },
+    ), patch("src.db.profiles.get_learner_profile", return_value=None):
+        enriched = enrich_metadata_with_durable_profile(
+            {"step": "free"},
+            session_id="sess-1",
+        )
+    assert enriched["experience"] == "Entry-level"
+    assert enriched["department"] == "Finance"
+    assert enriched["goal"] == "Get a promotion"
+    assert enriched["profile"]["department"] == "Finance"
+
+
+def test_create_hybrid_retriever_course_id_is_vector_only():
+    index = MagicMock()
+    profile = build_user_profile([], latest_message="Tell me about course 4606")
+    filters = build_metadata_filters(profile)
+    with patch.object(
+        retrieval, "create_vector_retriever", return_value=MagicMock(name="vector")
+    ) as vector_mock, patch.object(
+        retrieval, "get_base_hybrid_retriever"
+    ) as hybrid_mock:
+        result = create_hybrid_retriever(index, metadata_filters=filters, profile=profile)
+    vector_mock.assert_called_once()
+    hybrid_mock.assert_not_called()
+    assert result is vector_mock.return_value
+
+
+def test_create_node_postprocessors_skip_rerank():
+    retrieval.clear_bm25_cache()
+    with patch.object(retrieval, "_create_reranker") as rerank_mock, patch.object(
+        retrieval, "ENABLE_RERANK", True
+    ):
+        processors = create_node_postprocessors(skip_rerank=True)
+    rerank_mock.assert_not_called()
+    assert processors  # still has reorder + catalog postprocessor
+    retrieval.clear_bm25_cache()
 
 
 def test_build_user_profile_from_metadata_profile_dict():

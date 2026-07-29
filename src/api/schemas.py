@@ -8,6 +8,8 @@ class StartSessionRequest(BaseModel):
 
     user_id: Optional[str] = Field(default=None, max_length=255)
     guest_id: Optional[str] = Field(default=None, max_length=255)
+    # When true (New chat), wipe durable learner prefs so onboarding starts clean.
+    reset_profile: bool = False
 
 
 class StartSessionResponse(BaseModel):

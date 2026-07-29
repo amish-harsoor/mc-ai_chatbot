@@ -125,6 +125,80 @@ def build_user_profile(
     return profile
 
 
+def _profile_fields_incomplete(metadata: dict[str, Any] | None) -> bool:
+    """True when request metadata lacks a complete experience/department/goal set."""
+    meta = metadata or {}
+    profile_data = meta.get("profile") if isinstance(meta.get("profile"), dict) else {}
+    for key in ("experience", "department", "goal"):
+        if meta.get(key) or profile_data.get(key):
+            continue
+        return True
+    return False
+
+
+def enrich_metadata_with_durable_profile(
+    request_metadata: dict[str, Any] | None,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+    guest_id: str | None = None,
+) -> dict[str, Any]:
+    """Fill missing prefs from session snapshot / durable learner profile.
+
+    Free-chat turns exclude onboarding KV from LLM history, so retrieval quality
+    depends on structured prefs. Prefer request metadata; fall back to DB.
+    """
+    meta: dict[str, Any] = dict(request_metadata or {})
+    if not _profile_fields_incomplete(meta):
+        return meta
+
+    durable: dict[str, Any] = {}
+    try:
+        from src.db.profiles import expand_prefs, get_learner_profile, get_session, resolve_owner
+
+        session = get_session(session_id) if session_id else None
+        if session:
+            expanded = session.get("prefs_expanded") or expand_prefs(session.get("prefs"))
+            for key in ("experience", "department", "goal"):
+                if expanded.get(key):
+                    durable[key] = expanded[key]
+
+        still_incomplete = any(
+            not (meta.get(k) or (meta.get("profile") or {}).get(k) or durable.get(k))
+            for k in ("experience", "department", "goal")
+        )
+        if still_incomplete:
+            owner_id = None
+            if user_id or guest_id:
+                try:
+                    owner_id, _ = resolve_owner(user_id=user_id, guest_id=guest_id)
+                except ValueError:
+                    owner_id = None
+            if not owner_id and session:
+                owner_id = session.get("owner_id")
+            if owner_id:
+                profile_row = get_learner_profile(owner_id)
+                if profile_row:
+                    for key in ("experience", "department", "goal"):
+                        if profile_row.get(key) and not durable.get(key):
+                            durable[key] = profile_row[key]
+    except Exception:
+        return meta
+
+    if not durable:
+        return meta
+
+    profile_data = dict(meta["profile"]) if isinstance(meta.get("profile"), dict) else {}
+    for key in ("experience", "department", "goal"):
+        value = meta.get(key) or profile_data.get(key) or durable.get(key)
+        if value:
+            meta[key] = value
+            profile_data[key] = value
+    if profile_data:
+        meta["profile"] = profile_data
+    return meta
+
+
 def build_metadata_filters(profile: UserProfile) -> MetadataFilters | None:
     """Build strict metadata filters only for high-confidence keys present in indexed chunks.
 

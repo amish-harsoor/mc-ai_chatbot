@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 
 _bm25_nodes_cache: list | None = None
 _base_hybrid_retriever: BaseRetriever | None = None
-_node_postprocessors: list[BaseNodePostprocessor] | None = None
+_node_postprocessors_rerank: list[BaseNodePostprocessor] | None = None
+_node_postprocessors_no_rerank: list[BaseNodePostprocessor] | None = None
 
 
 def _env_int(name: str, default: int) -> int:
@@ -44,6 +45,7 @@ RETRIEVAL_BM25_WEIGHT = _env_float("RETRIEVAL_BM25_WEIGHT", 0.4)
 CONTEXT_COMPRESSION_PERCENTILE = _env_float("CONTEXT_COMPRESSION_PERCENTILE", 0.0)
 RERANK_MODEL = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 ENABLE_CONTEXT_COMPRESSION = os.getenv("ENABLE_CONTEXT_COMPRESSION", "false").lower() == "true"
+ENABLE_RERANK = os.getenv("ENABLE_RERANK", "true").lower() in ("1", "true", "yes")
 
 _course_title_catalog: dict[str, str] | None = None
 
@@ -298,10 +300,12 @@ def _load_bm25_nodes(index: VectorStoreIndex) -> list:
 
 
 def clear_bm25_cache() -> None:
-    global _bm25_nodes_cache, _base_hybrid_retriever, _node_postprocessors, _course_title_catalog
+    global _bm25_nodes_cache, _base_hybrid_retriever
+    global _node_postprocessors_rerank, _node_postprocessors_no_rerank, _course_title_catalog
     _bm25_nodes_cache = None
     _base_hybrid_retriever = None
-    _node_postprocessors = None
+    _node_postprocessors_rerank = None
+    _node_postprocessors_no_rerank = None
     _course_title_catalog = None
     try:
         from src.ingestion.course_catalog import clear_course_catalog_cache
@@ -428,16 +432,15 @@ def create_hybrid_retriever(
     metadata_filters: MetadataFilters | None = None,
     profile: UserProfile | None = None,
 ) -> BaseRetriever:
+    # High-confidence course_id filter: vector-only (skip hybrid double-fetch + expansion noise).
+    if metadata_filters and _has_course_id_filter(metadata_filters):
+        return create_vector_retriever(index, filters=metadata_filters)
+
     base_hybrid = get_base_hybrid_retriever(index)
 
     if metadata_filters:
-        if _has_course_id_filter(metadata_filters):
-            vector_filtered = create_vector_retriever(index, filters=metadata_filters)
-            hybrid_filtered = MetadataPostFilterRetriever(base_hybrid, metadata_filters)
-            inner = MergedRetriever([vector_filtered, hybrid_filtered])
-        else:
-            vector_filtered = create_vector_retriever(index, filters=metadata_filters)
-            inner = ProfileAwareRetriever(vector_filtered, base_hybrid)
+        vector_filtered = create_vector_retriever(index, filters=metadata_filters)
+        inner = ProfileAwareRetriever(vector_filtered, base_hybrid)
     else:
         inner = base_hybrid
 
@@ -452,12 +455,21 @@ def _create_reranker() -> SentenceTransformerRerank:
     )
 
 
-def create_node_postprocessors() -> list[BaseNodePostprocessor]:
-    global _node_postprocessors
-    if _node_postprocessors is not None:
-        return _node_postprocessors
+def create_node_postprocessors(
+    *,
+    skip_rerank: bool = False,
+) -> list[BaseNodePostprocessor]:
+    """Build postprocessors. Rerank is optional (ENABLE_RERANK=false or skip_rerank=True)."""
+    global _node_postprocessors_rerank, _node_postprocessors_no_rerank
 
-    processors: list[BaseNodePostprocessor] = [_create_reranker()]
+    use_rerank = ENABLE_RERANK and not skip_rerank
+    cached = _node_postprocessors_rerank if use_rerank else _node_postprocessors_no_rerank
+    if cached is not None:
+        return cached
+
+    processors: list[BaseNodePostprocessor] = []
+    if use_rerank:
+        processors.append(_create_reranker())
     if ENABLE_CONTEXT_COMPRESSION and CONTEXT_COMPRESSION_PERCENTILE > 0:
         processors.append(
             SentenceEmbeddingOptimizer(
@@ -471,8 +483,11 @@ def create_node_postprocessors() -> list[BaseNodePostprocessor]:
             CourseMetadataPostprocessor(),
         ]
     )
-    _node_postprocessors = processors
-    return _node_postprocessors
+    if use_rerank:
+        _node_postprocessors_rerank = processors
+    else:
+        _node_postprocessors_no_rerank = processors
+    return processors
 
 
 def build_condense_prompt(profile: UserProfile) -> str:

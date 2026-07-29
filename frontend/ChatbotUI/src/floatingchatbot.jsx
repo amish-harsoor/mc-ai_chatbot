@@ -230,88 +230,47 @@ const styles = `
   }
   .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* —— Preference memory (subtle, always-on cues) —— */
+  /* —— Preference chips (one compact row, no instructional chrome) —— */
   .pref-bar {
     flex: 0 0 auto;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 16px 12px;
-    background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #fafafa;
     border-bottom: 1px solid #f0f0f1;
     position: relative;
     z-index: 20;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
   }
-  .pref-bar-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .pref-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: #71717a;
-    font-weight: 500;
-    min-width: 0;
-  }
-  .pref-status-icon {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    color: #9A1B22;
-    opacity: 0.75;
-  }
-  .pref-status strong {
-    color: #52525b;
-    font-weight: 600;
-  }
-  .pref-saved-flash {
-    font-size: 10px;
-    font-weight: 600;
-    color: #166534;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 999px;
-    padding: 2px 8px;
-    white-space: nowrap;
-    animation: pref-flash-in 0.25s ease both;
-  }
-  @keyframes pref-flash-in {
-    from { opacity: 0; transform: translateY(-2px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .pref-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .pref-bar::-webkit-scrollbar { display: none; }
   .pref-chip-wrap {
     position: relative;
-    display: inline-flex;
-    max-width: 100%;
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
   }
   .pref-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    max-width: 100%;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
     font-family: inherit;
-    font-size: 10px;
-    line-height: 1.3;
+    font-size: 11px;
+    line-height: 1.25;
     color: #3f3f46;
-    background: #f4f4f5;
+    background: #ffffff;
     border: 1px solid #e4e4e7;
     border-radius: 999px;
-    padding: 3px 8px 3px 6px;
-    animation: pref-chip-in 0.28s cubic-bezier(.4,0,.2,1) both;
+    padding: 5px 8px 5px 10px;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
   }
   .pref-chip:hover:not(:disabled) {
-    background: #ececef;
+    background: #f4f4f5;
     border-color: #d4d4d8;
   }
   .pref-chip:focus-visible {
@@ -321,84 +280,59 @@ const styles = `
   .pref-chip.open {
     border-color: #9A1B22;
     background: #faf7f7;
-    box-shadow: 0 0 0 2px rgba(154, 27, 34, 0.12);
+    box-shadow: 0 0 0 2px rgba(154, 27, 34, 0.1);
   }
   .pref-chip.empty {
     color: #a1a1aa;
+    border-style: dashed;
     background: #fafafa;
-    border-style: dashed;
   }
-  .pref-chip.empty:hover:not(:disabled) {
-    background: #f4f4f5;
-    border-color: #c4c4c8;
-    border-style: dashed;
+  .pref-chip.saved {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
   }
   .pref-chip:disabled {
     cursor: not-allowed;
-    opacity: 0.7;
-  }
-  .pref-chip-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #9A1B22;
-    flex-shrink: 0;
-    opacity: 0.7;
-  }
-  .pref-chip.empty .pref-chip-dot {
-    background: #d4d4d8;
-    opacity: 1;
-  }
-  .pref-chip-label {
-    color: #a1a1aa;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    font-size: 9px;
+    opacity: 0.65;
   }
   .pref-chip-value {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 140px;
     font-weight: 600;
+    min-width: 0;
   }
   .pref-chip-caret {
     width: 10px;
     height: 10px;
     flex-shrink: 0;
     color: #a1a1aa;
-    opacity: 0.85;
     transition: transform 0.15s ease;
+  }
+  .pref-chip.open .pref-chip-caret,
+  .pref-chip.saved .pref-chip-caret {
+    color: inherit;
   }
   .pref-chip.open .pref-chip-caret {
     transform: rotate(180deg);
-    color: #9A1B22;
   }
   .pref-chip-menu {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
     z-index: 40;
-    min-width: 200px;
-    max-width: min(280px, 70vw);
-    padding: 6px;
+    min-width: 196px;
+    max-width: min(280px, 72vw);
+    padding: 4px;
     background: #ffffff;
     border: 1px solid #e4e4e7;
     border-radius: 12px;
     box-shadow: 0 10px 28px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    animation: pref-menu-in 0.16s ease both;
-  }
-  .pref-chip-menu-title {
-    font-size: 10px;
-    font-weight: 600;
-    color: #71717a;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 4px 10px 6px;
+    gap: 1px;
+    animation: pref-menu-in 0.14s ease both;
   }
   .pref-chip-option {
     width: 100%;
@@ -425,61 +359,20 @@ const styles = `
     opacity: 0.55;
     cursor: not-allowed;
   }
-  @keyframes pref-chip-in {
-    from { opacity: 0; transform: scale(0.94); }
-    to   { opacity: 1; transform: scale(1); }
-  }
   @keyframes pref-menu-in {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .pref-welcome {
-    margin: 0 0 4px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: #faf7f7;
-    border: 1px solid #f0e4e5;
-    color: #52525b;
-    font-size: 11px;
-    line-height: 1.45;
+  .pref-restore {
+    margin: 0 0 2px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #fafafa;
+    border: 1px solid #f0f0f1;
+    color: #71717a;
+    font-size: 10px;
+    line-height: 1.4;
     animation: msg-in 0.28s both;
-  }
-  .pref-welcome strong {
-    color: #9A1B22;
-    font-weight: 600;
-  }
-  .pref-note {
-    align-self: flex-end;
-    margin-top: 2px;
-    font-size: 10px;
-    color: #a1a1aa;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    animation: pref-flash-in 0.3s ease both;
-  }
-  .pref-note svg {
-    width: 11px;
-    height: 11px;
-    color: #9A1B22;
-    opacity: 0.65;
-  }
-  .pref-footer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    font-size: 10px;
-    color: #a1a1aa;
-    letter-spacing: 0.01em;
-    padding: 0 4px;
-  }
-  .pref-footer svg {
-    width: 11px;
-    height: 11px;
-    flex-shrink: 0;
-    opacity: 0.7;
   }
 
   @media (max-width: 600px) {
@@ -631,15 +524,7 @@ function mapHistoryToMessages(apiMessages) {
   const visible = apiMessages.filter((m) => m.metadata?.visible !== false);
   return visible.map((m, i, arr) => {
     const hasReplyAfter = arr.slice(i + 1).some((next) => next.role === "user");
-    const step = m.metadata?.step;
     const text = m.display_content || m.content;
-    const prefSaved =
-      m.role === "user" &&
-      (step === "experience" ||
-        step === "department" ||
-        step === "goal" ||
-        step === "free" ||
-        m.metadata?.type === "onboarding_selection");
     // Restore Speak with Agent on password/generic tickets when options were not stored.
     // Skip agent/certificate confirmations — those are already final in-chat acknowledgments.
     let options = m.metadata?.options;
@@ -658,19 +543,15 @@ function mapHistoryToMessages(apiMessages) {
       time: formatTimeFromIso(m.created_at),
       options,
       optionsDisabled: options ? hasReplyAfter : undefined,
-      prefSaved: !!prefSaved,
-      prefLabel:
-        step === "experience"
-          ? "Experience saved"
-          : step === "department"
-            ? "Department saved"
-            : step === "goal"
-              ? "Goal saved"
-              : prefSaved
-                ? "Noted in your preferences"
-                : null,
     };
   });
+}
+
+/** Compact chip label: drop parenthetical detail when present. */
+function shortPrefDisplay(value) {
+  if (!value) return null;
+  const trimmed = String(value).replace(/\s*\([^)]*\)\s*$/, "").trim();
+  return trimmed || String(value);
 }
 
 function profileHasAny(profile) {
@@ -687,28 +568,21 @@ const PREF_CHIP_OPTIONS = {
   goal: GOAL_OPTIONS,
 };
 
-const PREF_CHIP_TITLES = {
-  experience: "Experience level",
-  department: "Department",
-  goal: "Career goal",
+const PREF_CHIP_META = {
+  experience: { title: "Experience level", empty: "Level" },
+  department: { title: "Department", empty: "Dept" },
+  goal: { title: "Career goal", empty: "Goal" },
 };
 
-function PreferenceBar({ profile, saveFlash, identityLabel, onSelectPreference, disabled }) {
+function PreferenceBar({ profile, flashKey, onSelectPreference, disabled }) {
   const [openKey, setOpenKey] = useState(null);
   const barRef = useRef(null);
 
   const chips = [
-    { key: "experience", label: "Exp", value: profile.experience },
-    { key: "department", label: "Dept", value: profile.department },
-    { key: "goal", label: "Goal", value: profile.goal },
+    { key: "experience", value: profile.experience },
+    { key: "department", value: profile.department },
+    { key: "goal", value: profile.goal },
   ];
-  const filled = chips.filter((c) => c.value).length;
-  const statusText =
-    filled === 0
-      ? "Click a chip to set preferences"
-      : filled < 3
-        ? `${filled} of 3 · click a chip to change`
-        : "Click a chip to change anytime";
 
   useEffect(() => {
     if (!openKey) return undefined;
@@ -746,88 +620,54 @@ function PreferenceBar({ profile, saveFlash, identityLabel, onSelectPreference, 
   };
 
   return (
-    <div className="pref-bar" aria-live="polite" ref={barRef}>
-      <div className="pref-bar-top">
-        <div className="pref-status">
-          <svg className="pref-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
-          </svg>
-          <span>
-            <strong>{statusText}</strong>
-            {identityLabel ? ` · ${identityLabel}` : ""}
-          </span>
-        </div>
-        {saveFlash ? <span className="pref-saved-flash">{saveFlash}</span> : null}
-      </div>
-      <div className="pref-chips">
-        {chips.map((chip) => {
-          const isOpen = openKey === chip.key;
-          const options = PREF_CHIP_OPTIONS[chip.key] || [];
-          return (
-            <div key={chip.key} className="pref-chip-wrap">
-              <button
-                type="button"
-                className={`pref-chip${chip.value ? "" : " empty"}${isOpen ? " open" : ""}`}
-                title={
-                  chip.value
-                    ? `Change ${PREF_CHIP_TITLES[chip.key]}`
-                    : `Set ${PREF_CHIP_TITLES[chip.key]}`
-                }
-                aria-haspopup="listbox"
-                aria-expanded={isOpen}
-                aria-label={`${PREF_CHIP_TITLES[chip.key]}: ${chip.value || "not set"}. Click to change.`}
-                disabled={disabled}
-                onClick={() => handleChipClick(chip.key)}
-              >
-                <span className="pref-chip-dot" />
-                <span className="pref-chip-label">{chip.label}</span>
-                <span className="pref-chip-value">
-                  {chip.value || "—"}
-                </span>
-                <svg className="pref-chip-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {isOpen ? (
-                <div className="pref-chip-menu" role="listbox" aria-label={PREF_CHIP_TITLES[chip.key]}>
-                  <div className="pref-chip-menu-title">{PREF_CHIP_TITLES[chip.key]}</div>
-                  {options.map((opt) => {
-                    const selected = chip.value === opt;
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        className={`pref-chip-option${selected ? " selected" : ""}`}
-                        disabled={disabled}
-                        onClick={() => handleOptionClick(chip.key, opt)}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+    <div className="pref-bar" ref={barRef} role="toolbar" aria-label="Your preferences">
+      {chips.map((chip) => {
+        const meta = PREF_CHIP_META[chip.key];
+        const isOpen = openKey === chip.key;
+        const isSaved = flashKey === chip.key;
+        const options = PREF_CHIP_OPTIONS[chip.key] || [];
+        const display = shortPrefDisplay(chip.value) || meta.empty;
+        return (
+          <div key={chip.key} className="pref-chip-wrap">
+            <button
+              type="button"
+              className={`pref-chip${chip.value ? "" : " empty"}${isOpen ? " open" : ""}${isSaved ? " saved" : ""}`}
+              title={chip.value ? `${meta.title}: ${chip.value}` : `Set ${meta.title}`}
+              aria-haspopup="listbox"
+              aria-expanded={isOpen}
+              aria-label={`${meta.title}: ${chip.value || "not set"}`}
+              disabled={disabled}
+              onClick={() => handleChipClick(chip.key)}
+            >
+              <span className="pref-chip-value">{display}</span>
+              <svg className="pref-chip-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {isOpen ? (
+              <div className="pref-chip-menu" role="listbox" aria-label={meta.title}>
+                {options.map((opt) => {
+                  const selected = chip.value === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={`pref-chip-option${selected ? " selected" : ""}`}
+                      disabled={disabled}
+                      onClick={() => handleOptionClick(chip.key, opt)}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
-  );
-}
-
-function PrefSavedNote({ label }) {
-  if (!label) return null;
-  return (
-    <span className="pref-note">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-      {label}
-    </span>
   );
 }
 
@@ -898,7 +738,8 @@ export default function FloatingChatbot() {
   const [sessionInitializing, setSessionInitializing] = useState(false);
   const [conversationStep, setConversationStep] = useState("experience");
   const [profile, setProfile] = useState({});
-  const [saveFlash, setSaveFlash] = useState(null);
+  /** Which chip briefly highlights green after a save (`experience` | `department` | `goal`). */
+  const [flashKey, setFlashKey] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
   const stepRef = useRef("experience");
   const profileRef = useRef({});
@@ -906,12 +747,11 @@ export default function FloatingChatbot() {
   const streamAbortRef = useRef(null);
   const sessionInitStarted = useRef(false);
   const timeoutsRef = useRef([]);
-  const saveFlashTimerRef = useRef(null);
+  const flashTimerRef = useRef(null);
+  const welcomeTimerRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
   const isMobile = useIsMobile();
-
-  const identityLabel = getRegisteredUserId() ? "Signed in" : "Guest";
 
   const abortActiveStream = () => {
     streamAbortRef.current?.abort();
@@ -928,20 +768,31 @@ export default function FloatingChatbot() {
     setProfile(cleaned);
   };
 
-  const flashPreferenceSaved = (label) => {
-    if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
-    setSaveFlash(label);
-    saveFlashTimerRef.current = setTimeout(() => {
-      setSaveFlash(null);
-      saveFlashTimerRef.current = null;
-    }, 2200);
+  const flashChip = (key) => {
+    if (!key) return;
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setFlashKey(key);
+    flashTimerRef.current = setTimeout(() => {
+      setFlashKey(null);
+      flashTimerRef.current = null;
+    }, 1400);
+  };
+
+  const showWelcomeBack = (text) => {
+    if (welcomeTimerRef.current) clearTimeout(welcomeTimerRef.current);
+    setWelcomeBack(text);
+    welcomeTimerRef.current = setTimeout(() => {
+      setWelcomeBack(null);
+      welcomeTimerRef.current = null;
+    }, 4500);
   };
 
   useEffect(() => {
     return () => {
       abortActiveStream();
       timeoutsRef.current.forEach(clearTimeout);
-      if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      if (welcomeTimerRef.current) clearTimeout(welcomeTimerRef.current);
     };
   }, []);
 
@@ -1006,12 +857,6 @@ export default function FloatingChatbot() {
     });
   };
 
-  const flashLabels = {
-    experience: "Experience updated",
-    department: "Department updated",
-    goal: "Goal updated",
-  };
-
   const buildRecommendationPayload = (profile) => ({
     backendMessage:
       `My experience level is: ${profile.experience}. ` +
@@ -1033,6 +878,40 @@ export default function FloatingChatbot() {
     },
   });
 
+  /** Parse X-MC-Options (pipe-separated, URL-encoded labels) from the stream response. */
+  const parseOptionsHeader = (res) => {
+    const raw = res.headers.get("X-MC-Options");
+    if (!raw) return null;
+    const opts = raw
+      .split("|")
+      .map((part) => {
+        try {
+          return decodeURIComponent(part);
+        } catch {
+          return part;
+        }
+      })
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return opts.length ? opts : null;
+  };
+
+  /**
+   * Options for a finished bot message: prefer server header, else legacy text heuristics
+   * for older sessions / providers that omit X-MC-Options.
+   */
+  const resolveBotOptions = (text, supportCheckText, headerOptions) => {
+    if (headerOptions) return headerOptions;
+    if (
+      isSupportHandoffText(text) &&
+      !isSupportConfirmationOnly(text) &&
+      !isSpeakWithAgentSelection(supportCheckText)
+    ) {
+      return [SPEAK_WITH_AGENT_OPTION];
+    }
+    return undefined;
+  };
+
   /** Stream a bot reply into the message list. Caller owns sendingRef. */
   const streamChatResponse = async ({
     sid,
@@ -1049,17 +928,7 @@ export default function FloatingChatbot() {
     let streamRafId = null;
     let pendingStreamText = "";
 
-    const applyBotMessage = (text, streaming) => {
-      // Only offer Speak with Agent after password/generic tickets — not after
-      // agent or certificate confirmations (those are final in-chat acks).
-      const supportOpts =
-        !streaming &&
-        isSupportHandoffText(text) &&
-        !isSupportConfirmationOnly(text) &&
-        !isSpeakWithAgentSelection(supportCheckText)
-          ? [SPEAK_WITH_AGENT_OPTION]
-          : undefined;
-
+    const applyBotMessage = (text, streaming, options) => {
       if (!streamStarted) {
         streamStarted = true;
         setMessages((prev) => [
@@ -1070,7 +939,7 @@ export default function FloatingChatbot() {
             sender: "bot",
             time: getTime(),
             streaming,
-            options: supportOpts,
+            options,
           },
         ]);
         return;
@@ -1082,10 +951,8 @@ export default function FloatingChatbot() {
                 ...msg,
                 text,
                 streaming,
-                ...(supportOpts ? { options: supportOpts } : {}),
-                ...(!streaming && !supportOpts && msg.options
-                  ? { options: undefined }
-                  : {}),
+                ...(options ? { options } : {}),
+                ...(!streaming && !options && msg.options ? { options: undefined } : {}),
               }
             : msg
         )
@@ -1094,7 +961,7 @@ export default function FloatingChatbot() {
 
     const flushStreamUpdate = () => {
       streamRafId = null;
-      applyBotMessage(pendingStreamText, true);
+      applyBotMessage(pendingStreamText, true, undefined);
     };
 
     const scheduleStreamUpdate = (text) => {
@@ -1122,6 +989,7 @@ export default function FloatingChatbot() {
       });
       if (!res.ok) throw new Error("Failed");
 
+      const headerOptions = parseOptionsHeader(res);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
@@ -1137,7 +1005,8 @@ export default function FloatingChatbot() {
         cancelAnimationFrame(streamRafId);
         streamRafId = null;
       }
-      applyBotMessage(fullText, false);
+      const finalOptions = resolveBotOptions(fullText, supportCheckText, headerOptions);
+      applyBotMessage(fullText, false, finalOptions);
       return { ok: true, aborted: false, text: fullText };
     } catch (err) {
       if (streamRafId !== null) {
@@ -1147,7 +1016,7 @@ export default function FloatingChatbot() {
       if (err.name === "AbortError") {
         return { ok: false, aborted: true, text: "" };
       }
-      applyBotMessage("Sorry, something went wrong.", false);
+      applyBotMessage("Sorry, something went wrong.", false, undefined);
       return { ok: false, aborted: false, text: "" };
     } finally {
       if (streamAbortRef.current === abortController) {
@@ -1166,11 +1035,7 @@ export default function FloatingChatbot() {
     const shouldRecommend = key === "goal" && profileIsComplete(nextProfile);
 
     syncProfile(nextProfile);
-    flashPreferenceSaved(
-      shouldRecommend
-        ? "Goal updated — refreshing recommendations"
-        : flashLabels[key] || "Preference updated"
-    );
+    flashChip(key);
 
     sendingRef.current = true;
     try {
@@ -1196,8 +1061,6 @@ export default function FloatingChatbot() {
             text: value,
             sender: "user",
             time: getTime(),
-            prefSaved: true,
-            prefLabel: "Goal updated — refreshing recommendations",
           },
         ];
       });
@@ -1217,7 +1080,7 @@ export default function FloatingChatbot() {
       if (!result.aborted) {
         setConversationStep("free");
         stepRef.current = "free";
-        flashPreferenceSaved("Recommendations updated");
+        flashChip("goal");
       }
     } catch {
       // Local state already updated; next chat turn can re-sync from server
@@ -1250,7 +1113,7 @@ export default function FloatingChatbot() {
 
   const showWelcomeFlow = (sid) => {
     const welcomeText =
-      "Welcome! I'm here to help you find the perfect courses. I'll quietly save your preferences as we go so next time can pick up where you left off.";
+      "Welcome! I'll help you find the right Management Concepts courses.";
     setMessages([{
       id: newMessageId(),
       sender: "bot",
@@ -1259,9 +1122,9 @@ export default function FloatingChatbot() {
     }]);
     persistBotMessage(sid, welcomeText, { step: "welcome", type: "onboarding" });
 
-    scheduleMsg(1000, {
+    scheduleMsg(800, {
       sender: "bot",
-      text: "To get started, what's your current experience level?",
+      text: "What's your experience level?",
       options: EXPERIENCE_OPTIONS,
       metadata: { step: "experience", type: "onboarding", options: EXPERIENCE_OPTIONS },
     }, sid);
@@ -1279,7 +1142,7 @@ export default function FloatingChatbot() {
     // Full reset: clear local prefs and tell the API to wipe durable profile.
     syncProfile({});
     setWelcomeBack(null);
-    setSaveFlash(null);
+    setFlashKey(null);
     setLoading(false);
     setInput("");
 
@@ -1333,14 +1196,12 @@ export default function FloatingChatbot() {
               goal: fromHistory.goal || expanded.goal,
             };
             syncProfile(restored);
-            if (profileHasAny(restored)) {
-              setWelcomeBack(
+            if (profileHasAny(restored) || historyData.messages.length > 0) {
+              showWelcomeBack(
                 profileIsComplete(restored)
-                  ? "Welcome back — your conversation and preferences were restored."
-                  : "Welcome back — we restored what we already know about your preferences."
+                  ? "Welcome back — conversation restored."
+                  : "Welcome back."
               );
-            } else {
-              setWelcomeBack("Welcome back — your conversation was restored.");
             }
             return;
           }
@@ -1362,11 +1223,7 @@ export default function FloatingChatbot() {
           department: data.profile.department,
           goal: data.profile.goal,
         });
-        setWelcomeBack(
-          profileIsComplete(data.profile)
-            ? "We remembered your preferences from earlier visits."
-            : "Some of your preferences were restored from earlier visits."
-        );
+        showWelcomeBack("Preferences restored — edit anytime via the chips above.");
       }
       showWelcomeFlow(newId);
     } catch {
@@ -1389,22 +1246,11 @@ export default function FloatingChatbot() {
     const currentStep = stepRef.current;
     const isOnboardingKv = currentStep === "experience" || currentStep === "department";
 
-    const prefLabel =
-      currentStep === "experience"
-        ? "Experience saved"
-        : currentStep === "department"
-          ? "Department saved"
-          : currentStep === "goal"
-            ? "Goal saved"
-            : "Noted in your preferences";
-
     const userMessage = {
       id: newMessageId(),
       text: messageToSend,
       sender: "user",
       time: getTime(),
-      prefSaved: true,
-      prefLabel,
     };
 
     setMessages((prev) => {
@@ -1420,14 +1266,12 @@ export default function FloatingChatbot() {
       try {
         await persistUserSelection(sessionId, currentStep, messageToSend);
         syncProfile({ ...profileRef.current, [currentStep]: messageToSend });
-        flashPreferenceSaved(
-          currentStep === "experience" ? "Experience saved" : "Department saved"
-        );
+        flashChip(currentStep);
 
         if (currentStep === "experience") {
           scheduleMsg(600, {
             sender: "bot",
-            text: "Got it — saved. Which department are you in?",
+            text: "Got it. Which department are you in?",
             options: DEPARTMENT_OPTIONS,
             metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
           }, sessionId);
@@ -1436,7 +1280,7 @@ export default function FloatingChatbot() {
         } else {
           scheduleMsg(600, {
             sender: "bot",
-            text: "Noted. Are you looking to earn a specific certification, get a promotion, or just upskill?",
+            text: "Noted. Certification, promotion, or upskilling?",
             options: GOAL_OPTIONS,
             metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
           }, sessionId);
@@ -1465,7 +1309,7 @@ export default function FloatingChatbot() {
     if (currentStep === "goal") {
       const nextProfile = { ...profileRef.current, goal: messageToSend };
       syncProfile(nextProfile);
-      flashPreferenceSaved("Goal saved — profile ready");
+      flashChip("goal");
       const rec = buildRecommendationPayload(nextProfile);
       backendMessage = rec.backendMessage;
       stepMetadata = rec.metadata;
@@ -1498,8 +1342,6 @@ export default function FloatingChatbot() {
       if (currentStep === "goal") {
         setConversationStep("free");
         stepRef.current = "free";
-      } else if (currentStep === "free") {
-        flashPreferenceSaved("Preferences updated");
       }
     } finally {
       sendingRef.current = false;
@@ -1508,7 +1350,7 @@ export default function FloatingChatbot() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, welcomeBack, saveFlash]);
+  }, [messages, loading, welcomeBack]);
 
   const handleOpen = () => {
     setOpen((prev) => {
@@ -1558,8 +1400,7 @@ export default function FloatingChatbot() {
 
         <PreferenceBar
           profile={profile}
-          saveFlash={saveFlash}
-          identityLabel={identityLabel}
+          flashKey={flashKey}
           onSelectPreference={updatePreferenceFromChip}
           disabled={sessionInitializing || !sessionId || loading}
         />
@@ -1577,8 +1418,8 @@ export default function FloatingChatbot() {
           )}
 
           {welcomeBack && !sessionInitializing && (
-            <div className="pref-welcome" role="status">
-              <strong>Preferences</strong> — {welcomeBack}
+            <div className="pref-restore" role="status">
+              {welcomeBack}
             </div>
           )}
 
@@ -1611,13 +1452,8 @@ export default function FloatingChatbot() {
                   </div>
                 )}
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', alignItems: msg.sender === "user" ? "flex-end" : "flex-start" }}>
-                  <div className={`bubble ${msg.sender}`}>
-                    <MessageContent msg={msg} />
-                  </div>
-                  {msg.sender === "user" && msg.prefSaved ? (
-                    <PrefSavedNote label={msg.prefLabel || "Saved to your preferences"} />
-                  ) : null}
+                <div className={`bubble ${msg.sender}`}>
+                  <MessageContent msg={msg} />
                 </div>
               </div>
 
@@ -1668,7 +1504,7 @@ export default function FloatingChatbot() {
               type="text"
               placeholder={
                 conversationStep === "free" || profileIsComplete(profile)
-                  ? "Ask anything — preferences stay with you"
+                  ? "Ask about courses…"
                   : "Write a message"
               }
               value={input}
@@ -1697,16 +1533,6 @@ export default function FloatingChatbot() {
                 <polyline points="5 12 12 5 19 12"/>
               </svg>
             </button>
-          </div>
-          <div className="pref-footer" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span>
-              {profileIsComplete(profile)
-                ? "Click chips above to change preferences anytime"
-                : "Click chips above or answer prompts — both save"}
-            </span>
           </div>
         </div>
       </div>
