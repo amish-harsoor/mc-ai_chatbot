@@ -1,11 +1,17 @@
 from psycopg2.extras import DictCursor, Json
 import json
+import os
+from typing import Any
+
 from dotenv import load_dotenv
 from llama_index.core.llms import ChatMessage, MessageRole
 
 from src.db.connection import get_connection
 
 load_dotenv()
+
+# Cap rows fed into the LLM memory buffer (after onboarding filters).
+LLM_HISTORY_MAX_MESSAGES = max(1, int(os.getenv("LLM_HISTORY_MAX_MESSAGES", "24")))
 
 
 def get_db_connection():
@@ -72,19 +78,35 @@ def should_include_in_llm_history(role: str, metadata: dict | None) -> bool:
     return True
 
 
-def get_llm_session_history(session_id: str) -> list[ChatMessage]:
-    """Session history for the LLM, excluding onboarding selections and scripted prompts."""
+def get_llm_session_history(
+    session_id: str,
+    *,
+    max_messages: int | None = None,
+) -> list[ChatMessage]:
+    """Session history for the LLM, excluding onboarding selections and scripted prompts.
+
+    Loads only a recent window from the DB (not the full transcript) to keep free-chat
+    turns light as sessions grow.
+    """
+    limit = max_messages if max_messages is not None else LLM_HISTORY_MAX_MESSAGES
+    # Over-fetch raw rows so filtered onboarding noise does not empty the window.
+    fetch_limit = max(limit * 4, limit)
+
     conn = get_db_connection()
-    messages = []
+    messages: list[ChatMessage] = []
     try:
         with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT role, content, metadata
                 FROM chat_messages
                 WHERE session_id = %s
-                ORDER BY created_at ASC
-            """, (session_id,))
-            rows = cur.fetchall()
+                ORDER BY created_at DESC
+                LIMIT %s
+                """,
+                (session_id, fetch_limit),
+            )
+            rows = list(reversed(cur.fetchall()))
 
             for row in rows:
                 metadata = _normalize_metadata(row["metadata"])
@@ -95,6 +117,8 @@ def get_llm_session_history(session_id: str) -> list[ChatMessage]:
     finally:
         conn.close()
 
+    if len(messages) > limit:
+        messages = messages[-limit:]
     return messages
 
 
@@ -156,22 +180,60 @@ def save_message(
     Full text goes to chat_messages for history + future recommendation features.
     Condensed prefs/stats go to chat_sessions + learner_profiles.
     """
-    if display_content is None:
-        display_content = content
+    save_messages(
+        session_id,
+        [
+            {
+                "role": role,
+                "content": content,
+                "display_content": display_content,
+                "metadata": metadata,
+            }
+        ],
+        user_id=user_id,
+        guest_id=guest_id,
+    )
 
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO chat_messages (session_id, role, content, display_content, metadata)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
+
+def save_messages(
+    session_id: str,
+    messages: list[dict[str, Any]],
+    *,
+    user_id: str | None = None,
+    guest_id: str | None = None,
+) -> None:
+    """Insert one or more chat_messages in a single transaction, then update snapshots."""
+    if not messages:
+        return
+
+    rows: list[tuple] = []
+    for message in messages:
+        role = message["role"]
+        content = message["content"]
+        display_content = message.get("display_content")
+        if display_content is None:
+            display_content = content
+        metadata = message.get("metadata")
+        rows.append(
+            (
                 session_id,
                 role,
                 content,
                 display_content,
                 Json(metadata) if metadata is not None else None,
-            ))
+            )
+        )
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.executemany(
+                """
+                INSERT INTO chat_messages (session_id, role, content, display_content, metadata)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                rows,
+            )
         conn.commit()
     finally:
         conn.close()
@@ -179,14 +241,18 @@ def save_message(
     try:
         from src.db.profiles import record_message
 
-        record_message(
-            session_id,
-            role=role,
-            content=display_content or content,
-            metadata=metadata,
-            user_id=user_id,
-            guest_id=guest_id,
-        )
+        for message in messages:
+            display_content = message.get("display_content")
+            if display_content is None:
+                display_content = message["content"]
+            record_message(
+                session_id,
+                role=message["role"],
+                content=display_content,
+                metadata=message.get("metadata"),
+                user_id=user_id,
+                guest_id=guest_id,
+            )
     except Exception:
         # Primary message write already committed; snapshot is best-effort
         pass

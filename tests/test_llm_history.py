@@ -55,16 +55,12 @@ def test_should_include_real_assistant_response():
 
 
 def test_get_llm_session_history_filters_scripted_messages():
+    # Query returns newest-first (DESC); implementation reverses to chronological.
     rows = [
         {
             "role": "assistant",
-            "content": "Welcome!",
-            "metadata": {"step": "welcome", "type": "onboarding"},
-        },
-        {
-            "role": "user",
-            "content": "My experience level is: Entry-level.",
-            "metadata": {"step": "experience", "type": "onboarding_selection"},
+            "content": "Here are courses for you.",
+            "metadata": None,
         },
         {
             "role": "user",
@@ -72,9 +68,14 @@ def test_get_llm_session_history_filters_scripted_messages():
             "metadata": {"step": "goal", "profile_complete": True},
         },
         {
+            "role": "user",
+            "content": "My experience level is: Entry-level.",
+            "metadata": {"step": "experience", "type": "onboarding_selection"},
+        },
+        {
             "role": "assistant",
-            "content": "Here are courses for you.",
-            "metadata": None,
+            "content": "Welcome!",
+            "metadata": {"step": "welcome", "type": "onboarding"},
         },
     ]
     mock_conn = MagicMock()
@@ -90,6 +91,9 @@ def test_get_llm_session_history_filters_scripted_messages():
     assert "career goal" in messages[0].content
     assert messages[1].role == MessageRole.ASSISTANT
     assert messages[1].content == "Here are courses for you."
+    # Windowed query should pass a LIMIT
+    sql = mock_cursor.execute.call_args.args[0]
+    assert "LIMIT" in sql.upper()
 
 
 def test_create_chat_engine_skips_condense_for_profile_complete():
@@ -147,6 +151,27 @@ def test_create_chat_engine_skips_condense_for_empty_history_without_metadata():
         )
 
     assert engine_mock.call_args.kwargs["skip_condense"] is True
+
+
+def test_create_chat_engine_condenses_short_anaphoric_follow_up(monkeypatch):
+    monkeypatch.setenv("CHAT_SKIP_CONDENSE", "auto")
+    history = [ChatMessage(role=MessageRole.USER, content="Recommend budgeting courses")]
+    with patch.object(chatbot, "get_index", return_value=MagicMock()), patch.object(
+        chatbot, "create_hybrid_retriever", return_value=MagicMock()
+    ), patch.object(
+        chatbot, "create_node_postprocessors", return_value=[]
+    ), patch.object(
+        chatbot.CondensePlusContextChatEngine,
+        "from_defaults",
+        return_value=MagicMock(),
+    ) as engine_mock:
+        chatbot.create_chat_engine(
+            history,
+            latest_message="How much is the first one?",
+            request_metadata={"step": "free"},
+        )
+
+    assert engine_mock.call_args.kwargs["skip_condense"] is False
 
 
 def test_get_or_create_chat_engine_reuses_cached_session_engine():

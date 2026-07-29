@@ -211,11 +211,15 @@ def test_chat_stream_profile_complete_skips_llm():
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch(
              "src.chatbot.recommendations.build_template_recommendation_reply",
              return_value=template_reply,
          ) as rec_mock, \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
+         ), \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock, \
          patch("src.chatbot.chatbot.get_streaming_response") as stream_mock:
         response = client.post(
@@ -251,8 +255,8 @@ def test_chat_stream_profile_complete_skips_llm():
     rec_mock.assert_called_once()
     engine_mock.assert_not_called()
     stream_mock.assert_not_called()
-    assert save_mock.call_count == 2
-    assistant_meta = save_mock.call_args_list[1].kwargs["metadata"]
+    assert save_mock.call_count == 1
+    assistant_meta = save_mock.call_args.args[1][1]["metadata"]
     assert assistant_meta["type"] == "profile_recommendation"
     assert assistant_meta["template"] is True
 
@@ -267,7 +271,11 @@ def test_chat_stream_free_chat_still_uses_llm():
         return FakeResponse()
 
     with patch.object(session_manager, "get_llm_session_history", return_value=[]), \
-         patch.object(session_manager, "save_message"), \
+         patch.object(session_manager, "save_messages"), \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
+         ), \
          patch("src.chatbot.chatbot.get_streaming_response", side_effect=fake_stream), \
          patch("src.api.router.chat.get_or_create_chat_engine", return_value=object()) as engine_mock:
         response = client.post(
@@ -294,7 +302,11 @@ def test_chat_stream_template_failure_falls_back_to_llm():
         return FakeResponse()
 
     with patch.object(session_manager, "get_llm_session_history", return_value=[]), \
-         patch.object(session_manager, "save_message"), \
+         patch.object(session_manager, "save_messages"), \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
+         ), \
          patch(
              "src.chatbot.recommendations.build_template_recommendation_reply",
              side_effect=RuntimeError("retrieval down"),

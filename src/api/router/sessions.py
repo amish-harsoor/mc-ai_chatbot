@@ -23,8 +23,16 @@ async def start_session(request: StartSessionRequest = StartSessionRequest()):
     Pass user_id when logged in, or guest_id for anonymous (stable browser id).
     If neither is sent, a guest_id is derived from the new session_id.
     Response may include a durable profile snapshot for the owner (no separate call).
+
+    Set reset_profile=true (New chat) to clear durable preferences and start
+    onboarding without restoring prior experience / department / goal.
     """
-    from src.db.profiles import create_session, get_learner_profile, resolve_owner
+    from src.db.profiles import (
+        clear_learner_profile,
+        create_session,
+        get_learner_profile,
+        resolve_owner,
+    )
 
     session_id = str(uuid.uuid4())
     try:
@@ -35,8 +43,16 @@ async def start_session(request: StartSessionRequest = StartSessionRequest()):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    session = create_session(session_id, owner_id=owner_id, owner_type=owner_type)
-    profile = get_learner_profile(owner_id)
+    if request.reset_profile:
+        clear_learner_profile(owner_id)
+
+    session = create_session(
+        session_id,
+        owner_id=owner_id,
+        owner_type=owner_type,
+        seed_from_profile=not request.reset_profile,
+    )
+    profile = None if request.reset_profile else get_learner_profile(owner_id)
     return StartSessionResponse(
         session_id=session["session_id"],
         owner_id=owner_id,

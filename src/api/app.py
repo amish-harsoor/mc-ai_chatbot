@@ -116,6 +116,7 @@ def create_app(
         allow_origins=origins,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-MC-Options"],
     )
 
     key = api_key()

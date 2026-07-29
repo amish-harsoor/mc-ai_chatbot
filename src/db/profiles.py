@@ -573,6 +573,37 @@ def get_learner_profile(owner_id: str) -> dict[str, Any] | None:
         conn.close()
 
 
+def clear_learner_profile(owner_id: str) -> None:
+    """Reset durable preference fields for an owner (used by New chat).
+
+    Keeps the row so owner identity continuity is preserved; clears experience,
+    department, goal, delivery, course interest, and topics.
+    """
+    if not owner_id or not str(owner_id).strip():
+        return
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE learner_profiles
+                SET experience = NULL,
+                    department = NULL,
+                    goal = NULL,
+                    delivery = NULL,
+                    course_ids = '[]'::jsonb,
+                    topics = '[]'::jsonb,
+                    profile_complete = FALSE,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE owner_id = %s
+                """,
+                (str(owner_id).strip(),),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def upsert_learner_profile(
     owner_id: str,
     owner_type: OwnerType,

@@ -188,8 +188,8 @@ def configure_llama_index() -> None:
     configure_for_ingest()
     configure_llm()
     logger.info(
-        "Retrieval config: hybrid=%s, rerank=%s, query_expansion=%s",
-        os.getenv("RETRIEVAL_VECTOR_TOP_K", "12"),
-        os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
-        os.getenv("RETRIEVAL_NUM_QUERIES", "3"),
+        "Retrieval config: vector_top_k=%s, rerank=%s, num_queries=%s",
+        os.getenv("RETRIEVAL_VECTOR_TOP_K", "8"),
+        os.getenv("ENABLE_RERANK", "true"),
+        os.getenv("RETRIEVAL_NUM_QUERIES", "1"),
     )

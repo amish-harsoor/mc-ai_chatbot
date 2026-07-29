@@ -49,10 +49,14 @@ def test_chat_stream_profile_complete_uses_template_not_llm():
         "[Register Now](https://www.managementconcepts.com/product/4606)"
     )
 
-    with patch.object(session_manager, "save_message") as save_mock, \
+    with patch.object(session_manager, "save_messages") as save_mock, \
          patch(
              "src.chatbot.recommendations.build_template_recommendation_reply",
              return_value=template_reply,
+         ), \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
          ), \
          patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock:
         response = client.post(
@@ -79,9 +83,10 @@ def test_chat_stream_profile_complete_uses_template_not_llm():
     assert response.status_code == 200
     assert "Federal Budgeting" in response.text
     engine_mock.assert_not_called()
-    assert save_mock.call_count == 2
-    assert save_mock.call_args_list[1].args[1] == "assistant"
-    assert save_mock.call_args_list[1].kwargs["metadata"]["template"] is True
+    assert save_mock.call_count == 1
+    turn = save_mock.call_args.args[1]
+    assert turn[1]["role"] == "assistant"
+    assert turn[1]["metadata"]["template"] is True
 
 
 def test_save_session_message_endpoint():

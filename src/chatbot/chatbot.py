@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -120,28 +121,50 @@ def init_chatbot() -> VectorStoreIndex:
     return idx
 
 
+# Short follow-ups that need history rewritten into a standalone retrieval query.
+_ANAPHORA_RE = re.compile(
+    r"\b("
+    r"that|those|this|these|it|them|"
+    r"the first|the second|the third|the last|the other|"
+    r"same one|above|previous|earlier|that one|this one"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
 def _should_skip_condense(
     request_metadata: dict[str, Any] | None,
     chat_history: list | None = None,
+    latest_message: str | None = None,
 ) -> bool:
     """Skip query condensation to cut latency (extra LLM round-trip) when safe.
 
-    Default is skip. Only condense short follow-ups that likely refer to prior turns
-    (e.g. "those", "the first one") when history exists.
+    CHAT_SKIP_CONDENSE modes:
+    - auto (default): skip unless history exists and the message is a short anaphoric follow-up
+    - true/1/yes: always skip
+    - false/0/no: condense whenever history exists (except structured onboarding steps)
     """
-    if os.getenv("CHAT_SKIP_CONDENSE", "true").lower() in ("1", "true", "yes"):
+    mode = os.getenv("CHAT_SKIP_CONDENSE", "auto").lower()
+    if mode in ("1", "true", "yes"):
         return True
 
-    if not request_metadata:
-        return not chat_history
+    if request_metadata:
+        if request_metadata.get("profile_complete"):
+            return True
+        if request_metadata.get("step") in ("goal", "experience", "department"):
+            return True
 
-    if request_metadata.get("profile_complete"):
+    if not chat_history:
         return True
 
-    if request_metadata.get("step") in ("free", "goal", "experience", "department"):
-        return True
+    if mode in ("0", "false", "no"):
+        return False
 
-    return not chat_history
+    # auto: only pay for condense on short pronoun / reference follow-ups
+    text = (latest_message or "").strip()
+    if text and len(text) <= 100 and _ANAPHORA_RE.search(text):
+        return False
+    return True
 
 
 def _memory_from_history(chat_history: list) -> ChatMemoryBuffer:
@@ -193,7 +216,9 @@ def create_chat_engine(
         chat_history = []
 
     if skip_condense is None:
-        skip_condense = _should_skip_condense(request_metadata, chat_history)
+        skip_condense = _should_skip_condense(
+            request_metadata, chat_history, latest_message=latest_message
+        )
 
     profile = build_user_profile(
         chat_history,
@@ -201,6 +226,7 @@ def create_chat_engine(
         request_metadata=request_metadata,
     )
     metadata_filters = build_metadata_filters(profile)
+    skip_rerank = bool(profile.course_ids)
     retriever = create_hybrid_retriever(
         get_index(),
         metadata_filters=metadata_filters,
@@ -214,7 +240,7 @@ def create_chat_engine(
         memory=memory,
         system_prompt=SYSTEM_PROMPT,
         condense_prompt=build_condense_prompt(profile),
-        node_postprocessors=create_node_postprocessors(),
+        node_postprocessors=create_node_postprocessors(skip_rerank=skip_rerank),
         skip_condense=skip_condense,
         verbose=os.getenv("CHAT_VERBOSE", "false").lower() == "true",
     )
@@ -231,7 +257,9 @@ def get_or_create_chat_engine(
     if chat_history is None:
         chat_history = []
 
-    skip_condense = _should_skip_condense(request_metadata, chat_history)
+    skip_condense = _should_skip_condense(
+        request_metadata, chat_history, latest_message=latest_message
+    )
     profile = build_user_profile(
         chat_history,
         latest_message=latest_message,
@@ -253,6 +281,9 @@ def get_or_create_chat_engine(
                 get_index(),
                 metadata_filters=metadata_filters,
                 profile=profile,
+            )
+            engine._node_postprocessors = create_node_postprocessors(
+                skip_rerank=bool(profile.course_ids)
             )
             cached.profile_key = profile_key
         cached.updated_at = now
