@@ -151,10 +151,12 @@ const styles = `
     background: #1e3a8a; color: #ffffff;
     border-top-right-radius: 4px;
   }
-  .bubble p { margin: 0 0 6px; }
+  .bubble p { margin: 0 0 10px; }
   .bubble p:last-child { margin-bottom: 0; }
-  .bubble a { color: #2563eb; text-decoration: underline; }
+  .bubble strong { font-weight: 700; color: #18181b; }
+  .bubble a { color: #2563eb; text-decoration: underline; font-weight: 600; }
   .bubble.user a { color: #bfdbfe; }
+  .bubble.user strong { color: #ffffff; }
   .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
   /* Preserve intentional line breaks if the model emits single newlines */
   .stream-plain { margin: 0; white-space: pre-wrap; }
@@ -439,9 +441,10 @@ function isSupportHandoffText(text) {
     lower.includes("technical support team at") ||
     lower.includes("844-876-7476") ||
     lower.includes("technicalsupport@managementconcepts.com") ||
-    lower.includes("speak with agent below") ||
+    lower.includes("speak with agent") ||
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
+    lower.includes("generated shortly") ||
     // legacy copy from older sessions
     lower.includes("sent to our support team") ||
     lower.includes("password change request has been sent") ||
@@ -449,15 +452,27 @@ function isSupportHandoffText(text) {
   );
 }
 
+/** Password / generic tickets CTA the Speak with Agent chip (markdown-safe). */
+function offersSpeakWithAgentChip(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("select") &&
+    lower.includes("speak with agent") &&
+    lower.includes("below")
+  );
+}
+
 /** True when the bot already confirmed agent/certificate — no Speak with Agent chip. */
 function isSupportConfirmationOnly(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
-  // Password/generic tickets include "select Speak with Agent below" → show the chip.
-  if (lower.includes("select speak with agent below")) return false;
+  // Password/generic tickets include a "select Speak with Agent below" CTA → show the chip.
+  if (offersSpeakWithAgentChip(text)) return false;
   return (
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
+    lower.includes("generated shortly") ||
     lower.includes("we'll connect you with a specialist") ||
     lower.includes("we’ll connect you with a specialist") ||
     lower.includes("speak with an agent has been sent") ||

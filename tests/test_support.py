@@ -41,11 +41,20 @@ def test_password_change_is_support_ticket():
     assert classify_support_issue("I need to change my password") == "password"
     assert classify_support_issue("Please reset my password") == "password"
     assert is_support_issue("My password reset is not working")
+    # Plurals + common typos must hit fixed support (not LLM old copy)
+    assert classify_support_issue("i want to reset my passwords") == "password"
+    assert classify_support_issue("i want to reset my passwrod") == "password"
     reply = support_reply_for_message("I need to change my password")
     assert reply == PASSWORD_CHANGE_MESSAGE
     assert "844-876-7476" in reply
     assert "technicalsupport@managementconcepts.com" in reply
     assert "speak with agent" in reply.lower()
+    # Markdown formatting: scannable contact block, bold labels/CTA
+    assert "**Phone:**" in reply
+    assert "**Email:**" in reply
+    assert "**Speak with Agent**" in reply
+    assert "**password / login**" in reply
+    assert "\n\n" in reply
     assert support_options_for_message("I need to change my password") == [
         SPEAK_WITH_AGENT_OPTION
     ]
@@ -183,7 +192,10 @@ def test_chat_stream_password_change():
     assert response.status_code == 200
     assert "844-876-7476" in response.text
     assert "technicalsupport@managementconcepts.com" in response.text
-    assert "speak with agent below" in response.text.lower()
+    assert "speak with agent" in response.text.lower()
+    assert "below" in response.text.lower()
+    assert "**Phone:**" in response.text
+    assert "**Email:**" in response.text
     engine_mock.assert_not_called()
     assistant_meta = _assistant_meta(save_mock)
     assert assistant_meta["support_kind"] == "password"
