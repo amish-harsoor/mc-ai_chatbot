@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from llama_index.core.schema import NodeWithScore, TextNode
@@ -11,15 +11,80 @@ from llama_index.core.schema import NodeWithScore, TextNode
 from src.api.main import app
 from src.chatbot.query_context import UserProfile
 from src.chatbot.recommendations import (
+    _department_key,
+    _keyword_hits,
     build_intro,
     build_profile_search_query,
+    catalog_profile_fit,
+    department_topic_score,
     format_course_card,
+    goal_fit_score,
+    level_fit_score,
     nodes_to_course_cards,
+    rank_courses_for_profile,
     should_use_template_recommendations,
 )
 from src.db import session_manager
 
 client = TestClient(app)
+
+
+def _catalog_fixture() -> dict[str, dict]:
+    """Small official-catalog stand-in for ranking tests."""
+    return {
+        "4606": {
+            "course_id": "4606",
+            "title": "Federal Budgeting for Non-Budget Personnel",
+            "course_title": "Federal Budgeting for Non-Budget Personnel",
+            "duration": "3 Days",
+            "level": "Basic",
+            "credits": "CLP: 24 | CPE: 24",
+            "price": "$1,429",
+            "url": "https://www.managementconcepts.com/product/4606",
+        },
+        "1001": {
+            "course_id": "1001",
+            "title": "Information Technology (IT) Acquisition",
+            "course_title": "Information Technology (IT) Acquisition",
+            "duration": "5 Days",
+            "level": "Intermediate",
+            "price": "$2,000",
+            "url": "https://www.managementconcepts.com/product/1001",
+        },
+        "4450": {
+            "course_id": "4450",
+            "title": "Supervisory Leadership Skills",
+            "course_title": "Supervisory Leadership Skills",
+            "duration": "3 Days",
+            "level": "Intermediate",
+            "price": "$1,500",
+            "url": "https://www.managementconcepts.com/product/4450",
+        },
+        "1012": {
+            "course_id": "1012",
+            "title": "Advanced Source Selection",
+            "course_title": "Advanced Source Selection",
+            "duration": "5 Days",
+            "level": "Advanced",
+            "url": "https://www.managementconcepts.com/product/1012",
+        },
+        "9500": {
+            "course_id": "9500",
+            "title": "Individual Coaching with an Associate Level Certified Coach (ACC)",
+            "course_title": "Individual Coaching with an Associate Level Certified Coach (ACC)",
+            "level": "Intermediate",
+            "url": "https://www.managementconcepts.com/product/9500",
+        },
+        "9999": {
+            "course_id": "9999",
+            "title": "Official Catalog Title",
+            "course_title": "Official Catalog Title",
+            "duration": "4 Days",
+            "level": "Intermediate",
+            "price": "$999",
+            "url": "https://www.managementconcepts.com/product/9999",
+        },
+    }
 
 
 def test_should_use_template_for_profile_complete():
@@ -48,9 +113,168 @@ def test_build_profile_search_query_includes_profile_fields():
         goal="Earn a certification",
     )
     q = build_profile_search_query(profile)
-    assert "Finance" in q
+    # Catalog-aligned finance phrases (not only the raw department label).
+    assert "budget" in q.lower() or "financial" in q.lower()
     assert "Mid-level" in q
     assert "certification" in q.lower() or "Earn a certification" in q
+
+
+def test_department_topic_prefers_on_topic_titles():
+    finance_entry = {"title": "Federal Budget Formulation"}
+    it_entry = {"title": "Information Technology (IT) Acquisition"}
+    profile = UserProfile(department="Finance")
+    assert department_topic_score(finance_entry, profile) > 0
+    assert department_topic_score(it_entry, profile) == 0
+
+
+def test_department_key_does_not_false_match_it_substring():
+    assert _department_key("IT") == "it"
+    assert _department_key("Finance") == "finance"
+    assert _department_key("Management") == "management"
+    assert _department_key("information technology") == "it"
+    # Raw substring "it" inside unrelated words must not map to IT.
+    assert _department_key("facilities") is None
+    assert _department_key("security") is None
+    assert _department_key("unit") is None
+    assert _department_key("Human Resources") is None
+
+
+def test_keyword_hits_longest_match_dedupes_overlap():
+    # cyber + cybersecurity should count once, not twice.
+    assert _keyword_hits("cybersecurity fundamentals", ("cyber", "cybersecurity")) == 1
+    assert _keyword_hits(
+        "basic appropriations law",
+        ("appropriation", "appropriations"),
+    ) == 1
+
+
+def test_goal_fit_compound_upskill_personal_growth():
+    profile = UserProfile(goal="Upskill / personal growth")
+    skills = {"title": "Management Skills Workshop"}
+    ei = {"title": "Emotional Intelligence for Leaders"}
+    assert goal_fit_score(skills, profile) > 0
+    # "personal growth" keywords must still apply even though "upskill" matches first.
+    assert goal_fit_score(ei, profile) > 0
+
+
+def test_management_topic_ignores_financial_manager_titles():
+    profile = UserProfile(department="Management")
+    leadership = {"title": "Advanced Leadership Skills and Techniques"}
+    finance_mgr = {"title": "Data Analysis for Financial Managers Using Microsoft Excel"}
+    assert department_topic_score(leadership, profile) > 0
+    assert department_topic_score(finance_mgr, profile) == 0
+
+
+def test_level_fit_entry_vs_advanced():
+    basic = {"level": "Basic"}
+    advanced = {"level": "Advanced"}
+    entry = UserProfile(experience="Entry-level (0–2 years)")
+    senior = UserProfile(experience="Senior/Manager (8+ years)")
+    assert level_fit_score(basic, entry) > level_fit_score(advanced, entry)
+    assert level_fit_score(advanced, senior) > level_fit_score(basic, senior)
+
+
+def test_catalog_profile_fit_penalizes_coaching_packages():
+    core = {
+        "title": "Federal Budgeting for Non-Budget Personnel",
+        "level": "Basic",
+    }
+    coach = {
+        "title": "Individual Coaching with a Professional Certified Coach (PCC)",
+        "level": "Intermediate",
+    }
+    profile = UserProfile(
+        experience="Entry-level (0–2 years)",
+        department="Finance",
+        goal="Upskill / personal growth",
+    )
+    assert catalog_profile_fit(core, profile) > catalog_profile_fit(coach, profile)
+
+
+def test_rank_courses_for_profile_prefers_department_and_level():
+    catalog = _catalog_fixture()
+    profile = UserProfile(
+        experience="Entry-level (0–2 years)",
+        department="Finance",
+        goal="Upskill / personal growth",
+    )
+    # Retrieval only surfaces an IT course — catalog ranking should still pick finance.
+    nodes = [
+        NodeWithScore(
+            node=TextNode(
+                id_="n1",
+                text="IT Acquisition",
+                metadata={"course_id": "1001", "course_title": "Information Technology (IT) Acquisition"},
+            ),
+            score=0.99,
+        )
+    ]
+    with patch(
+        "src.chatbot.recommendations.load_course_catalog",
+        return_value=catalog,
+    ), patch(
+        "src.chatbot.recommendations.get_course",
+        side_effect=lambda cid: catalog.get(str(cid)),
+    ), patch(
+        "src.chatbot.recommendations.apply_official_catalog",
+        side_effect=lambda m: dict(m),
+    ), patch(
+        "src.ingestion.pricing.apply_catalog_prices",
+        side_effect=lambda m: m,
+    ):
+        ranked = rank_courses_for_profile(profile, nodes, max_courses=3)
+
+    ids = [r["course_id"] for r in ranked]
+    assert ids, "expected catalog-ranked courses"
+    assert ids[0] == "4606"
+    assert "9500" not in ids  # coaching package
+    assert "1001" not in ids or ids.index("4606") < ids.index("1001")
+
+
+def test_rank_defers_hard_level_mismatch_for_senior():
+    catalog = _catalog_fixture()
+    # Leadership at Basic should not beat Advanced leadership for senior managers.
+    catalog["4000"] = {
+        "course_id": "4000",
+        "title": "Leadership and Management Skills for Non-Managers",
+        "course_title": "Leadership and Management Skills for Non-Managers",
+        "level": "Basic",
+        "url": "https://www.managementconcepts.com/product/4000",
+    }
+    catalog["4002"] = {
+        "course_id": "4002",
+        "title": "Advanced Leadership Skills and Techniques",
+        "course_title": "Advanced Leadership Skills and Techniques",
+        "level": "Advanced",
+        "url": "https://www.managementconcepts.com/product/4002",
+    }
+    profile = UserProfile(
+        experience="Senior/Manager (8+ years)",
+        department="Management",
+        goal="Get a promotion",
+    )
+    with patch(
+        "src.chatbot.recommendations.load_course_catalog",
+        return_value=catalog,
+    ), patch(
+        "src.chatbot.recommendations.get_course",
+        side_effect=lambda cid: catalog.get(str(cid)),
+    ), patch(
+        "src.chatbot.recommendations.apply_official_catalog",
+        side_effect=lambda m: dict(m),
+    ), patch(
+        "src.ingestion.pricing.apply_catalog_prices",
+        side_effect=lambda m: m,
+    ):
+        ranked = rank_courses_for_profile(profile, [], max_courses=3)
+
+    ids = [r["course_id"] for r in ranked]
+    assert "4002" in ids
+    # Basic leadership is deferred (or dropped) behind Advanced for seniors.
+    if "4000" in ids:
+        assert ids.index("4002") < ids.index("4000")
+    else:
+        assert ids[0] == "4002"
 
 
 def test_format_course_card_preserves_official_fields():
@@ -98,8 +322,8 @@ def test_format_course_card_omits_missing_optional_fields():
 def test_nodes_to_course_cards_uses_official_catalog_overlay():
     """Chunk metadata with weak titles must be replaced by official catalog when present."""
     profile = UserProfile(
-        experience="Entry-level",
-        department="Finance",
+        experience="Mid-level (3–7 years)",
+        department="Management",
         goal="Upskill",
     )
     weak_node = NodeWithScore(
@@ -119,35 +343,62 @@ def test_nodes_to_course_cards_uses_official_catalog_overlay():
         score=0.9,
     )
 
-    official = {
-        "course_id": "9999",
-        "title": "Official Catalog Title",
-        "course_title": "Official Catalog Title",
-        "duration": "4 Days",
-        "level": "Intermediate",
-        "price": "$999",
-        "url": "https://www.managementconcepts.com/product/9999",
+    catalog = _catalog_fixture()
+    # Give 9999 a management-relevant title so it passes the department gate.
+    catalog["9999"] = {
+        **catalog["9999"],
+        "title": "Official Catalog Title Leadership Workshop",
+        "course_title": "Official Catalog Title Leadership Workshop",
     }
 
     with patch(
+        "src.chatbot.recommendations.load_course_catalog",
+        return_value=catalog,
+    ), patch(
         "src.chatbot.recommendations.get_course",
-        side_effect=lambda cid: official if str(cid) == "9999" else None,
+        side_effect=lambda cid: catalog.get(str(cid)),
     ), patch(
         "src.chatbot.recommendations.apply_official_catalog",
-        side_effect=lambda meta: {**meta, **{k: v for k, v in official.items() if k != "course_id"}},
+        side_effect=lambda meta: {
+            **meta,
+            **{k: v for k, v in (catalog.get(str(meta.get("course_id") or ""), {})).items()},
+        },
+    ), patch(
+        "src.ingestion.pricing.apply_catalog_prices",
+        side_effect=lambda m: m,
     ):
         cards = nodes_to_course_cards([weak_node], profile, max_courses=3)
 
-    assert len(cards) == 1
-    assert "**Official Catalog Title**" in cards[0]
-    assert "Bad Title From Chunk" not in cards[0]
-    assert "**Duration:** 4 Days" in cards[0]
-    assert "Level:" not in cards[0]
-    assert "**Cost:** $999" in cards[0]
+    assert cards
+    assert any("Official Catalog Title Leadership Workshop" in c for c in cards)
+    assert "Bad Title From Chunk" not in "".join(cards)
+    assert any("**Duration:** 4 Days" in c for c in cards)
+    assert "Level:" not in "".join(cards)
+    assert any("**Cost:** $999" in c for c in cards)
 
 
 def test_nodes_to_course_cards_dedupes_by_course_id():
-    profile = UserProfile(department="IT")
+    profile = UserProfile(
+        experience="Mid-level (3–7 years)",
+        department="IT",
+        goal="Upskill",
+    )
+    catalog = {
+        "1001": {
+            "course_id": "1001",
+            "title": "Information Technology (IT) Acquisition",
+            "course_title": "Information Technology (IT) Acquisition",
+            "level": "Intermediate",
+            "url": "https://www.managementconcepts.com/product/1001",
+        },
+        "1005": {
+            "course_id": "1005",
+            "title": "IT Systems Project Management",
+            "course_title": "IT Systems Project Management",
+            "level": "Intermediate",
+            "url": "https://www.managementconcepts.com/product/1005",
+        },
+    }
     nodes = [
         NodeWithScore(
             node=TextNode(
@@ -174,15 +425,24 @@ def test_nodes_to_course_cards_dedupes_by_course_id():
             score=0.7,
         ),
     ]
-    with patch("src.chatbot.recommendations.get_course", return_value=None), patch(
-        "src.chatbot.recommendations.apply_official_catalog", side_effect=lambda m: dict(m)
+    with patch(
+        "src.chatbot.recommendations.load_course_catalog",
+        return_value=catalog,
     ), patch(
-        "src.ingestion.pricing.apply_catalog_prices", side_effect=lambda m: m
+        "src.chatbot.recommendations.get_course",
+        side_effect=lambda cid: catalog.get(str(cid)),
+    ), patch(
+        "src.chatbot.recommendations.apply_official_catalog",
+        side_effect=lambda m: dict(m),
+    ), patch(
+        "src.ingestion.pricing.apply_catalog_prices",
+        side_effect=lambda m: m,
     ):
         cards = nodes_to_course_cards(nodes, profile, max_courses=5)
     assert len(cards) == 2
-    assert "**First**" in cards[0]
-    assert "**Second**" in cards[1]
+    joined = "\n".join(cards)
+    assert "Information Technology (IT) Acquisition" in joined
+    assert "IT Systems Project Management" in joined
     assert cards[0].count("[Register Now](") == 1
 
 
