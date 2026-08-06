@@ -134,42 +134,175 @@ def configure_chunk_settings() -> None:
     Settings.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "50"))
 
 
-def configure_llm() -> None:
-    llm_provider = os.getenv("LLM_PROVIDER", "openrouter").lower()
+def _chat_max_tokens(default: int = 700) -> int:
+    return int(os.getenv("CHAT_MAX_TOKENS", str(default)))
 
-    if llm_provider == "groq":
-        from llama_index.llms.groq import Groq
 
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise RuntimeError("GROQ_API_KEY is required when LLM_PROVIDER=groq")
-        Settings.llm = Groq(
-            model="llama-3.3-70b-versatile",
-            api_key=api_key,
-            temperature=0.2,
-            max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "700")),
-            additional_kwargs={"top_p": 1},
-        )
-        logger.info("LlamaIndex configured with Groq (model: llama-3.3-70b-versatile)")
-        return
+def _create_openai_llm():
+    """Direct OpenAI API chat model (primary)."""
+    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required for LLM_PROVIDER=openai")
+
+    from llama_index.llms.openai import OpenAI
+
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    kwargs: dict = {
+        "model": model,
+        "api_key": api_key,
+        "temperature": float(os.getenv("LLM_TEMPERATURE", "0.2")),
+        "max_tokens": _chat_max_tokens(700),
+    }
+    api_base = (os.getenv("OPENAI_API_BASE") or "").strip()
+    if api_base:
+        kwargs["api_base"] = api_base
+
+    llm = OpenAI(**kwargs)
+    logger.info("LLM ready: OpenAI (%s)", model)
+    return llm
+
+
+def _create_openrouter_llm():
+    """OpenRouter chat model (fallback)."""
+    api_key = (os.getenv("OPENROUTER_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is required for LLM_PROVIDER=openrouter")
 
     from llama_index.llms.openai_like import OpenAILike
 
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "OPENROUTER_API_KEY is required (or set LLM_PROVIDER=groq + GROQ_API_KEY)"
-        )
     model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.2-3b-instruct:free")
-    Settings.llm = OpenAILike(
+    llm = OpenAILike(
         model=model,
         api_base="https://openrouter.ai/api/v1",
         api_key=api_key,
-        temperature=0.2,
-        max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "256")),
+        temperature=float(os.getenv("LLM_TEMPERATURE", "0.2")),
+        # Same default budget as OpenAI/Groq so fallback replies are not truncated shorter.
+        max_tokens=_chat_max_tokens(700),
         is_chat_model=True,
     )
-    logger.info("LlamaIndex configured with OpenRouter (model: %s)", model)
+    logger.info("LLM ready: OpenRouter (%s)", model)
+    return llm
+
+
+def _create_groq_llm():
+    """Groq chat model (fallback)."""
+    api_key = (os.getenv("GROQ_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is required for LLM_PROVIDER=groq")
+
+    from llama_index.llms.groq import Groq
+
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    llm = Groq(
+        model=model,
+        api_key=api_key,
+        temperature=float(os.getenv("LLM_TEMPERATURE", "0.2")),
+        max_tokens=_chat_max_tokens(700),
+        additional_kwargs={"top_p": 1},
+    )
+    logger.info("LLM ready: Groq (%s)", model)
+    return llm
+
+
+# Default chain: OpenAI primary; existing providers remain as fallbacks.
+_DEFAULT_LLM_PROVIDER = "openai"
+_DEFAULT_LLM_FALLBACKS = "openrouter,groq"
+_KNOWN_LLM_PROVIDERS = frozenset({"openai", "openrouter", "groq"})
+
+
+def _llm_factories() -> dict:
+    """Resolve factories at call time so tests can patch individual creators."""
+    return {
+        "openai": _create_openai_llm,
+        "openrouter": _create_openrouter_llm,
+        "groq": _create_groq_llm,
+    }
+
+
+def _llm_provider_chain() -> list[str]:
+    """Primary provider first, then configured fallbacks (deduped, order preserved)."""
+    primary = (os.getenv("LLM_PROVIDER") or _DEFAULT_LLM_PROVIDER).strip().lower()
+    if primary == "auto":
+        # Prefer OpenAI when available, then legacy providers.
+        raw_fallbacks = os.getenv(
+            "LLM_FALLBACK_PROVIDERS",
+            f"{_DEFAULT_LLM_PROVIDER},{_DEFAULT_LLM_FALLBACKS}",
+        )
+        chain = [p.strip().lower() for p in raw_fallbacks.split(",") if p.strip()]
+    else:
+        raw_fallbacks = os.getenv("LLM_FALLBACK_PROVIDERS", _DEFAULT_LLM_FALLBACKS)
+        fallbacks = [p.strip().lower() for p in raw_fallbacks.split(",") if p.strip()]
+        chain = [primary, *[p for p in fallbacks if p != primary]]
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for name in chain:
+        if name in seen:
+            continue
+        if name not in _KNOWN_LLM_PROVIDERS:
+            logger.warning("Unknown LLM provider %r — skipping", name)
+            continue
+        seen.add(name)
+        ordered.append(name)
+    return ordered
+
+
+def create_llm(provider: str):
+    """Build an LLM instance for a single provider name (no Settings mutation)."""
+    key = (provider or "").strip().lower()
+    factory = _llm_factories().get(key)
+    if factory is None:
+        raise RuntimeError(
+            f"Unknown LLM_PROVIDER={provider!r}. "
+            f"Use one of: {', '.join(sorted(_KNOWN_LLM_PROVIDERS))}."
+        )
+    return factory()
+
+
+def configure_llm() -> None:
+    """Configure chat LLM: OpenAI primary, OpenRouter/Groq as config-time fallbacks.
+
+    Fallback runs only at configure time (missing key / import failure). Mid-request
+    provider errors are not retried against the next provider — restart or fix keys.
+
+    Embeddings are unchanged (see configure_embeddings). Set:
+      LLM_PROVIDER=openai
+      OPENAI_API_KEY=...
+      OPENAI_MODEL=gpt-4o-mini
+      LLM_FALLBACK_PROVIDERS=openrouter,groq
+    """
+    chain = _llm_provider_chain()
+    if not chain:
+        raise RuntimeError(
+            "No valid LLM providers configured. "
+            "Set LLM_PROVIDER to openai, openrouter, or groq."
+        )
+
+    errors: list[str] = []
+    for name in chain:
+        try:
+            Settings.llm = create_llm(name)
+            if errors:
+                logger.warning(
+                    "LLM primary/earlier providers failed; using %s. Prior errors: %s",
+                    name,
+                    " | ".join(errors),
+                )
+            else:
+                logger.info("LLM provider selected: %s", name)
+            return
+        except Exception as exc:
+            msg = f"{name}: {exc}"
+            errors.append(msg)
+            logger.warning("LLM provider %s unavailable: %s", name, exc)
+
+    raise RuntimeError(
+        "All LLM providers failed. Tried: "
+        + ", ".join(chain)
+        + ". Errors: "
+        + " | ".join(errors)
+        + ". Set OPENAI_API_KEY (preferred), or OPENROUTER_API_KEY / GROQ_API_KEY for fallbacks."
+    )
 
 
 def configure_for_ingest() -> None:

@@ -98,6 +98,9 @@ const styles = `
     gap: 16px;
     background: #ffffff;
     scroll-behavior: smooth;
+    /* Keep below preference menus (pref-bar creates a higher stacking context). */
+    position: relative;
+    z-index: 1;
   }
   .chat-messages::-webkit-scrollbar       { width: 6px; }
   .chat-messages::-webkit-scrollbar-track  { background: transparent; }
@@ -151,11 +154,30 @@ const styles = `
     background: #1e3a8a; color: #ffffff;
     border-top-right-radius: 4px;
   }
-  .bubble p { margin: 0 0 6px; }
+  .bubble p { margin: 0 0 10px; }
   .bubble p:last-child { margin-bottom: 0; }
-  .bubble a { color: #2563eb; text-decoration: underline; }
+  .bubble strong { font-weight: 700; color: #18181b; }
+  .bubble a { color: #2563eb; text-decoration: underline; font-weight: 600; }
   .bubble.user a { color: #bfdbfe; }
-  .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
+  .bubble.user strong { color: #ffffff; }
+  /* Explicit list markers — host page CSS resets often strip bullets. */
+  .bubble ul,
+  .bubble ol {
+    margin: 6px 0 10px;
+    padding-left: 1.35em;
+    list-style-position: outside;
+  }
+  .bubble ul { list-style-type: disc; }
+  .bubble ol { list-style-type: decimal; }
+  .bubble li {
+    display: list-item;
+    margin: 3px 0;
+    padding-left: 0.15em;
+    line-height: 1.45;
+  }
+  /* Loose lists wrap items in <p>; kill paragraph spacing so items look like points. */
+  .bubble li > p { margin: 0; }
+  .bubble li > p + p { margin-top: 6px; }
   /* Preserve intentional line breaks if the model emits single newlines */
   .stream-plain { margin: 0; white-space: pre-wrap; }
 
@@ -200,6 +222,9 @@ const styles = `
     background: #fff; padding: 16px 20px;
     display: flex; flex-direction: column; gap: 8px;
     border-top: 1px solid #f4f4f5;
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
   }
   .input-wrapper {
     display: flex; align-items: center; gap: 12px;
@@ -239,18 +264,22 @@ const styles = `
     padding: 8px 12px;
     background: #fafafa;
     border-bottom: 1px solid #f0f0f1;
+    /* Stack above .chat-messages so open chip menus are not covered. */
     position: relative;
-    z-index: 20;
-    overflow-x: auto;
-    overflow-y: visible;
-    scrollbar-width: none;
+    z-index: 30;
+    /* Do NOT set overflow-x: auto here — CSS forces overflow-y to auto too,
+       which clips dropdown menus under the messages panel. */
+    overflow: visible;
   }
-  .pref-bar::-webkit-scrollbar { display: none; }
   .pref-chip-wrap {
     position: relative;
     display: flex;
     flex: 1 1 0;
     min-width: 0;
+    z-index: 1;
+  }
+  .pref-chip-wrap.menu-open {
+    z-index: 2;
   }
   .pref-chip {
     display: inline-flex;
@@ -321,9 +350,11 @@ const styles = `
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    z-index: 40;
-    min-width: 196px;
-    max-width: min(280px, 72vw);
+    right: auto;
+    z-index: 50;
+    min-width: 100%;
+    width: max-content;
+    max-width: min(280px, calc(100vw - 48px));
     padding: 4px;
     background: #ffffff;
     border: 1px solid #e4e4e7;
@@ -333,6 +364,11 @@ const styles = `
     flex-direction: column;
     gap: 1px;
     animation: pref-menu-in 0.14s ease both;
+  }
+  /* Keep the last chip menu inside the panel instead of clipping off the right edge. */
+  .pref-chip-wrap:last-child .pref-chip-menu {
+    left: auto;
+    right: 0;
   }
   .pref-chip-option {
     width: 100%;
@@ -439,9 +475,10 @@ function isSupportHandoffText(text) {
     lower.includes("technical support team at") ||
     lower.includes("844-876-7476") ||
     lower.includes("technicalsupport@managementconcepts.com") ||
-    lower.includes("speak with agent below") ||
+    lower.includes("speak with agent") ||
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
+    lower.includes("generated shortly") ||
     // legacy copy from older sessions
     lower.includes("sent to our support team") ||
     lower.includes("password change request has been sent") ||
@@ -449,15 +486,27 @@ function isSupportHandoffText(text) {
   );
 }
 
+/** Password / generic tickets CTA the Speak with Agent chip (markdown-safe). */
+function offersSpeakWithAgentChip(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("select") &&
+    lower.includes("speak with agent") &&
+    lower.includes("below")
+  );
+}
+
 /** True when the bot already confirmed agent/certificate — no Speak with Agent chip. */
 function isSupportConfirmationOnly(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
-  // Password/generic tickets include "select Speak with Agent below" → show the chip.
-  if (lower.includes("select speak with agent below")) return false;
+  // Password/generic tickets include a "select Speak with Agent below" CTA → show the chip.
+  if (offersSpeakWithAgentChip(text)) return false;
   return (
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
+    lower.includes("generated shortly") ||
     lower.includes("we'll connect you with a specialist") ||
     lower.includes("we’ll connect you with a specialist") ||
     lower.includes("speak with an agent has been sent") ||
@@ -628,7 +677,7 @@ function PreferenceBar({ profile, flashKey, onSelectPreference, disabled }) {
         const options = PREF_CHIP_OPTIONS[chip.key] || [];
         const display = shortPrefDisplay(chip.value) || meta.empty;
         return (
-          <div key={chip.key} className="pref-chip-wrap">
+          <div key={chip.key} className={`pref-chip-wrap${isOpen ? " menu-open" : ""}`}>
             <button
               type="button"
               className={`pref-chip${chip.value ? "" : " empty"}${isOpen ? " open" : ""}${isSaved ? " saved" : ""}`}
@@ -671,23 +720,113 @@ function PreferenceBar({ profile, flashKey, onSelectPreference, disabled }) {
   );
 }
 
+/**
+ * Convert outline-style blocks under known section headers into real Markdown lists.
+ * Models often emit:
+ *   Course Highlights:
+ *   Learn X
+ *   Apply Y
+ * which streams with line breaks (pre-wrap) but collapses into one paragraph in CommonMark.
+ */
+function promoteOutlineLinesToList(text) {
+  const headerRe =
+    /^(?:\*\*)?(?:course\s+)?(?:highlights?|key\s+points?|learning\s+objectives?|objectives?|topics?(?:\s+covered)?|what\s+you(?:'|’)?ll\s+learn|benefits?|includes?|features?|takeaways?)(?:\*\*)?\s*:?\s*$/i;
+  const isListLine = (line) =>
+    /^\s*(?:[-*+]|\d+[.)])\s+\S/.test(line) ||
+    /^\s*[•●○◆◇▪▫■□‣∙·–—]\s+\S/.test(line);
+  const isStopLine = (t) =>
+    !t ||
+    /^#{1,6}\s/.test(t) ||
+    /^\[Register Now\]/i.test(t) ||
+    /^\*{0,2}(?:Duration|Credits|Cost|Level)\*{0,2}:/i.test(t) ||
+    (/^\*\*[^*].+\*\*\s*$/.test(t) && !/:\s*$/.test(t));
+
+  const lines = text.split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    out.push(lines[i]);
+    if (!headerRe.test(lines[i].trim())) continue;
+
+    const block = [];
+    let j = i + 1;
+    while (j < lines.length) {
+      const raw = lines[j];
+      const t = raw.trim();
+      if (isStopLine(t)) break;
+      block.push(raw);
+      j++;
+    }
+    // Need 2+ plain lines so we do not bullet a single prose sentence after a label.
+    if (block.length >= 2 && block.every((l) => !isListLine(l))) {
+      for (const bl of block) out.push(`- ${bl.trim()}`);
+      i = j - 1;
+    }
+  }
+  return out.join("\n");
+}
+
+/**
+ * Prepare bot markdown so lists and course fact rows render as intended.
+ * Streaming uses pre-wrap (line breaks visible); final Markdown collapses single
+ * newlines unless content uses real list markers or blank lines between rows.
+ */
+function normalizeBotMarkdown(raw) {
+  let text = String(raw || "").replace(/\r\n/g, "\n");
+
+  // Decorative / unicode bullets → Markdown list markers (not rhetorical em-dashes mid-prose).
+  text = text.replace(
+    /(^|\n)([ \t]*)(?:[•●○◆◇▪▫■□‣∙·])(?=\s+\S)/g,
+    "$1$2-"
+  );
+  // En/em dash used as a bullet only when followed by a space and content (list-like).
+  text = text.replace(
+    /(^|\n)([ \t]*)(?:–|—)(?=\s+\S)/g,
+    "$1$2-"
+  );
+
+  text = promoteOutlineLinesToList(text);
+
+  // Course fact rows: blank line before each so they do not merge into one <p>
+  text = text.replace(
+    /(^|\n)(\*{0,2}(?:Duration|Credits|Cost|Level)\*{0,2}:|\[Register Now\])/g,
+    "\n\n$2"
+  );
+
+  // Tight lists: blank lines between items create loose lists (<li><p>…), which
+  // look like stacked paragraphs rather than points.
+  text = text.replace(
+    /(^|\n)((?:[-*+]|\d+[.)]) [^\n]*)\n\n+(?=(?:[-*+]|\d+[.)]) )/g,
+    "$1$2\n"
+  );
+
+  // Blank line before a list that follows non-list content (cleaner GFM parse)
+  text = text.replace(
+    /(^|\n)([^\n]+)\n((?:[-*+]|\d+[.)]) )/g,
+    (match, lead, prevLine, marker) => {
+      if (/^\s*(?:[-*+]|\d+[.)])\s/.test(prevLine)) return match;
+      if (/^\s*$/.test(prevLine)) return match;
+      return `${lead}${prevLine}\n\n${marker}`;
+    }
+  );
+
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function MessageContent({ msg }) {
   if (msg.sender === "user" || msg.streaming) {
     return <p className="stream-plain">{msg.text}</p>;
   }
 
-  // Ensure course fact rows stay on separate lines even if a reply uses
-  // single newlines (Markdown otherwise collapses them into one paragraph).
-  const text = String(msg.text || "").replace(
-    /(^|\n)(\*{0,2}(?:Duration|Credits|Cost|Level)\*{0,2}:|\[Register Now\])/g,
-    "\n\n$2"
-  ).replace(/\n{3,}/g, "\n\n").trim();
+  const text = normalizeBotMarkdown(msg.text);
 
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
         p: ({ children }) => <p>{children}</p>,
+        ul: ({ children }) => <ul>{children}</ul>,
+        ol: ({ children }) => <ol>{children}</ol>,
+        li: ({ children }) => <li>{children}</li>,
         a: ({ node, href, children, ...props }) => {
           const isContact =
             (href && (href.startsWith("tel:") || href.startsWith("mailto:"))) ||
@@ -857,26 +996,33 @@ export default function FloatingChatbot() {
     });
   };
 
-  const buildRecommendationPayload = (profile) => ({
-    backendMessage:
-      `My experience level is: ${profile.experience}. ` +
-      `My department is: ${profile.department}. ` +
-      `My career goal is: ${profile.goal}. ` +
-      `Please recommend courses based on my profile.`,
-    metadata: {
-      step: "goal",
-      value: profile.goal,
-      profile_complete: true,
-      profile: {
+  const buildRecommendationPayload = (profile, preferenceKey = "goal") => {
+    const step = ["experience", "department", "goal"].includes(preferenceKey)
+      ? preferenceKey
+      : "goal";
+    const value = profile[step] || profile.goal;
+    return {
+      backendMessage:
+        `My experience level is: ${profile.experience}. ` +
+        `My department is: ${profile.department}. ` +
+        `My career goal is: ${profile.goal}. ` +
+        `Please recommend courses based on my profile.`,
+      metadata: {
+        step,
+        value,
+        profile_complete: true,
+        preference_key: step,
+        profile: {
+          experience: profile.experience,
+          department: profile.department,
+          goal: profile.goal,
+        },
         experience: profile.experience,
         department: profile.department,
         goal: profile.goal,
       },
-      experience: profile.experience,
-      department: profile.department,
-      goal: profile.goal,
-    },
-  });
+    };
+  };
 
   /** Parse X-MC-Options (pipe-separated, URL-encoded labels) from the stream response. */
   const parseOptionsHeader = (res) => {
@@ -1032,15 +1178,15 @@ export default function FloatingChatbot() {
     if (!value || value === profileRef.current[key]) return;
 
     const nextProfile = { ...profileRef.current, [key]: value };
-    const shouldRecommend = key === "goal" && profileIsComplete(nextProfile);
+    // After onboarding is complete, any pref change should re-rank catalog recs.
+    const shouldRecommend = profileIsComplete(nextProfile);
 
     syncProfile(nextProfile);
     flashChip(key);
 
     sendingRef.current = true;
     try {
-      // Goal refresh is persisted by the chat/stream turn (visible in history).
-      // Exp/dept-only chip edits stay silent so the thread is not cluttered.
+      // Incomplete profile (shouldn't happen from chips once free): silent KV only.
       if (!shouldRecommend) {
         await persistUserSelection(sessionId, key, value, {
           silent: true,
@@ -1049,7 +1195,7 @@ export default function FloatingChatbot() {
         return;
       }
 
-      // Surface the new goal in the thread, then re-run course recommendations.
+      // Surface the updated pref in the thread, then re-run course recommendations.
       setMessages((prev) => {
         const updatedPrev = prev.map((msg) =>
           msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
@@ -1065,7 +1211,7 @@ export default function FloatingChatbot() {
         ];
       });
 
-      const { backendMessage, metadata } = buildRecommendationPayload(nextProfile);
+      const { backendMessage, metadata } = buildRecommendationPayload(nextProfile, key);
       const result = await streamChatResponse({
         sid: sessionId,
         backendMessage,
@@ -1080,7 +1226,7 @@ export default function FloatingChatbot() {
       if (!result.aborted) {
         setConversationStep("free");
         stepRef.current = "free";
-        flashChip("goal");
+        flashChip(key);
       }
     } catch {
       // Local state already updated; next chat turn can re-sync from server
@@ -1382,11 +1528,22 @@ export default function FloatingChatbot() {
             <span style={{ fontSize: '18px', fontWeight: '600' }}>Support Assistant</span>
           </div>
           <div className="header-right">
-            <button className="header-icon-btn" onClick={startNewChat} title="New chat">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                 <circle cx="5" cy="12" r="2"/>
-                 <circle cx="12" cy="12" r="2"/>
-                 <circle cx="19" cy="12" r="2"/>
+            <button className="header-icon-btn" onClick={startNewChat} title="New chat" aria-label="New chat">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                {/* Message bubble + plus — standard “new chat” affordance */}
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <line x1="12" y1="8" x2="12" y2="14" />
+                <line x1="9" y1="11" x2="15" y2="11" />
               </svg>
             </button>
             <button className="header-icon-btn" onClick={() => setOpen(false)} title="Close">

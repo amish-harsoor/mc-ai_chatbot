@@ -40,10 +40,14 @@ Use it in three ways:
 Create a `.env` file in the project root:
 
 ```env
-# LLM (pick one provider)
-OPENROUTER_API_KEY=your_key_here
-LLM_PROVIDER=openrouter
-# Or: GROQ_API_KEY=... and LLM_PROVIDER=groq
+# Chat LLM — OpenAI is primary; OpenRouter/Groq are config-time fallbacks
+OPENAI_API_KEY=your_openai_key_here
+LLM_PROVIDER=openai
+OPENAI_MODEL=gpt-4o-mini
+LLM_FALLBACK_PROVIDERS=openrouter,groq
+# Fallbacks (optional but recommended)
+OPENROUTER_API_KEY=your_openrouter_key
+GROQ_API_KEY=your_groq_key
 
 # Database — local Postgres
 DB_HOST=localhost
@@ -358,13 +362,19 @@ curl -X POST http://localhost:8000/ingest \
 | `API_PREFIX` | *(empty)* | Alias for `CHATBOT_API_PREFIX` |
 | `API_KEY` | *(empty)* | Alias for `CHATBOT_API_KEY` |
 
-### LLM
+### LLM (chat only — not embeddings)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_PROVIDER` | `openrouter` | `openrouter` or `groq` |
-| `OPENROUTER_API_KEY` | — | Required when `LLM_PROVIDER=openrouter` |
-| `GROQ_API_KEY` | — | Required when `LLM_PROVIDER=groq` |
+| `LLM_PROVIDER` | `openai` | Primary chat provider: `openai`, `openrouter`, `groq`, or `auto` |
+| `OPENAI_API_KEY` | — | Preferred key for free-chat / RAG answers |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI chat model id |
+| `OPENAI_API_BASE` | — | Optional custom OpenAI-compatible base URL |
+| `LLM_FALLBACK_PROVIDERS` | `openrouter,groq` | Tried in order if primary fails to configure |
+| `OPENROUTER_API_KEY` | — | Fallback when OpenAI is unavailable |
+| `OPENROUTER_MODEL` | `meta-llama/llama-3.2-3b-instruct:free` | OpenRouter model id |
+| `GROQ_API_KEY` | — | Second fallback |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model id |
 
 ### Embeddings
 

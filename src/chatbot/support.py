@@ -20,30 +20,44 @@ SupportKind = Literal["agent", "password", "certificate", "generic"]
 SUPPORT_PHONE = "844-876-7476"
 SUPPORT_EMAIL = "technicalsupport@managementconcepts.com"
 
-# Canonical technical-support contact copy (password / login / generic issues).
-# Frontend shows a Speak with Agent chip when this message is used.
-TECHNICAL_SUPPORT_CONTACT_MESSAGE = (
-    "Please contact our technical support team at 844-876-7476, "
-    "via email (technicalsupport@managementconcepts.com), "
-    "or select Speak with Agent below and we'll connect you."
+# Shared contact block — markdown for ReactMarkdown (bold + line breaks + clickable links).
+_SUPPORT_CONTACT_BLOCK = (
+    f"**Phone:** [{SUPPORT_PHONE}](tel:{SUPPORT_PHONE})\n\n"
+    f"**Email:** [{SUPPORT_EMAIL}](mailto:{SUPPORT_EMAIL})"
 )
 
-PASSWORD_CHANGE_MESSAGE = TECHNICAL_SUPPORT_CONTACT_MESSAGE
+# Canonical technical-support contact copy (password / login / generic issues).
+# Same scannable layout as certificate: short status, blank lines, bold labels/CTA.
+# Frontend shows a Speak with Agent chip when this message is used.
+TECHNICAL_SUPPORT_CONTACT_MESSAGE = (
+    "Your support request has been received.\n\n"
+    "Please contact our technical support team:\n\n"
+    f"{_SUPPORT_CONTACT_BLOCK}\n\n"
+    "Or select **Speak with Agent** below and we'll connect you."
+)
+
+PASSWORD_CHANGE_MESSAGE = (
+    "Your **password / login** request has been received.\n\n"
+    "Please contact our technical support team:\n\n"
+    f"{_SUPPORT_CONTACT_BLOCK}\n\n"
+    "Or select **Speak with Agent** below and we'll connect you."
+)
 
 SPEAK_WITH_AGENT_OPTION = "Speak with Agent"
 
 # After the learner already chose Speak with Agent — phone/email only (no chip CTA).
 SPEAK_WITH_AGENT_CONFIRMATION = (
-    "Please contact our technical support team at 844-876-7476, "
-    "via email (technicalsupport@managementconcepts.com), "
-    "or stay in this chat — we'll connect you with a specialist."
+    "Your request to **speak with an agent** has been received.\n\n"
+    "Please contact our technical support team:\n\n"
+    f"{_SUPPORT_CONTACT_BLOCK}\n\n"
+    "Or stay in this chat — we'll connect you with a specialist."
 )
 
 CERTIFICATE_REQUEST_MESSAGE = (
-    "Your certificate request has been received. It will be generated shortly — "
-    "you'll be notified when it's ready. "
-    "If you need help, contact technical support at 844-876-7476 "
-    "or technicalsupport@managementconcepts.com."
+    "Your certificate request has been received.\n\n"
+    "It will be **generated shortly** — you'll be notified when it's ready.\n\n"
+    "If you need help, contact technical support:\n\n"
+    f"{_SUPPORT_CONTACT_BLOCK}"
 )
 
 # Generic account / access / billing / site issues
@@ -66,13 +80,18 @@ _AGENT_PATTERNS = [
     r"^speak with agent$",
 ]
 
+# password / passwords + common typos (passwrod, pasword, passord)
+_PASSWORD_WORD = r"pass(?:word|wrod|werd|ord)s?"
+
 # Password change / reset (specific ticket wording)
 _PASSWORD_PATTERNS = [
-    r"\b(reset|change|forgot(ten)?|update)\s+(my\s+)?password\b",
-    r"\bpassword\s+(reset|change|update|problem|issue)\b",
-    r"\b(new|different)\s+password\b",
-    r"\bcan'?t\s+(remember|find)\s+(my\s+)?password\b",
-    r"\b(need|want)\s+to\s+(reset|change)\s+(my\s+)?password\b",
+    rf"\b(reset|change|forgot(ten)?|update)\s+(my\s+)?{_PASSWORD_WORD}\b",
+    rf"\b{_PASSWORD_WORD}\s+(reset|change|update|problem|issue|help)\b",
+    rf"\b(new|different)\s+{_PASSWORD_WORD}\b",
+    rf"\bcan'?t\s+(remember|find)\s+(my\s+)?{_PASSWORD_WORD}\b",
+    rf"\b(need|want|help)\s+(to\s+)?(reset|change|with\s+)?(my\s+)?{_PASSWORD_WORD}\b",
+    rf"\b(my\s+)?{_PASSWORD_WORD}\b.*\b(reset|change|forgot|update|help|issue|problem)\b",
+    rf"\b(reset|change|forgot|update|help|issue|problem)\b.*\b(my\s+)?{_PASSWORD_WORD}\b",
 ]
 
 # Login / account access (generic ticket)
@@ -80,6 +99,8 @@ _LOGIN_PATTERNS = [
     r"\b(log ?in|login|sign[- ]?in|username|account (locked|access|issue|problem))\b",
     r"\bcan'?t (log ?in|access|sign[- ]?in|open|register|enroll)\b",
     r"\b(unable to|not able to) (log ?in|access|sign[- ]?in|open|register|enroll)\b",
+    r"\b(cannot|can not) (log ?in|access|sign[- ]?in)\b",
+    r"\b(locked out|account locked)\b",
 ]
 
 # Print / generate certificates (service request — not course discovery)
