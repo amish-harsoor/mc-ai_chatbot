@@ -20,6 +20,7 @@ from src.chatbot.recommendations import (
     format_course_card,
     goal_fit_score,
     level_fit_score,
+    looks_like_recommendation_request,
     nodes_to_course_cards,
     rank_courses_for_profile,
     should_use_template_recommendations,
@@ -104,6 +105,54 @@ def test_should_use_template_for_profile_complete():
     )
     assert should_use_template_recommendations({"step": "free"}) is False
     assert should_use_template_recommendations(None) is False
+
+
+_COMPLETE_FREE_PROFILE = {
+    "step": "free",
+    "experience": "Mid-level (3–7 years)",
+    "department": "Finance",
+    "goal": "Get a promotion",
+    "profile": {
+        "experience": "Mid-level (3–7 years)",
+        "department": "Finance",
+        "goal": "Get a promotion",
+    },
+}
+
+
+def test_looks_like_recommendation_request():
+    assert looks_like_recommendation_request(
+        "yes, give me a list of courses best suited for my experience"
+    )
+    assert looks_like_recommendation_request("Please recommend courses based on my profile.")
+    assert looks_like_recommendation_request("show me courses for me")
+    assert not looks_like_recommendation_request("What is the cost of course 4606?")
+    assert not looks_like_recommendation_request("hello")
+    assert not looks_like_recommendation_request("")
+
+
+def test_should_use_template_for_free_chat_rec_with_complete_profile():
+    assert (
+        should_use_template_recommendations(
+            _COMPLETE_FREE_PROFILE,
+            latest_message="yes, give me a list of courses best suited for my experience",
+        )
+        is True
+    )
+    assert (
+        should_use_template_recommendations(
+            _COMPLETE_FREE_PROFILE,
+            latest_message="What is the cost of course 4606?",
+        )
+        is False
+    )
+    assert (
+        should_use_template_recommendations(
+            {"step": "free"},
+            latest_message="yes, give me a list of courses best suited for my experience",
+        )
+        is False
+    )
 
 
 def test_build_profile_search_query_includes_profile_fields():
@@ -512,6 +561,58 @@ def test_chat_stream_profile_complete_skips_llm():
     assert "**Duration:** 3 Days" in response.text
     assert response.text.count("[Register Now](") == 1
     assert "[Federal Budgeting](" not in response.text
+    rec_mock.assert_called_once()
+    engine_mock.assert_not_called()
+    stream_mock.assert_not_called()
+    assert save_mock.call_count == 1
+    assistant_meta = save_mock.call_args.args[1][1]["metadata"]
+    assert assistant_meta["type"] == "profile_recommendation"
+    assert assistant_meta["template"] is True
+
+
+def test_chat_stream_free_rec_request_with_profile_uses_template():
+    session_id = str(uuid.uuid4())
+    template_reply = (
+        "Based on your profile (Finance · Mid-level (3–7 years) · Get a promotion), "
+        "here are courses from the Management Concepts catalog:\n\n"
+        "**Federal Budgeting**\n"
+        "\n"
+        "[Register Now](https://www.managementconcepts.com/product/4606)"
+    )
+
+    with patch.object(session_manager, "save_messages") as save_mock, \
+         patch(
+             "src.chatbot.recommendations.build_template_recommendation_reply",
+             return_value=template_reply,
+         ) as rec_mock, \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
+         ), \
+         patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock, \
+         patch("src.chatbot.chatbot.get_streaming_response") as stream_mock:
+        response = client.post(
+            "/chat/stream",
+            json={
+                "session_id": session_id,
+                "message": "yes, give me a list of courses best suited for my experience",
+                "metadata": {
+                    "step": "free",
+                    "experience": "Mid-level (3–7 years)",
+                    "department": "Finance",
+                    "goal": "Get a promotion",
+                    "profile": {
+                        "experience": "Mid-level (3–7 years)",
+                        "department": "Finance",
+                        "goal": "Get a promotion",
+                    },
+                },
+                "guest_id": "guest_template_free_rec",
+            },
+        )
+
+    assert response.status_code == 200
+    assert "**Federal Budgeting**" in response.text
     rec_mock.assert_called_once()
     engine_mock.assert_not_called()
     stream_mock.assert_not_called()

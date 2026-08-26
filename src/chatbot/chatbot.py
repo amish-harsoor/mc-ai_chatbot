@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
-from src.chatbot.query_context import build_metadata_filters, build_user_profile
+from src.chatbot.query_context import UserProfile, build_metadata_filters, build_user_profile
 from src.ingestion.vector_store import load_index as load_vector_index
 from src.chatbot.retrieval import (
     build_condense_prompt,
@@ -84,7 +84,7 @@ Bold the labels Duration, Credits, and Cost:
 
 Omit description, Level, and Course ID from the card. Do not wrap the title in a markdown link. Do not invent fields that are missing from context. Never put Duration, Credits, Cost, and Register Now on the same line.
 
-Recommend 3–5 courses unless asked for more. Tailor picks to Experience Level, Department, and Career Goal when provided in the message."""
+Recommend 3–5 courses unless asked for more. Tailor picks to Experience Level, Department, and Career Goal when provided in the message or learner profile. Never ask the learner to re-state preferences that are already captured."""
 
 CHAT_MEMORY_TOKEN_LIMIT = int(os.getenv("CHAT_MEMORY_TOKEN_LIMIT", "3000"))
 SESSION_ENGINE_TTL_SECONDS = int(os.getenv("SESSION_ENGINE_TTL_SECONDS", "1800"))
@@ -221,6 +221,18 @@ def clear_session_engine_cache(session_id: str | None = None) -> None:
         _session_engine_cache.pop(session_id, None)
 
 
+def build_system_prompt(profile: UserProfile | None) -> str:
+    """Base advisor prompt plus captured prefs so the model does not re-ask."""
+    summary = profile.summary() if profile else ""
+    if not summary:
+        return SYSTEM_PROMPT
+    return (
+        f"{SYSTEM_PROMPT}\n\n"
+        "Learner profile (already captured — never ask the learner to repeat these):\n"
+        f"{summary}"
+    )
+
+
 def create_chat_engine(
     chat_history=None,
     *,
@@ -258,7 +270,7 @@ def create_chat_engine(
     return CondensePlusContextChatEngine.from_defaults(
         retriever=retriever,
         memory=memory,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=build_system_prompt(profile),
         condense_prompt=build_condense_prompt(profile),
         node_postprocessors=create_node_postprocessors(skip_rerank=skip_rerank),
         skip_condense=skip_condense,
@@ -305,6 +317,7 @@ def get_or_create_chat_engine(
             engine._node_postprocessors = create_node_postprocessors(
                 skip_rerank=bool(profile.course_ids)
             )
+            engine._system_prompt = build_system_prompt(profile)
             cached.profile_key = profile_key
         cached.updated_at = now
         return engine

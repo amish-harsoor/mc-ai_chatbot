@@ -115,6 +115,40 @@ def test_create_chat_engine_skips_condense_for_profile_complete():
     assert engine_mock.call_args.kwargs["skip_condense"] is True
 
 
+def test_create_chat_engine_includes_captured_profile_in_system_prompt():
+    with patch.object(chatbot, "get_index", return_value=MagicMock()), patch.object(
+        chatbot, "create_hybrid_retriever", return_value=MagicMock()
+    ), patch.object(
+        chatbot, "create_node_postprocessors", return_value=[]
+    ), patch.object(
+        chatbot.CondensePlusContextChatEngine,
+        "from_defaults",
+        return_value=MagicMock(),
+    ) as engine_mock:
+        chatbot.create_chat_engine(
+            [],
+            latest_message="yes, give me a list of courses best suited for my experience",
+            request_metadata={
+                "step": "free",
+                "experience": "Mid-level (3–7 years)",
+                "department": "Finance",
+                "goal": "Get a promotion",
+                "profile": {
+                    "experience": "Mid-level (3–7 years)",
+                    "department": "Finance",
+                    "goal": "Get a promotion",
+                },
+            },
+        )
+
+    prompt = engine_mock.call_args.kwargs["system_prompt"]
+    assert "already captured" in prompt
+    assert "Mid-level (3–7 years)" in prompt
+    assert "Finance" in prompt
+    assert "Get a promotion" in prompt
+    assert "Never ask the learner to re-state preferences" in prompt
+
+
 def test_create_chat_engine_skips_condense_for_free_step_standalone_query():
     with patch.object(chatbot, "get_index", return_value=MagicMock()), patch.object(
         chatbot, "create_hybrid_retriever", return_value=MagicMock()

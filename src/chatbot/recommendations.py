@@ -219,10 +219,45 @@ def template_profile_recs_enabled() -> bool:
     return _TEMPLATE_ENABLED
 
 
+# Free-chat phrasing that means "rank courses for my saved prefs" — not a fact lookup.
+_REC_REQUEST_RE = re.compile(
+    r"\b("
+    r"recommend(ations?)?|"
+    r"suggest(ions?)?|"
+    r"looking for|"
+    r"what (courses|classes|training)|"
+    r"which courses|"
+    r"(give me |show me |need )?(a )?list (of )?(courses|classes|training)|"
+    r"(give|show|send) me (some |a few )?(courses|classes|recommendations)|"
+    r"courses (for me|best suited|suited for|based on)|"
+    r"best (suited|courses|classes)|"
+    r"suited for my (experience|profile|prefs|preferences|department|goal)|"
+    r"based on my (profile|experience|prefs|preferences)|"
+    r"please recommend"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def looks_like_recommendation_request(message: str | None) -> bool:
+    """True when the learner is asking for a ranked course list, not a single-course fact."""
+    text = (message or "").strip()
+    if not text:
+        return False
+    return _REC_REQUEST_RE.search(text) is not None
+
+
+def _metadata_profile_complete(meta: dict[str, Any]) -> bool:
+    profile = meta.get("profile") if isinstance(meta.get("profile"), dict) else {}
+    return all((meta.get(k) or profile.get(k)) for k in ("experience", "department", "goal"))
+
+
 def should_use_template_recommendations(
     request_metadata: dict[str, Any] | None,
+    *,
+    latest_message: str | None = None,
 ) -> bool:
-    """True for structured profile-complete recommendation turns only."""
+    """True for profile-based recommendation turns (onboarding refresh or free-chat rec ask)."""
     if not template_profile_recs_enabled():
         return False
     meta = request_metadata or {}
@@ -230,12 +265,12 @@ def should_use_template_recommendations(
         return True
     # Goal step with a full profile payload (frontend always sends profile_complete,
     # but accept step+profile as a safe fallback).
-    if meta.get("step") == "goal":
-        profile = meta.get("profile")
-        if isinstance(profile, dict) and all(
-            profile.get(k) for k in ("experience", "department", "goal")
-        ):
-            return True
+    if meta.get("step") == "goal" and _metadata_profile_complete(meta):
+        return True
+    # After onboarding, prefs live in metadata/DB but not in the user message.
+    # A rec-list ask should reuse those prefs instead of the LLM asking again.
+    if looks_like_recommendation_request(latest_message) and _metadata_profile_complete(meta):
+        return True
     return False
 
 
