@@ -49,7 +49,8 @@ LLM_FALLBACK_PROVIDERS=openrouter,groq
 OPENROUTER_API_KEY=your_openrouter_key
 GROQ_API_KEY=your_groq_key
 
-# Database — local Postgres
+# Database — local Postgres (code defaults USE_SUPABASE=true)
+USE_SUPABASE=false
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -58,14 +59,18 @@ DB_NAME=coursebot
 
 # Or Supabase (see src/db/vector_config.py)
 # USE_SUPABASE=true
-# SUPABASE_DB_HOST=...
+# SUPABASE_HOST=...
 ```
 
 ### 2. Run with Docker
 
+Catalog JSON under `data/` is gitignored and is copied into the image at build time. Put `data/management_concepts_courses.json` (and optionally `data/course_prices.json`) on the machine that runs `docker build`, or bind-mount `data/` at run time.
+
+`DB_HOST=localhost` inside the container is the container itself. For Postgres on the host, use `host.docker.internal` (Docker Desktop) or the Compose service name.
+
 ```bash
 docker build -t mc-ai-chatbot .
-docker run -p 8000:8000 --env-file .env mc-ai-chatbot
+docker run -p 8000:8000 --env-file .env -e DB_HOST=host.docker.internal mc-ai-chatbot
 ```
 
 ### 3. Run locally (no Docker)

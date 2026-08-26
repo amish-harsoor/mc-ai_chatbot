@@ -1,33 +1,38 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim
+# API service only. The React widget in frontend/ChatbotUI is hosted separately.
+FROM python:3.11-slim
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies required for psycopg2 and potentially other native extensions
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# libgomp1: OpenMP runtime used by CPU torch / sentence-transformers on slim.
+# psycopg2-binary ships its own libpq; gcc/libpq-dev are not required.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 appuser
 
-# Copy requirements first to leverage Docker layer caching
+# CPU torch first so huggingface embeddings + SentenceTransformer rerank
+# do not pull CUDA wheels from PyPI.
 COPY requirements.txt .
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Catalog JSON under data/ is gitignored; it must be present at build time
+# (or bind-mount /app/data at run time). Ingest uploads also write here.
+COPY --chown=appuser:appuser src ./src
+COPY --chown=appuser:appuser data ./data
 
-# Copy the current directory contents into the container at /app
-COPY . .
+ENV PYTHONPATH=/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/home/appuser/.cache/huggingface
 
-# Expose the port the app runs on
+USER appuser
+
 EXPOSE 8000
 
-# Ensure Python can find the src module
-ENV PYTHONPATH=/app
+# Startup loads embedding + rerank models; first boot can be slow if they
+# are not already in the HuggingFace cache.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=5 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
 
-# For the React frontend widget (served separately or via proxy in prod):
-#   Set VITE_API_BASE_URL at build time if bundling the UI, or pass at runtime via hosting.
-#   The widget defaults to http://localhost:8000 when no env is present.
-
-# Command to run the application
 CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
