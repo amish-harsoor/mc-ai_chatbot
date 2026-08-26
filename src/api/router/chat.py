@@ -218,7 +218,9 @@ async def chat_stream(request: ChatRequest):
         should_use_template_recommendations,
     )
 
-    if should_use_template_recommendations(enriched_metadata):
+    if should_use_template_recommendations(
+        enriched_metadata, latest_message=request.message
+    ):
         try:
             reply = build_template_recommendation_reply(
                 latest_message=request.message,

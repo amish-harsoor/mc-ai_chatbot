@@ -1390,7 +1390,10 @@ export default function FloatingChatbot() {
 
     sendingRef.current = true;
     const currentStep = stepRef.current;
-    const isOnboardingKv = currentStep === "experience" || currentStep === "department";
+    const isOnboardingKv =
+      currentStep === "experience" ||
+      currentStep === "department" ||
+      currentStep === "goal";
 
     const userMessage = {
       id: newMessageId(),
@@ -1407,11 +1410,14 @@ export default function FloatingChatbot() {
     });
     setInput("");
 
-    // Experience & department: store as KV pairs only — no LLM call, no typing indicator
+    // Onboarding chips: store as KV pairs only — no LLM call, no typing indicator
     if (isOnboardingKv) {
       try {
-        await persistUserSelection(sessionId, currentStep, messageToSend);
-        syncProfile({ ...profileRef.current, [currentStep]: messageToSend });
+        const nextProfile = { ...profileRef.current, [currentStep]: messageToSend };
+        await persistUserSelection(sessionId, currentStep, messageToSend, {
+          profileSnapshot: nextProfile,
+        });
+        syncProfile(nextProfile);
         flashChip(currentStep);
 
         if (currentStep === "experience") {
@@ -1423,7 +1429,7 @@ export default function FloatingChatbot() {
           }, sessionId);
           setConversationStep("department");
           stepRef.current = "department";
-        } else {
+        } else if (currentStep === "department") {
           scheduleMsg(600, {
             sender: "bot",
             text: "Noted. Certification, promotion, or upskilling?",
@@ -1432,6 +1438,15 @@ export default function FloatingChatbot() {
           }, sessionId);
           setConversationStep("goal");
           stepRef.current = "goal";
+        } else {
+          scheduleMsg(600, {
+            sender: "bot",
+            text:
+              "OK, we got all your preferences set. Please let me know what you'd like to search for, or if you need any guidance based on your preferences.",
+            metadata: { step: "free", type: "onboarding" },
+          }, sessionId);
+          setConversationStep("free");
+          stepRef.current = "free";
         }
       } catch {
         setMessages((prev) => [
@@ -1449,46 +1464,27 @@ export default function FloatingChatbot() {
       return;
     }
 
-    let backendMessage = messageToSend;
-    let stepMetadata = { step: currentStep };
-
-    if (currentStep === "goal") {
-      const nextProfile = { ...profileRef.current, goal: messageToSend };
-      syncProfile(nextProfile);
-      flashChip("goal");
-      const rec = buildRecommendationPayload(nextProfile);
-      backendMessage = rec.backendMessage;
-      stepMetadata = rec.metadata;
-    } else {
-      const currentProfile = profileRef.current;
-      stepMetadata = { step: "free" };
-      if (currentProfile.experience) stepMetadata.experience = currentProfile.experience;
-      if (currentProfile.department) stepMetadata.department = currentProfile.department;
-      if (currentProfile.goal) stepMetadata.goal = currentProfile.goal;
-      if (currentProfile.experience && currentProfile.department && currentProfile.goal) {
-        stepMetadata.profile = {
-          experience: currentProfile.experience,
-          department: currentProfile.department,
-          goal: currentProfile.goal,
-        };
-      }
+    const currentProfile = profileRef.current;
+    const stepMetadata = { step: "free" };
+    if (currentProfile.experience) stepMetadata.experience = currentProfile.experience;
+    if (currentProfile.department) stepMetadata.department = currentProfile.department;
+    if (currentProfile.goal) stepMetadata.goal = currentProfile.goal;
+    if (currentProfile.experience && currentProfile.department && currentProfile.goal) {
+      stepMetadata.profile = {
+        experience: currentProfile.experience,
+        department: currentProfile.department,
+        goal: currentProfile.goal,
+      };
     }
 
     try {
-      const result = await streamChatResponse({
+      await streamChatResponse({
         sid: sessionId,
-        backendMessage,
+        backendMessage: messageToSend,
         displayMessage: messageToSend,
         metadata: stepMetadata,
         supportCheckText: messageToSend,
       });
-
-      if (result.aborted) return;
-
-      if (currentStep === "goal") {
-        setConversationStep("free");
-        stepRef.current = "free";
-      }
     } finally {
       sendingRef.current = false;
     }
