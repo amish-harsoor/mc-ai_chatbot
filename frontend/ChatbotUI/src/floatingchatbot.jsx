@@ -234,6 +234,11 @@ const styles = `
   .bubble ol { list-style-type: decimal; }
   .bubble li { display: list-item; margin: 3px 0; }
   .bubble li > p { margin: 0; }
+  .bubble hr {
+    border: none;
+    border-top: 1px solid #e4e4e7;
+    margin: 10px 0;
+  }
   .stream-plain { margin: 0; white-space: pre-wrap; }
 
   .user-row {
@@ -250,35 +255,28 @@ const styles = `
     color: #7b8494;
   }
 
+  /* Course recommendation card — matches reference: clean white card,
+     soft gray border, roomy meta row, green checks, red "Learn more". */
   .course-card {
     position: relative;
-    background: #faf7f7;
-    border: 1px solid #efe7e7;
+    background: #ffffff;
+    border: 1px solid #e7e9f0;
     border-radius: 16px;
     padding: 16px 16px 14px;
     width: 100%;
     box-sizing: border-box;
-  }
-  .course-copy {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid #d7dee8;
-    background: #fff;
-    color: #5b6577;
-    font: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 4px 8px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
-  .course-copy:hover { background: #faf7f7; color: #9A1B22; }
+  .course-card:hover {
+    border-color: #d7dee8;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+    transform: translateY(-1px);
+  }
+  .course-card:active { transform: translateY(0); }
   .course-title {
-    margin: 0 36px 6px 0;
+    margin: 0 0 6px;
     font-size: 15px;
     font-weight: 700;
     line-height: 1.3;
@@ -288,38 +286,38 @@ const styles = `
     margin: 0 0 12px;
     font-size: 13px;
     line-height: 1.4;
-    color: #4b5568;
+    color: #5b6577;
   }
   .course-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px 16px;
+    gap: 10px 22px;
     font-size: 13px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 10px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 12px;
   }
   .course-meta-item {
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  .course-meta-item svg { color: #64748b; }
+  .course-meta-item svg { color: #6b7280; }
   .course-features {
     list-style: none;
     margin: 0 0 12px;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
   }
   .course-features li {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     font-size: 13px;
-    color: #334155;
+    color: #374151;
     line-height: 1.35;
   }
   .course-features li svg { flex-shrink: 0; margin-top: 1px; color: #16a34a; }
@@ -595,12 +593,22 @@ const TITLE_RE = /^\*\*(?!(?:Duration|Credits|Cost|Level)\b)(.+?)\*\*\s*$/;
 const FACT_RE = /^\*{0,2}(Duration|Credits|Cost|Level)\*{0,2}:\s*(.+)$/i;
 const LINK_RE = /^\[(Register Now|Learn more)\]\((https?:\/\/[^)]+)\)/i;
 
+/** Strip stray markdown bold markers and tidy whitespace from a captured fact value. */
+function cleanFactValue(raw) {
+  return String(raw || "")
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function tryParseCourseCard(lines, start) {
   const titleMatch = String(lines[start] || "").trim().match(TITLE_RE);
   if (!titleMatch) return null;
 
   const card = {
     title: titleMatch[1].trim(),
+    description: null,
     duration: null,
     credits: null,
     cost: null,
@@ -615,9 +623,14 @@ function tryParseCourseCard(lines, start) {
       continue;
     }
     const fact = t.match(FACT_RE);
+    if (!fact && !LINK_RE.test(t) && !card.description) {
+      card.description = t;
+      j += 1;
+      continue;
+    }
     if (fact) {
       const key = fact[1].toLowerCase();
-      card[key === "cost" ? "cost" : key] = fact[2].trim();
+      card[key === "cost" ? "cost" : key] = cleanFactValue(fact[2]);
       j += 1;
       continue;
     }
@@ -805,31 +818,28 @@ function MarkdownBody({ text }) {
 }
 
 function CourseCard({ card }) {
-  const [copied, setCopied] = useState(false);
   const features = creditFeatures(card.credits);
   if (card.level) features.push(`${card.level} level`);
 
-  const copyCard = async () => {
-    const snippet = [card.title, card.url].filter(Boolean).join("\n");
-    try {
-      await navigator.clipboard.writeText(snippet);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch {
-      setCopied(false);
-    }
+  const openCourse = () => {
+    if (card.url) window.open(card.url, "_blank", "noopener,noreferrer");
   };
 
   return (
-    <article className="course-card">
-      <button type="button" className="course-copy" onClick={copyCard} title="Copy course">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <rect x="9" y="9" width="13" height="13" rx="2" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-        {copied ? "Copied" : "Copy"}
-      </button>
+    <article
+      className="course-card"
+      role={card.url ? "link" : undefined}
+      tabIndex={card.url ? 0 : undefined}
+      onClick={openCourse}
+      onKeyDown={(e) => {
+        if (card.url && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          openCourse();
+        }
+      }}
+    >
       <h3 className="course-title">{card.title}</h3>
+      {card.description ? <p className="course-desc">{card.description}</p> : null}
       {(card.duration || card.cost) && (
         <div className="course-meta">
           {card.duration ? (
@@ -857,7 +867,13 @@ function CourseCard({ card }) {
         </ul>
       )}
       {card.url ? (
-        <a className="course-learn" href={card.url} target="_blank" rel="noopener noreferrer">
+        <a
+          className="course-learn"
+          href={card.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+        >
           Learn more
           <span aria-hidden="true">→</span>
         </a>
@@ -1040,12 +1056,12 @@ export default function FloatingChatbot() {
         prev.map((msg) =>
           msg.id === botMessageId
             ? {
-                ...msg,
-                text,
-                streaming,
-                ...(options ? { options } : {}),
-                ...(!streaming && !options && msg.options ? { options: undefined } : {}),
-              }
+              ...msg,
+              text,
+              streaming,
+              ...(options ? { options } : {}),
+              ...(!streaming && !options && msg.options ? { options: undefined } : {}),
+            }
             : msg
         )
       );
