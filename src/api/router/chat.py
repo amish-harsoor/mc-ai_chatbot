@@ -204,7 +204,7 @@ async def chat_stream(request: ChatRequest):
 
             return _stream_reply(catalog_generator())
 
-    # Fill missing prefs from durable session/profile before template recs or RAG.
+    # Fill any leftover prefs from durable session/profile before template recs or RAG.
     enriched_metadata = enrich_metadata_with_durable_profile(
         request.metadata,
         session_id=request.session_id,
@@ -212,7 +212,7 @@ async def chat_stream(request: ChatRequest):
         guest_id=guest_id,
     )
 
-    # Profile-complete onboarding / goal refresh → retrieve + template (no LLM).
+    # Rec / topic asks → catalog-ranked cards (no LLM). Profile is optional.
     from src.chatbot.recommendations import (
         build_template_recommendation_reply,
         should_use_template_recommendations,

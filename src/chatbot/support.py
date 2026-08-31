@@ -260,7 +260,7 @@ def support_options_for_message(message: str) -> list[str] | None:
 OUT_OF_DOMAIN_MESSAGE = (
     "I only help with Management Concepts courses and training. "
     "Try asking about budgeting, project management, leadership, "
-    "or share your experience level, department, and career goal."
+    "or a certification like PMP."
 )
 
 _OUT_OF_DOMAIN_PATTERNS = [

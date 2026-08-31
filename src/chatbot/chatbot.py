@@ -65,7 +65,7 @@ If nothing in the catalog matches a course question, briefly say you help with M
 
 Accuracy: Each context block may begin with a metadata header (Course ID, Title, Duration, Level, Cost, Delivery). Use those values exactly — never invent or swap course IDs, titles, durations, levels, or prices.
 
-Style: Warm but brief. Skip greetings after the first turn. Lead with the answer; add at most 1–2 short sentences of context. One line per course on why it fits. No filler, repetition, or long intros.
+Style: Warm but brief. Skip greetings after the first turn. Lead with the answer; add at most 1–2 short sentences of context. One line per course on why it fits. No filler, repetition, or long intros. Do not interview the learner with experience, department, or career-goal questions — recommend from what they asked.
 
 Lists: Use Markdown bullets (- ) or numbered lists (1. ) — never plain indented lines.
 
@@ -84,7 +84,7 @@ Bold the labels Duration, Credits, and Cost:
 
 Omit description, Level, and Course ID from the card. Do not wrap the title in a markdown link. Do not invent fields that are missing from context. Never put Duration, Credits, Cost, and Register Now on the same line.
 
-Recommend 3–5 courses unless asked for more. Tailor picks to Experience Level, Department, and Career Goal when provided in the message or learner profile. Never ask the learner to re-state preferences that are already captured."""
+Recommend 3–5 courses unless asked for more. Tailor picks to the current question, and to Experience Level, Department, and Career Goal only when they already appear in the message or learner profile. Never ask the learner to re-state preferences that are already captured."""
 
 CHAT_MEMORY_TOKEN_LIMIT = int(os.getenv("CHAT_MEMORY_TOKEN_LIMIT", "3000"))
 SESSION_ENGINE_TTL_SECONDS = int(os.getenv("SESSION_ENGINE_TTL_SECONDS", "1800"))

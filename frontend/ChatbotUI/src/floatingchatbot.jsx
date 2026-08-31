@@ -3,19 +3,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
   .chatbot-root {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Source Sans 3', Helvetica, Arial, sans-serif;
+    color: #18181b;
   }
 
   .chat-fab {
     position: fixed;
     bottom: 28px;
     right: 28px;
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
     border: none;
     cursor: pointer;
     display: flex;
@@ -25,6 +26,7 @@ const styles = `
     box-shadow: 0 8px 32px rgba(154,27,34,0.35), 0 2px 8px rgba(0,0,0,0.18);
     transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s ease;
     z-index: 9999;
+    padding: 0;
   }
   .chat-fab:hover {
     transform: scale(1.05);
@@ -33,13 +35,13 @@ const styles = `
 
   .chat-window {
     position: fixed;
-    bottom: 104px;
+    bottom: 100px;
     right: 28px;
-    width: 428px;
-    height: 620px;
-    max-height: calc(100vh - 130px);
+    width: 400px;
+    height: 640px;
+    max-height: calc(100vh - 120px);
     background: #ffffff;
-    border-radius: 12px;
+    border-radius: 18px;
     box-shadow:
       0 12px 48px rgba(0,0,0,0.15),
       0 4px 16px rgba(0,0,0,0.08),
@@ -49,366 +51,413 @@ const styles = `
     overflow: hidden;
     z-index: 9998;
     transform-origin: bottom right;
-    transition: opacity 0.3s cubic-bezier(.4,0,.2,1),
-                transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    transition: opacity 0.28s cubic-bezier(.4,0,.2,1),
+                transform 0.28s cubic-bezier(.34,1.56,.64,1),
+                width 0.2s ease, height 0.2s ease, bottom 0.2s ease, right 0.2s ease;
   }
-  .chat-window.open   { opacity: 1; transform: scale(1) translateY(0);      pointer-events: all; }
+  .chat-window.open   { opacity: 1; transform: scale(1) translateY(0); pointer-events: all; }
   .chat-window.closed { opacity: 0; transform: scale(0.88) translateY(16px); pointer-events: none; }
+  .chat-window.expanded {
+    width: min(720px, calc(100vw - 32px));
+    height: min(860px, calc(100vh - 40px));
+    bottom: 20px;
+    right: 16px;
+    max-height: calc(100vh - 40px);
+  }
 
   .chat-header {
     background: #9A1B22;
-    padding: 16px 20px;
+    padding: 10px 12px 10px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex: 0 0 auto;
     color: white;
+    gap: 8px;
   }
-  .header-left {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .mc-logo-svg {
-    width: 32px; height: 32px;
-  }
-  .mc-logo-text {
-    display: flex; flex-direction: column; line-height: 1.1;
-  }
-  .mc-logo-top { font-weight: 700; font-size: 15px; font-style: italic; letter-spacing: 0.5px; }
-  .mc-logo-bottom { font-weight: 600; font-size: 13px; letter-spacing: 1px; }
+  .header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-  .header-right {
-    display: flex; align-items: center; gap: 12px;
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 999px;
+    padding: 3px;
   }
+  .mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.88);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .mode-btn.active {
+    background: #ffffff;
+    color: #9A1B22;
+  }
+  .mode-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
   .header-icon-btn {
-    background: transparent; border: none;
-    color: white; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 4px; opacity: 0.9;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    opacity: 0.92;
+    padding: 0;
   }
-  .header-icon-btn:hover { opacity: 1; }
+  .header-icon-btn:hover { opacity: 1; background: rgba(255,255,255,0.08); }
 
   .chat-messages {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 24px 20px;
+    padding: 16px 14px 8px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     background: #ffffff;
     scroll-behavior: smooth;
-    /* Keep below preference menus (pref-bar creates a higher stacking context). */
-    position: relative;
-    z-index: 1;
   }
-  .chat-messages::-webkit-scrollbar       { width: 6px; }
-  .chat-messages::-webkit-scrollbar-track  { background: transparent; }
-  .chat-messages::-webkit-scrollbar-thumb  { background: rgba(0,0,0,0.1); border-radius: 8px; }
+  .chat-messages::-webkit-scrollbar { width: 6px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 8px; }
 
   .msg-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     animation: msg-in 0.28s cubic-bezier(.4,0,.2,1) both;
   }
   @keyframes msg-in {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .msg-meta {
-    display: flex; align-items: center; gap: 8px;
-    margin-left: 56px; margin-bottom: 2px;
+  .bot-attr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .msg-meta.user { margin-left: 0; margin-right: 4px; flex-direction: row-reverse; }
-  
-  .sender-name { font-size: 13px; color: #1a1a1a; font-weight: 600; }
-  .msg-time { font-size: 12px; color: #888; }
-
-  .msg-row {
-    display: flex; align-items: flex-start; gap: 12px;
-    width: 100%;
+  .bot-attr-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #5b6577;
   }
-  .msg-row.user { flex-direction: row-reverse; }
+  .bot-attr-spacer { flex: 1; }
+  .thumb-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: #c5cad3;
+    display: flex;
+    line-height: 0;
+  }
+  .thumb-btn:hover { color: #7b8494; }
+  .thumb-btn.active { color: #9A1B22; }
 
-  .bot-icon {
-    width: 44px; height: 44px; border-radius: 12px;
-    background: #9A1B22;
-    display: flex; align-items: center; justify-content: center;
+  .ai-avatar, .user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    color: white;
+    overflow: hidden;
+  }
+  .ai-avatar { background: #9A1B22; }
+  .user-avatar { background: #1b2433; color: #fff; }
+
+  .bot-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 36px;
   }
 
   .bubble {
-    max-width: 85%; padding: 14px 16px;
-    font-size: 11px; line-height: 1.5;
-    word-break: break-word; position: relative;
-    border-radius: 12px;
+    max-width: 88%;
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    word-break: break-word;
+    border-radius: 14px;
   }
   .bubble.bot {
-    background: #f4f4f5; color: #18181b;
-    border-top-left-radius: 4px;
+    background: #f4f4f5;
+    color: #18181b;
+    border-top-left-radius: 6px;
+    max-width: 100%;
+  }
+  .bubble.bot.plain {
+    background: transparent;
+    padding: 0 2px;
+    border-radius: 0;
+    color: #3f3f46;
   }
   .bubble.user {
-    background: #1e3a8a; color: #ffffff;
-    border-top-right-radius: 4px;
+    background: #1e3a8a;
+    color: #ffffff;
+    border-top-right-radius: 6px;
+    margin-left: auto;
   }
-  .bubble p { margin: 0 0 10px; }
+  .bubble p { margin: 0 0 8px; }
   .bubble p:last-child { margin-bottom: 0; }
-  .bubble strong { font-weight: 700; color: #18181b; }
-  .bubble a { color: #2563eb; text-decoration: underline; font-weight: 600; }
+  .bubble strong { font-weight: 700; }
+  .bubble.bot strong { color: #18181b; }
+  .bubble a { color: #2563eb; font-weight: 600; }
   .bubble.user a { color: #bfdbfe; }
   .bubble.user strong { color: #ffffff; }
-  /* Explicit list markers — host page CSS resets often strip bullets. */
-  .bubble ul,
-  .bubble ol {
-    margin: 6px 0 10px;
-    padding-left: 1.35em;
+  .bubble ul, .bubble ol {
+    margin: 6px 0 8px;
+    padding-left: 1.3em;
     list-style-position: outside;
   }
   .bubble ul { list-style-type: disc; }
   .bubble ol { list-style-type: decimal; }
-  .bubble li {
-    display: list-item;
-    margin: 3px 0;
-    padding-left: 0.15em;
-    line-height: 1.45;
-  }
-  /* Loose lists wrap items in <p>; kill paragraph spacing so items look like points. */
+  .bubble li { display: list-item; margin: 3px 0; }
   .bubble li > p { margin: 0; }
-  .bubble li > p + p { margin-top: 6px; }
-  /* Preserve intentional line breaks if the model emits single newlines */
   .stream-plain { margin: 0; white-space: pre-wrap; }
 
+  .user-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .user-seen {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #7b8494;
+  }
+
+  .course-card {
+    position: relative;
+    background: #faf7f7;
+    border: 1px solid #efe7e7;
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .course-copy {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #d7dee8;
+    background: #fff;
+    color: #5b6577;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  .course-copy:hover { background: #faf7f7; color: #9A1B22; }
+  .course-title {
+    margin: 0 36px 6px 0;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #18181b;
+  }
+  .course-desc {
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #4b5568;
+  }
+  .course-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 10px;
+  }
+  .course-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .course-meta-item svg { color: #64748b; }
+  .course-features {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .course-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.35;
+  }
+  .course-features li svg { flex-shrink: 0; margin-top: 1px; color: #16a34a; }
+  .course-learn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #9A1B22;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .course-learn:hover { text-decoration: underline; }
+
   .options-container {
-    display: flex; flex-direction: column; gap: 10px;
-    width: 100%; max-width: 85%; margin-left: 56px; margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 36px;
   }
   .option-btn {
-    width: 100%;
     background: #f4f4f5;
     border: none;
-    border-radius: 24px;
-    padding: 14px 20px;
-    font-size: 11px;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
     font-weight: 700;
-    color: #000;
+    color: #18181b;
     cursor: pointer;
-    transition: background 0.2s;
-    text-align: center;
   }
   .option-btn:hover:not(:disabled) { background: #e4e4e7; }
-  .option-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .option-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-  .typing-indicator { display: flex; align-items: flex-start; gap: 12px; animation: msg-in 0.28s both; }
+  .typing-indicator { display: flex; align-items: flex-start; gap: 8px; animation: msg-in 0.28s both; }
   .typing-bubble {
-    background: #f4f4f5; border-radius: 12px; border-top-left-radius: 4px;
-    padding: 16px 20px; display: flex; gap: 6px; align-items: center;
+    background: #f4f4f5; border-radius: 14px; border-top-left-radius: 6px;
+    padding: 14px 16px; display: flex; gap: 5px; align-items: center;
   }
   .dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #a1a1aa;
+    background: #a0a8b6;
     animation: dot-bounce 1.4s ease-in-out infinite;
   }
   .dot:nth-child(2) { animation-delay: 0.2s; }
   .dot:nth-child(3) { animation-delay: 0.4s; }
   @keyframes dot-bounce {
-    0%,80%,100% { transform: translateY(0);   opacity: 0.5; }
-    40%          { transform: translateY(-4px); opacity: 1; }
+    0%,80%,100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-4px); opacity: 1; }
   }
 
-  .chat-input-area {
-    background: #fff; padding: 16px 20px;
-    display: flex; flex-direction: column; gap: 8px;
-    border-top: 1px solid #f4f4f5;
-    position: relative;
-    z-index: 2;
+  .chat-footer {
     flex: 0 0 auto;
-  }
-  .input-wrapper {
-    display: flex; align-items: center; gap: 12px;
-    background: #ffffff; border: 1.5px solid #e4e4e7;
-    border-radius: 24px; padding: 10px 16px;
-    transition: border-color 0.2s;
-  }
-  .input-wrapper:focus-within {
-    border-color: #d4d4d8;
-  }
-  .chat-input {
-    flex: 1; border: none; background: transparent; outline: none;
-    font-family: 'Open Sans', sans-serif;
-    font-size: 11px; color: #18181b; padding: 4px 0;
-  }
-  .chat-input::placeholder { color: #a1a1aa; }
-  .chat-input:disabled { cursor: not-allowed; }
-
-  .send-btn {
-    width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
-    background: #f4f4f5;
-    color: #a1a1aa; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    transition: background 0.2s, color 0.2s;
-  }
-  .send-btn.active {
-    background: #e4e4e7; color: #52525b; /* Not as prominent based on design */
-  }
-  .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-  /* —— Preference chips (one compact row, no instructional chrome) —— */
-  .pref-bar {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: #fafafa;
-    border-bottom: 1px solid #f0f0f1;
-    /* Stack above .chat-messages so open chip menus are not covered. */
-    position: relative;
-    z-index: 30;
-    /* Do NOT set overflow-x: auto here — CSS forces overflow-y to auto too,
-       which clips dropdown menus under the messages panel. */
-    overflow: visible;
-  }
-  .pref-chip-wrap {
-    position: relative;
-    display: flex;
-    flex: 1 1 0;
-    min-width: 0;
-    z-index: 1;
-  }
-  .pref-chip-wrap.menu-open {
-    z-index: 2;
-  }
-  .pref-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    width: 100%;
-    min-width: 0;
-    font-family: inherit;
-    font-size: 11px;
-    line-height: 1.25;
-    color: #3f3f46;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    border-radius: 999px;
-    padding: 5px 8px 5px 10px;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
-  }
-  .pref-chip:hover:not(:disabled) {
-    background: #f4f4f5;
-    border-color: #d4d4d8;
-  }
-  .pref-chip:focus-visible {
-    outline: 2px solid rgba(154, 27, 34, 0.35);
-    outline-offset: 2px;
-  }
-  .pref-chip.open {
-    border-color: #9A1B22;
-    background: #faf7f7;
-    box-shadow: 0 0 0 2px rgba(154, 27, 34, 0.1);
-  }
-  .pref-chip.empty {
-    color: #a1a1aa;
-    border-style: dashed;
-    background: #fafafa;
-  }
-  .pref-chip.saved {
-    border-color: #86efac;
-    background: #f0fdf4;
-    color: #166534;
-  }
-  .pref-chip:disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
-  }
-  .pref-chip-value {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-    min-width: 0;
-  }
-  .pref-chip-caret {
-    width: 10px;
-    height: 10px;
-    flex-shrink: 0;
-    color: #a1a1aa;
-    transition: transform 0.15s ease;
-  }
-  .pref-chip.open .pref-chip-caret,
-  .pref-chip.saved .pref-chip-caret {
-    color: inherit;
-  }
-  .pref-chip.open .pref-chip-caret {
-    transform: rotate(180deg);
-  }
-  .pref-chip-menu {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: auto;
-    z-index: 50;
-    min-width: 100%;
-    width: max-content;
-    max-width: min(280px, calc(100vw - 48px));
-    padding: 4px;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    border-radius: 12px;
-    box-shadow: 0 10px 28px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    padding: 8px 12px 12px;
+    background: #fff;
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    animation: pref-menu-in 0.14s ease both;
+    gap: 8px;
   }
-  /* Keep the last chip menu inside the panel instead of clipping off the right edge. */
-  .pref-chip-wrap:last-child .pref-chip-menu {
-    left: auto;
-    right: 0;
-  }
-  .pref-chip-option {
+  .handoff-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f3f5f8;
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: none;
     width: 100%;
     text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+  .handoff-banner:hover { background: #ebeef3; }
+  .handoff-banner:disabled { opacity: 0.6; cursor: not-allowed; }
+  .handoff-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #e2e8f0; color: #475569;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .handoff-copy {
+    flex: 1;
+    font-size: 13px;
+    color: #3a4558;
+  }
+  .handoff-cta {
+    font-size: 13px;
+    font-weight: 700;
+    color: #9A1B22;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1.5px solid #e4e4e7;
+    border-radius: 999px;
+    padding: 6px 8px 6px 16px;
+  }
+  .input-wrapper:focus-within { border-color: #d4d4d8; }
+  .chat-input {
+    flex: 1;
     border: none;
     background: transparent;
-    border-radius: 8px;
-    padding: 9px 10px;
+    outline: none;
     font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 14px;
     color: #18181b;
-    cursor: pointer;
-    transition: background 0.12s ease;
+    padding: 6px 0;
   }
-  .pref-chip-option:hover:not(:disabled) {
-    background: #f4f4f5;
+  .chat-input::placeholder { color: #8b93a2; }
+  .chat-input:disabled { cursor: not-allowed; }
+  .attach-icon {
+    color: #9aa3b2;
+    display: flex;
+    flex-shrink: 0;
   }
-  .pref-chip-option.selected {
-    background: #faf7f7;
-    color: #9A1B22;
+  .send-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: #e8eaee;
+    color: #8b93a2;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
-  .pref-chip-option:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-  @keyframes pref-menu-in {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .pref-restore {
-    margin: 0 0 2px;
+  .send-btn.active { background: #9A1B22; color: #fff; }
+  .send-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .welcome-back {
+    margin: 0;
     padding: 6px 10px;
     border-radius: 8px;
-    background: #fafafa;
-    border: 1px solid #f0f0f1;
-    color: #71717a;
-    font-size: 10px;
-    line-height: 1.4;
-    animation: msg-in 0.28s both;
+    background: #f7f8fb;
+    color: #6b7384;
+    font-size: 12px;
   }
 
   @media (max-width: 600px) {
@@ -418,17 +467,20 @@ const styles = `
       width: 100%; height: 100%; max-height: 100%;
       border-radius: 0;
     }
+    .chat-window.expanded { width: 100%; height: 100%; bottom: 0; right: 0; }
     .chat-window.open   { transform: translateY(0); }
     .chat-window.closed { transform: translateY(100%); }
-    .chat-header { padding-top: max(16px, env(safe-area-inset-top, 16px)); }
-    .chat-input-area { padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)); }
+    .chat-header { padding-top: max(10px, env(safe-area-inset-top, 10px)); }
+    .chat-footer { padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); }
   }
 `;
 
 const SESSION_STORAGE_KEY = "mc_chat_session_id";
 const GUEST_STORAGE_KEY = "mc_guest_id";
+const SPEAK_WITH_AGENT_OPTION = "Speak with Agent";
+const WELCOME_TEXT =
+  "Hi — ask me about Management Concepts courses, certifications, or training. I'll recommend options as we go.";
 
-/** Optional host-app registered user (set window.__MC_USER_ID__ or VITE_USER_ID). */
 function getRegisteredUserId() {
   if (typeof window !== "undefined" && window.__MC_USER_ID__) {
     return String(window.__MC_USER_ID__);
@@ -452,21 +504,6 @@ function identityPayload() {
   return { guest_id: getOrCreateGuestId() };
 }
 
-const EXPERIENCE_OPTIONS = [
-  "Entry-level (0–2 years)",
-  "Mid-level (3–7 years)",
-  "Senior/Manager (8+ years)",
-];
-const DEPARTMENT_OPTIONS = ["Finance", "Management", "IT"];
-const GOAL_OPTIONS = [
-  "Earn a certification",
-  "Get a promotion",
-  "Upskill / personal growth",
-];
-
-const SPEAK_WITH_AGENT_OPTION = "Speak with Agent";
-
-/** Detect fixed support/ticket acknowledgments so we can restore Speak with Agent when appropriate. */
 function isSupportHandoffText(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
@@ -479,14 +516,12 @@ function isSupportHandoffText(text) {
     lower.includes("certificate request has been received") ||
     lower.includes("will be generated shortly") ||
     lower.includes("generated shortly") ||
-    // legacy copy from older sessions
     lower.includes("sent to our support team") ||
     lower.includes("password change request has been sent") ||
     lower.includes("speak with an agent has been sent")
   );
 }
 
-/** Password / generic tickets CTA the Speak with Agent chip (markdown-safe). */
 function offersSpeakWithAgentChip(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
@@ -497,11 +532,9 @@ function offersSpeakWithAgentChip(text) {
   );
 }
 
-/** True when the bot already confirmed agent/certificate — no Speak with Agent chip. */
 function isSupportConfirmationOnly(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
-  // Password/generic tickets include a "select Speak with Agent below" CTA → show the chip.
   if (offersSpeakWithAgentChip(text)) return false;
   return (
     lower.includes("certificate request has been received") ||
@@ -513,19 +546,6 @@ function isSupportConfirmationOnly(text) {
     lower.includes("specialist will pick this up") ||
     lower.includes("specialist can help")
   );
-}
-
-/**
- * Onboarding option chips lock free-text until a choice is made.
- * Support chips (Speak with Agent) must not lock the input — learners can keep typing
- * password / certificate / other requests without leaving the chat.
- */
-function optionsLockFreeText(msg) {
-  if (!msg?.options?.length || msg.optionsDisabled) return false;
-  const onlySupportChip = msg.options.every(
-    (o) => String(o).trim().toLowerCase() === SPEAK_WITH_AGENT_OPTION.toLowerCase()
-  );
-  return !onlySupportChip;
 }
 
 function isSpeakWithAgentSelection(text) {
@@ -546,36 +566,11 @@ function formatTimeFromIso(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function inferConversationStep(apiMessages) {
-  const userSteps = apiMessages
-    .filter((m) => m.role === "user" && m.metadata?.step)
-    .map((m) => m.metadata.step);
-  if (userSteps.includes("goal")) return "free";
-  if (userSteps.includes("department")) return "goal";
-  if (userSteps.includes("experience")) return "department";
-  return "experience";
-}
-
-function extractProfileFromHistory(apiMessages) {
-  const profile = {};
-  for (const m of apiMessages) {
-    if (m.role !== "user") continue;
-    const step = m.metadata?.step;
-    const value = m.metadata?.value || m.display_content || m.content;
-    if (step === "experience") profile.experience = value;
-    if (step === "department") profile.department = value;
-    if (step === "goal") profile.goal = value;
-  }
-  return profile;
-}
-
 function mapHistoryToMessages(apiMessages) {
   const visible = apiMessages.filter((m) => m.metadata?.visible !== false);
   return visible.map((m, i, arr) => {
     const hasReplyAfter = arr.slice(i + 1).some((next) => next.role === "user");
     const text = m.display_content || m.content;
-    // Restore Speak with Agent on password/generic tickets when options were not stored.
-    // Skip agent/certificate confirmations — those are already final in-chat acknowledgments.
     let options = m.metadata?.options;
     if (
       m.role === "assistant" &&
@@ -596,138 +591,81 @@ function mapHistoryToMessages(apiMessages) {
   });
 }
 
-/** Compact chip label: drop parenthetical detail when present. */
-function shortPrefDisplay(value) {
-  if (!value) return null;
-  const trimmed = String(value).replace(/\s*\([^)]*\)\s*$/, "").trim();
-  return trimmed || String(value);
-}
+const TITLE_RE = /^\*\*(?!(?:Duration|Credits|Cost|Level)\b)(.+?)\*\*\s*$/;
+const FACT_RE = /^\*{0,2}(Duration|Credits|Cost|Level)\*{0,2}:\s*(.+)$/i;
+const LINK_RE = /^\[(Register Now|Learn more)\]\((https?:\/\/[^)]+)\)/i;
 
-function profileHasAny(profile) {
-  return !!(profile?.experience || profile?.department || profile?.goal);
-}
+function tryParseCourseCard(lines, start) {
+  const titleMatch = String(lines[start] || "").trim().match(TITLE_RE);
+  if (!titleMatch) return null;
 
-function profileIsComplete(profile) {
-  return !!(profile?.experience && profile?.department && profile?.goal);
-}
-
-const PREF_CHIP_OPTIONS = {
-  experience: EXPERIENCE_OPTIONS,
-  department: DEPARTMENT_OPTIONS,
-  goal: GOAL_OPTIONS,
-};
-
-const PREF_CHIP_META = {
-  experience: { title: "Experience level", empty: "Level" },
-  department: { title: "Department", empty: "Dept" },
-  goal: { title: "Career goal", empty: "Goal" },
-};
-
-function PreferenceBar({ profile, flashKey, onSelectPreference, disabled }) {
-  const [openKey, setOpenKey] = useState(null);
-  const barRef = useRef(null);
-
-  const chips = [
-    { key: "experience", value: profile.experience },
-    { key: "department", value: profile.department },
-    { key: "goal", value: profile.goal },
-  ];
-
-  useEffect(() => {
-    if (!openKey) return undefined;
-    const onPointerDown = (e) => {
-      if (barRef.current && !barRef.current.contains(e.target)) {
-        setOpenKey(null);
-      }
-    };
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setOpenKey(null);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [openKey]);
-
-  useEffect(() => {
-    if (disabled) setOpenKey(null);
-  }, [disabled]);
-
-  const handleChipClick = (key) => {
-    if (disabled) return;
-    setOpenKey((prev) => (prev === key ? null : key));
+  const card = {
+    title: titleMatch[1].trim(),
+    duration: null,
+    credits: null,
+    cost: null,
+    level: null,
+    url: null,
   };
-
-  const handleOptionClick = (key, value) => {
-    if (disabled) return;
-    setOpenKey(null);
-    if (value && value !== profile[key]) {
-      onSelectPreference?.(key, value);
+  let j = start + 1;
+  while (j < lines.length) {
+    const t = String(lines[j] || "").trim();
+    if (!t) {
+      j += 1;
+      continue;
     }
-  };
-
-  return (
-    <div className="pref-bar" ref={barRef} role="toolbar" aria-label="Your preferences">
-      {chips.map((chip) => {
-        const meta = PREF_CHIP_META[chip.key];
-        const isOpen = openKey === chip.key;
-        const isSaved = flashKey === chip.key;
-        const options = PREF_CHIP_OPTIONS[chip.key] || [];
-        const display = shortPrefDisplay(chip.value) || meta.empty;
-        return (
-          <div key={chip.key} className={`pref-chip-wrap${isOpen ? " menu-open" : ""}`}>
-            <button
-              type="button"
-              className={`pref-chip${chip.value ? "" : " empty"}${isOpen ? " open" : ""}${isSaved ? " saved" : ""}`}
-              title={chip.value ? `${meta.title}: ${chip.value}` : `Set ${meta.title}`}
-              aria-haspopup="listbox"
-              aria-expanded={isOpen}
-              aria-label={`${meta.title}: ${chip.value || "not set"}`}
-              disabled={disabled}
-              onClick={() => handleChipClick(chip.key)}
-            >
-              <span className="pref-chip-value">{display}</span>
-              <svg className="pref-chip-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-            {isOpen ? (
-              <div className="pref-chip-menu" role="listbox" aria-label={meta.title}>
-                {options.map((opt) => {
-                  const selected = chip.value === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      className={`pref-chip-option${selected ? " selected" : ""}`}
-                      disabled={disabled}
-                      onClick={() => handleOptionClick(chip.key, opt)}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
+    const fact = t.match(FACT_RE);
+    if (fact) {
+      const key = fact[1].toLowerCase();
+      card[key === "cost" ? "cost" : key] = fact[2].trim();
+      j += 1;
+      continue;
+    }
+    const link = t.match(LINK_RE);
+    if (link) {
+      card.url = link[2].trim();
+      j += 1;
+      break;
+    }
+    break;
+  }
+  if (!card.url) return null;
+  return { card, nextIndex: j };
 }
 
-/**
- * Convert outline-style blocks under known section headers into real Markdown lists.
- * Models often emit:
- *   Course Highlights:
- *   Learn X
- *   Apply Y
- * which streams with line breaks (pre-wrap) but collapses into one paragraph in CommonMark.
- */
+/** Split a finished bot reply into prose vs recommended-course cards. */
+function parseBotSegments(raw) {
+  const text = String(raw || "").replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  const lines = text.split("\n");
+  const segments = [];
+  let textBuf = [];
+  let i = 0;
+
+  const flushText = () => {
+    const t = textBuf.join("\n").trim();
+    textBuf = [];
+    if (t) segments.push({ type: "text", text: t });
+  };
+
+  while (i < lines.length) {
+    if (TITLE_RE.test(String(lines[i] || "").trim())) {
+      const parsed = tryParseCourseCard(lines, i);
+      if (parsed) {
+        flushText();
+        segments.push({ type: "course", card: parsed.card });
+        i = parsed.nextIndex;
+        continue;
+      }
+    }
+    textBuf.push(lines[i]);
+    i += 1;
+  }
+  flushText();
+  return segments;
+}
+
 function promoteOutlineLinesToList(text) {
   const headerRe =
     /^(?:\*\*)?(?:course\s+)?(?:highlights?|key\s+points?|learning\s+objectives?|objectives?|topics?(?:\s+covered)?|what\s+you(?:'|’)?ll\s+learn|benefits?|includes?|features?|takeaways?)(?:\*\*)?\s*:?\s*$/i;
@@ -756,7 +694,6 @@ function promoteOutlineLinesToList(text) {
       block.push(raw);
       j++;
     }
-    // Need 2+ plain lines so we do not bullet a single prose sentence after a label.
     if (block.length >= 2 && block.every((l) => !isListLine(l))) {
       for (const bl of block) out.push(`- ${bl.trim()}`);
       i = j - 1;
@@ -765,41 +702,25 @@ function promoteOutlineLinesToList(text) {
   return out.join("\n");
 }
 
-/**
- * Prepare bot markdown so lists and course fact rows render as intended.
- * Streaming uses pre-wrap (line breaks visible); final Markdown collapses single
- * newlines unless content uses real list markers or blank lines between rows.
- */
 function normalizeBotMarkdown(raw) {
   let text = String(raw || "").replace(/\r\n/g, "\n");
-
-  // Decorative / unicode bullets → Markdown list markers (not rhetorical em-dashes mid-prose).
   text = text.replace(
     /(^|\n)([ \t]*)(?:[•●○◆◇▪▫■□‣∙·])(?=\s+\S)/g,
     "$1$2-"
   );
-  // En/em dash used as a bullet only when followed by a space and content (list-like).
   text = text.replace(
     /(^|\n)([ \t]*)(?:–|—)(?=\s+\S)/g,
     "$1$2-"
   );
-
   text = promoteOutlineLinesToList(text);
-
-  // Course fact rows: blank line before each so they do not merge into one <p>
   text = text.replace(
     /(^|\n)(\*{0,2}(?:Duration|Credits|Cost|Level)\*{0,2}:|\[Register Now\])/g,
     "\n\n$2"
   );
-
-  // Tight lists: blank lines between items create loose lists (<li><p>…), which
-  // look like stacked paragraphs rather than points.
   text = text.replace(
     /(^|\n)((?:[-*+]|\d+[.)]) [^\n]*)\n\n+(?=(?:[-*+]|\d+[.)]) )/g,
     "$1$2\n"
   );
-
-  // Blank line before a list that follows non-list content (cleaner GFM parse)
   text = text.replace(
     /(^|\n)([^\n]+)\n((?:[-*+]|\d+[.)]) )/g,
     (match, lead, prevLine, marker) => {
@@ -808,17 +729,53 @@ function normalizeBotMarkdown(raw) {
       return `${lead}${prevLine}\n\n${marker}`;
     }
   );
-
   return text.replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function MessageContent({ msg }) {
-  if (msg.sender === "user" || msg.streaming) {
-    return <p className="stream-plain">{msg.text}</p>;
-  }
+function creditFeatures(credits) {
+  if (!credits) return [];
+  return credits
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
 
-  const text = normalizeBotMarkdown(msg.text);
+function McFlag({ size = 32, radius = 8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx={radius} fill="#ffffff" />
+      <rect x="3" y="6" width="26" height="20" rx="1.5" fill="#0E2A5C" />
+      <rect x="3" y="6" width="12" height="11" fill="#C8102E" />
+      <path
+        d="M15 8h14v1.7H15zm0 3.4h14v1.7H15zm0 3.4h14v1.7H15zM3 18.2h26v1.7H3zm0 3.4h26v1.7H3z"
+        fill="#ffffff"
+      />
+    </svg>
+  );
+}
 
+function PersonIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="8" r="4" />
+    </svg>
+  );
+}
+
+function BotIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="8" width="16" height="12" rx="3" />
+      <path d="M12 8V5" />
+      <circle cx="12" cy="4" r="1.4" fill="currentColor" />
+      <circle cx="9" cy="14" r="1" fill="currentColor" />
+      <circle cx="15" cy="14" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MarkdownBody({ text }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -827,10 +784,8 @@ function MessageContent({ msg }) {
         ul: ({ children }) => <ul>{children}</ul>,
         ol: ({ children }) => <ol>{children}</ol>,
         li: ({ children }) => <li>{children}</li>,
-        a: ({ node, href, children, ...props }) => {
-          const isContact =
-            (href && (href.startsWith("tel:") || href.startsWith("mailto:"))) ||
-            false;
+        a: ({ href, children, ...props }) => {
+          const isContact = Boolean(href && (href.startsWith("tel:") || href.startsWith("mailto:")));
           return (
             <a
               {...props}
@@ -844,8 +799,107 @@ function MessageContent({ msg }) {
         },
       }}
     >
-      {text}
+      {normalizeBotMarkdown(text)}
     </ReactMarkdown>
+  );
+}
+
+function CourseCard({ card }) {
+  const [copied, setCopied] = useState(false);
+  const features = creditFeatures(card.credits);
+  if (card.level) features.push(`${card.level} level`);
+
+  const copyCard = async () => {
+    const snippet = [card.title, card.url].filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <article className="course-card">
+      <button type="button" className="course-copy" onClick={copyCard} title="Copy course">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <h3 className="course-title">{card.title}</h3>
+      {(card.duration || card.cost) && (
+        <div className="course-meta">
+          {card.duration ? (
+            <span className="course-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              {card.duration}
+            </span>
+          ) : null}
+          {card.cost ? <span className="course-meta-item">{card.cost}</span> : null}
+        </div>
+      )}
+      {features.length > 0 && (
+        <ul className="course-features">
+          {features.map((feat) => (
+            <li key={feat}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
+                <path d="M5 12.5l4 4 10-10" />
+              </svg>
+              {feat}
+            </li>
+          ))}
+        </ul>
+      )}
+      {card.url ? (
+        <a className="course-learn" href={card.url} target="_blank" rel="noopener noreferrer">
+          Learn more
+          <span aria-hidden="true">→</span>
+        </a>
+      ) : null}
+    </article>
+  );
+}
+
+function BotMessageBody({ msg }) {
+  if (msg.streaming) {
+    return (
+      <div className="bubble bot">
+        <p className="stream-plain">{msg.text}</p>
+      </div>
+    );
+  }
+
+  const segments = parseBotSegments(msg.text);
+  const hasCards = segments.some((s) => s.type === "course");
+  if (!hasCards) {
+    return (
+      <div className="bubble bot">
+        <MarkdownBody text={msg.text} />
+      </div>
+    );
+  }
+
+  const firstCardAt = segments.findIndex((s) => s.type === "course");
+  return (
+    <div className="bot-stack">
+      {segments.map((seg, idx) => {
+        if (seg.type === "course") {
+          return <CourseCard key={`c-${idx}`} card={seg.card} />;
+        }
+        const plainAfterCard = firstCardAt !== -1 && idx > firstCardAt;
+        return (
+          <div key={`t-${idx}`} className={`bubble bot${plainAfterCard ? " plain" : ""}`}>
+            <MarkdownBody text={seg.text} />
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -862,31 +916,20 @@ function useIsMobile() {
   return isMobile;
 }
 
-const MCIcon = () => (
-  <svg viewBox="0 0 24 24" fill="white" width="24" height="24">
-    <path d="M4 20L4 8L8 12L12 6L16 12L20 8L20 20Z" stroke="white" strokeWidth="2" strokeLinejoin="round" />
-  </svg>
-);
-
 export default function FloatingChatbot() {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sessionInitializing, setSessionInitializing] = useState(false);
-  const [conversationStep, setConversationStep] = useState("experience");
-  const [profile, setProfile] = useState({});
-  /** Which chip briefly highlights green after a save (`experience` | `department` | `goal`). */
-  const [flashKey, setFlashKey] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
-  const stepRef = useRef("experience");
-  const profileRef = useRef({});
+  const [mode, setMode] = useState("ai");
+  const [thumbs, setThumbs] = useState({});
   const sendingRef = useRef(false);
   const streamAbortRef = useRef(null);
   const sessionInitStarted = useRef(false);
-  const timeoutsRef = useRef([]);
-  const flashTimerRef = useRef(null);
   const welcomeTimerRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -895,26 +938,6 @@ export default function FloatingChatbot() {
   const abortActiveStream = () => {
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
-  };
-
-  const syncProfile = (next) => {
-    const cleaned = {
-      experience: next.experience || undefined,
-      department: next.department || undefined,
-      goal: next.goal || undefined,
-    };
-    profileRef.current = cleaned;
-    setProfile(cleaned);
-  };
-
-  const flashChip = (key) => {
-    if (!key) return;
-    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    setFlashKey(key);
-    flashTimerRef.current = setTimeout(() => {
-      setFlashKey(null);
-      flashTimerRef.current = null;
-    }, 1400);
   };
 
   const showWelcomeBack = (text) => {
@@ -929,14 +952,10 @@ export default function FloatingChatbot() {
   useEffect(() => {
     return () => {
       abortActiveStream();
-      timeoutsRef.current.forEach(clearTimeout);
-      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
       if (welcomeTimerRef.current) clearTimeout(welcomeTimerRef.current);
     };
   }, []);
 
-  // Support configurable backend for dev / docker / prod via Vite env
-  // Set VITE_API_BASE_URL=http://your-host:8000 in .env (frontend/ChatbotUI/.env or root env loaded by Vite)
   const API_BASE = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || "http://localhost:8000";
 
   const persistBotMessage = async (sid, text, metadata = {}) => {
@@ -957,74 +976,6 @@ export default function FloatingChatbot() {
     }
   };
 
-  const persistUserSelection = async (sid, step, value, { silent = false, profileSnapshot = null } = {}) => {
-    const content =
-      step === "experience"
-        ? `My experience level is: ${value}.`
-        : step === "department"
-          ? `My department is: ${value}.`
-          : step === "goal"
-            ? `My career goal is: ${value}.`
-            : value;
-    const metadata = {
-      step,
-      value,
-      type: silent ? "preference_update" : "onboarding_selection",
-      [step]: value,
-    };
-    if (silent) metadata.visible = false;
-    if (profileSnapshot && profileHasAny(profileSnapshot)) {
-      metadata.profile = {
-        experience: profileSnapshot.experience,
-        department: profileSnapshot.department,
-        goal: profileSnapshot.goal,
-      };
-      if (profileIsComplete(profileSnapshot)) {
-        metadata.profile_complete = true;
-      }
-    }
-    await fetch(`${API_BASE}/session/${sid}/message`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: "user",
-        content,
-        display_content: value,
-        metadata,
-        ...identityPayload(),
-      }),
-    });
-  };
-
-  const buildRecommendationPayload = (profile, preferenceKey = "goal") => {
-    const step = ["experience", "department", "goal"].includes(preferenceKey)
-      ? preferenceKey
-      : "goal";
-    const value = profile[step] || profile.goal;
-    return {
-      backendMessage:
-        `My experience level is: ${profile.experience}. ` +
-        `My department is: ${profile.department}. ` +
-        `My career goal is: ${profile.goal}. ` +
-        `Please recommend courses based on my profile.`,
-      metadata: {
-        step,
-        value,
-        profile_complete: true,
-        preference_key: step,
-        profile: {
-          experience: profile.experience,
-          department: profile.department,
-          goal: profile.goal,
-        },
-        experience: profile.experience,
-        department: profile.department,
-        goal: profile.goal,
-      },
-    };
-  };
-
-  /** Parse X-MC-Options (pipe-separated, URL-encoded labels) from the stream response. */
   const parseOptionsHeader = (res) => {
     const raw = res.headers.get("X-MC-Options");
     if (!raw) return null;
@@ -1042,10 +993,6 @@ export default function FloatingChatbot() {
     return opts.length ? opts : null;
   };
 
-  /**
-   * Options for a finished bot message: prefer server header, else legacy text heuristics
-   * for older sessions / providers that omit X-MC-Options.
-   */
   const resolveBotOptions = (text, supportCheckText, headerOptions) => {
     if (headerOptions) return headerOptions;
     if (
@@ -1058,7 +1005,6 @@ export default function FloatingChatbot() {
     return undefined;
   };
 
-  /** Stream a bot reply into the message list. Caller owns sendingRef. */
   const streamChatResponse = async ({
     sid,
     backendMessage,
@@ -1172,125 +1118,29 @@ export default function FloatingChatbot() {
     }
   };
 
-  const updatePreferenceFromChip = async (key, value) => {
-    if (!sessionId || loading || sendingRef.current) return;
-    if (!["experience", "department", "goal"].includes(key)) return;
-    if (!value || value === profileRef.current[key]) return;
-
-    const nextProfile = { ...profileRef.current, [key]: value };
-    // After onboarding is complete, any pref change should re-rank catalog recs.
-    const shouldRecommend = profileIsComplete(nextProfile);
-
-    syncProfile(nextProfile);
-    flashChip(key);
-
-    sendingRef.current = true;
-    try {
-      // Incomplete profile (shouldn't happen from chips once free): silent KV only.
-      if (!shouldRecommend) {
-        await persistUserSelection(sessionId, key, value, {
-          silent: true,
-          profileSnapshot: nextProfile,
-        });
-        return;
-      }
-
-      // Surface the updated pref in the thread, then re-run course recommendations.
-      setMessages((prev) => {
-        const updatedPrev = prev.map((msg) =>
-          msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
-        );
-        return [
-          ...updatedPrev,
-          {
-            id: newMessageId(),
-            text: value,
-            sender: "user",
-            time: getTime(),
-          },
-        ];
-      });
-
-      const { backendMessage, metadata } = buildRecommendationPayload(nextProfile, key);
-      const result = await streamChatResponse({
-        sid: sessionId,
-        backendMessage,
-        displayMessage: value,
-        metadata: {
-          ...metadata,
-          preference_refresh: true,
-        },
-        supportCheckText: value,
-      });
-
-      if (!result.aborted) {
-        setConversationStep("free");
-        stepRef.current = "free";
-        flashChip(key);
-      }
-    } catch {
-      // Local state already updated; next chat turn can re-sync from server
-      if (shouldRecommend) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: newMessageId(),
-            text: "Sorry, something went wrong refreshing recommendations.",
-            sender: "bot",
-            time: getTime(),
-          },
-        ]);
-      }
-    } finally {
-      sendingRef.current = false;
-    }
-  };
-
-  const scheduleMsg = (delay, msg, sid) => {
-    const id = setTimeout(() => {
-      const withTime = { ...msg, id: newMessageId(), time: getTime() };
-      setMessages((prev) => [...prev, withTime]);
-      if (sid) {
-        persistBotMessage(sid, msg.text, msg.metadata || { type: "onboarding" });
-      }
-    }, delay);
-    timeoutsRef.current.push(id);
-  };
-
-  const showWelcomeFlow = (sid) => {
-    const welcomeText =
-      "Welcome! I'll help you find the right Management Concepts courses.";
-    setMessages([{
-      id: newMessageId(),
-      sender: "bot",
-      time: getTime(),
-      text: welcomeText,
-    }]);
-    persistBotMessage(sid, welcomeText, { step: "welcome", type: "onboarding" });
-
-    scheduleMsg(800, {
-      sender: "bot",
-      text: "What's your experience level?",
-      options: EXPERIENCE_OPTIONS,
-      metadata: { step: "experience", type: "onboarding", options: EXPERIENCE_OPTIONS },
-    }, sid);
+  const showWelcome = (sid) => {
+    setMessages([
+      {
+        id: newMessageId(),
+        sender: "bot",
+        time: getTime(),
+        text: WELCOME_TEXT,
+      },
+    ]);
+    persistBotMessage(sid, WELCOME_TEXT, { type: "welcome" });
   };
 
   const startNewChat = async () => {
     abortActiveStream();
     sendingRef.current = false;
-    timeoutsRef.current.forEach(clearTimeout);
-    timeoutsRef.current = [];
     localStorage.removeItem(SESSION_STORAGE_KEY);
     setMessages([]);
-    setConversationStep("experience");
-    stepRef.current = "experience";
-    // Full reset: clear local prefs and tell the API to wipe durable profile.
-    syncProfile({});
     setWelcomeBack(null);
-    setFlashKey(null);
     setLoading(false);
     setInput("");
+    setMode("ai");
+    setThumbs({});
+    setExpanded(false);
 
     try {
       getOrCreateGuestId();
@@ -1303,16 +1153,17 @@ export default function FloatingChatbot() {
       const newId = data.session_id;
       setSessionId(newId);
       localStorage.setItem(SESSION_STORAGE_KEY, newId);
-      // Do not re-apply data.profile — New chat intentionally starts with empty prefs.
-      showWelcomeFlow(newId);
+      showWelcome(newId);
     } catch {
       setSessionId(null);
-      setMessages([{
-        id: newMessageId(),
-        text: "Error connecting to server. Make sure the backend is running.",
-        sender: "bot",
-        time: getTime(),
-      }]);
+      setMessages([
+        {
+          id: newMessageId(),
+          text: "Error connecting to server. Make sure the backend is running.",
+          sender: "bot",
+          time: getTime(),
+        },
+      ]);
     }
   };
 
@@ -1331,24 +1182,7 @@ export default function FloatingChatbot() {
           if (historyData.messages?.length > 0) {
             setSessionId(storedId);
             setMessages(mapHistoryToMessages(historyData.messages));
-            const step = inferConversationStep(historyData.messages);
-            setConversationStep(step);
-            stepRef.current = step;
-            const fromHistory = extractProfileFromHistory(historyData.messages);
-            const expanded = historyData.session?.prefs_expanded || {};
-            const restored = {
-              experience: fromHistory.experience || expanded.experience,
-              department: fromHistory.department || expanded.department,
-              goal: fromHistory.goal || expanded.goal,
-            };
-            syncProfile(restored);
-            if (profileHasAny(restored) || historyData.messages.length > 0) {
-              showWelcomeBack(
-                profileIsComplete(restored)
-                  ? "Welcome back — conversation restored."
-                  : "Welcome back."
-              );
-            }
+            showWelcomeBack("Welcome back — conversation restored.");
             return;
           }
         }
@@ -1363,22 +1197,16 @@ export default function FloatingChatbot() {
       const newId = data.session_id;
       setSessionId(newId);
       localStorage.setItem(SESSION_STORAGE_KEY, newId);
-      if (data.profile && profileHasAny(data.profile)) {
-        syncProfile({
-          experience: data.profile.experience,
-          department: data.profile.department,
-          goal: data.profile.goal,
-        });
-        showWelcomeBack("Preferences restored — edit anytime via the chips above.");
-      }
-      showWelcomeFlow(newId);
+      showWelcome(newId);
     } catch {
-      setMessages([{
-        id: newMessageId(),
-        text: "Error connecting to server. Make sure the backend is running.",
-        sender: "bot",
-        time: getTime(),
-      }]);
+      setMessages([
+        {
+          id: newMessageId(),
+          text: "Error connecting to server. Make sure the backend is running.",
+          sender: "bot",
+          time: getTime(),
+        },
+      ]);
     } finally {
       setSessionInitializing(false);
     }
@@ -1389,11 +1217,6 @@ export default function FloatingChatbot() {
     if (!messageToSend.trim() || !sessionId || loading || sendingRef.current) return;
 
     sendingRef.current = true;
-    const currentStep = stepRef.current;
-    const isOnboardingKv =
-      currentStep === "experience" ||
-      currentStep === "department" ||
-      currentStep === "goal";
 
     const userMessage = {
       id: newMessageId(),
@@ -1403,78 +1226,15 @@ export default function FloatingChatbot() {
     };
 
     setMessages((prev) => {
-      const updatedPrev = prev.map(msg =>
+      const updatedPrev = prev.map((msg) =>
         msg.options && !msg.optionsDisabled ? { ...msg, optionsDisabled: true } : msg
       );
       return [...updatedPrev, userMessage];
     });
     setInput("");
 
-    // Onboarding chips: store as KV pairs only — no LLM call, no typing indicator
-    if (isOnboardingKv) {
-      try {
-        const nextProfile = { ...profileRef.current, [currentStep]: messageToSend };
-        await persistUserSelection(sessionId, currentStep, messageToSend, {
-          profileSnapshot: nextProfile,
-        });
-        syncProfile(nextProfile);
-        flashChip(currentStep);
-
-        if (currentStep === "experience") {
-          scheduleMsg(600, {
-            sender: "bot",
-            text: "Got it. Which department are you in?",
-            options: DEPARTMENT_OPTIONS,
-            metadata: { step: "department", type: "onboarding", options: DEPARTMENT_OPTIONS },
-          }, sessionId);
-          setConversationStep("department");
-          stepRef.current = "department";
-        } else if (currentStep === "department") {
-          scheduleMsg(600, {
-            sender: "bot",
-            text: "Noted. Certification, promotion, or upskilling?",
-            options: GOAL_OPTIONS,
-            metadata: { step: "goal", type: "onboarding", options: GOAL_OPTIONS },
-          }, sessionId);
-          setConversationStep("goal");
-          stepRef.current = "goal";
-        } else {
-          scheduleMsg(600, {
-            sender: "bot",
-            text:
-              "OK, we got all your preferences set. Please let me know what you'd like to search for, or if you need any guidance based on your preferences.",
-            metadata: { step: "free", type: "onboarding" },
-          }, sessionId);
-          setConversationStep("free");
-          stepRef.current = "free";
-        }
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: newMessageId(),
-            text: "Sorry, something went wrong saving your selection.",
-            sender: "bot",
-            time: getTime(),
-          },
-        ]);
-      } finally {
-        sendingRef.current = false;
-      }
-      return;
-    }
-
-    const currentProfile = profileRef.current;
-    const stepMetadata = { step: "free" };
-    if (currentProfile.experience) stepMetadata.experience = currentProfile.experience;
-    if (currentProfile.department) stepMetadata.department = currentProfile.department;
-    if (currentProfile.goal) stepMetadata.goal = currentProfile.goal;
-    if (currentProfile.experience && currentProfile.department && currentProfile.goal) {
-      stepMetadata.profile = {
-        experience: currentProfile.experience,
-        department: currentProfile.department,
-        goal: currentProfile.goal,
-      };
+    if (isSpeakWithAgentSelection(messageToSend)) {
+      setMode("human");
     }
 
     try {
@@ -1482,12 +1242,19 @@ export default function FloatingChatbot() {
         sid: sessionId,
         backendMessage: messageToSend,
         displayMessage: messageToSend,
-        metadata: stepMetadata,
+        metadata: { step: "free" },
         supportCheckText: messageToSend,
       });
     } finally {
       sendingRef.current = false;
     }
+  };
+
+  const connectToHuman = () => {
+    if (loading || sendingRef.current || !sessionId) return;
+    if (mode === "human") return;
+    setMode("human");
+    sendMessage(SPEAK_WITH_AGENT_OPTION);
   };
 
   useEffect(() => {
@@ -1505,64 +1272,95 @@ export default function FloatingChatbot() {
     });
   };
 
+  const lastUserIndex = messages.reduce(
+    (acc, msg, idx) => (msg.sender === "user" ? idx : acc),
+    -1
+  );
+  const inputDisabled = sessionInitializing || !sessionId || loading;
+  const canSend = !inputDisabled && Boolean(input.trim());
+
   return (
     <div className="chatbot-root">
       <style>{styles}</style>
 
       {(!isMobile || !open) && (
-        <button className="chat-fab" onClick={handleOpen} title="Support Chat">
-          <MCIcon />
+        <button className="chat-fab" onClick={handleOpen} title="Course advisor">
+          <McFlag size={40} radius={10} />
         </button>
       )}
 
-      <div className={`chat-window ${open ? "open" : "closed"}`}>
+      <div className={`chat-window ${open ? "open" : "closed"}${expanded ? " expanded" : ""}`}>
         <div className="chat-header">
           <div className="header-left">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>Support Assistant</span>
+            <McFlag size={36} radius={9} />
           </div>
           <div className="header-right">
-            <button className="header-icon-btn" onClick={startNewChat} title="New chat" aria-label="New chat">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+            <div className="mode-toggle" role="group" aria-label="Assistant mode">
+              <button
+                type="button"
+                className={`mode-btn${mode === "ai" ? " active" : ""}`}
+                onClick={() => setMode("ai")}
               >
-                {/* Message bubble + plus — standard “new chat” affordance */}
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <line x1="12" y1="8" x2="12" y2="14" />
-                <line x1="9" y1="11" x2="15" y2="11" />
+                <BotIcon size={14} />
+                AI
+              </button>
+              <button
+                type="button"
+                className={`mode-btn${mode === "human" ? " active" : ""}`}
+                disabled={inputDisabled}
+                onClick={connectToHuman}
+              >
+                <PersonIcon />
+                Human
+              </button>
+            </div>
+            <button
+              className="header-icon-btn"
+              onClick={startNewChat}
+              title="New chat"
+              aria-label="New chat"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
               </svg>
             </button>
-            <button className="header-icon-btn" onClick={() => setOpen(false)} title="Close">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+            <button
+              className="header-icon-btn"
+              onClick={() => setExpanded((v) => !v)}
+              title={expanded ? "Exit full view" : "Expand"}
+              aria-label={expanded ? "Exit full view" : "Expand"}
+            >
+              {expanded ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              )}
+            </button>
+            <button className="header-icon-btn" onClick={() => setOpen(false)} title="Close" aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
         </div>
 
-        <PreferenceBar
-          profile={profile}
-          flashKey={flashKey}
-          onSelectPreference={updatePreferenceFromChip}
-          disabled={sessionInitializing || !sessionId || loading}
-        />
-
         <div className="chat-messages">
           {sessionInitializing && messages.length === 0 && (
             <div className="typing-indicator">
-              <div className="bot-icon">
-                <MCIcon />
+              <div className="ai-avatar">
+                <McFlag size={22} radius={11} />
               </div>
               <div className="typing-bubble">
                 <div className="dot" /><div className="dot" /><div className="dot" />
@@ -1571,75 +1369,106 @@ export default function FloatingChatbot() {
           )}
 
           {welcomeBack && !sessionInitializing && (
-            <div className="pref-restore" role="status">
-              {welcomeBack}
-            </div>
+            <p className="welcome-back" role="status">{welcomeBack}</p>
           )}
 
           {messages.map((msg, i) => {
-            const isConsecutive = i > 0 && messages[i - 1].sender === msg.sender;
-            return (
-            <div key={msg.id} className={`msg-wrapper ${msg.sender}`}>
-              {msg.sender === "bot" && !isConsecutive && (
-                <div className="msg-meta bot">
-                  <span className="sender-name">MCAgent</span>
-                  <span className="msg-time">{msg.time}</span>
+            if (msg.sender === "user") {
+              return (
+                <div key={msg.id} className="msg-wrapper user">
+                  <div className="user-row">
+                    <div className="bubble user">
+                      <p className="stream-plain">{msg.text}</p>
+                    </div>
+                    {i === lastUserIndex && (
+                      <div className="user-seen">
+                        Seen
+                        <span className="user-avatar" aria-hidden="true">
+                          <PersonIcon />
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {msg.sender === "user" && !isConsecutive && (
-                <div className="msg-meta user">
-                  <span className="msg-time">{msg.time}</span>
-                </div>
-              )}
+              );
+            }
 
-              <div className={`msg-row ${msg.sender}`}>
-                {msg.sender === "bot" && (
-                  <div className="bot-icon" style={{ visibility: isConsecutive ? 'hidden' : 'visible' }}>
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="10" rx="2" />
-                      <circle cx="12" cy="5" r="2" />
-                      <path d="M12 7v4" />
-                      <line x1="8" y1="16" x2="8.01" y2="16" />
-                      <line x1="16" y1="16" x2="16.01" y2="16" />
+            const segments = msg.streaming ? [] : parseBotSegments(msg.text);
+            const hasCards = segments.some((s) => s.type === "course");
+
+            return (
+              <div key={msg.id} className="msg-wrapper bot">
+                <div className="bot-attr">
+                  <span className="ai-avatar" aria-hidden="true">
+                    <McFlag size={22} radius={11} />
+                  </span>
+                  <span className="bot-attr-label">AI</span>
+                  <span className="bot-attr-spacer" />
+                  <button
+                    type="button"
+                    className={`thumb-btn${thumbs[msg.id] === "up" ? " active" : ""}`}
+                    aria-label="Helpful"
+                    onClick={() =>
+                      setThumbs((prev) => ({
+                        ...prev,
+                        [msg.id]: prev[msg.id] === "up" ? null : "up",
+                      }))
+                    }
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={thumbs[msg.id] === "up" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z" />
+                      <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
                     </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`thumb-btn${thumbs[msg.id] === "down" ? " active" : ""}`}
+                    aria-label="Not helpful"
+                    onClick={() =>
+                      setThumbs((prev) => ({
+                        ...prev,
+                        [msg.id]: prev[msg.id] === "down" ? null : "down",
+                      }))
+                    }
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={thumbs[msg.id] === "down" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                      <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z" />
+                      <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+                    </svg>
+                  </button>
+                </div>
+                {hasCards ? (
+                  <BotMessageBody msg={msg} />
+                ) : (
+                  <div className="bot-stack">
+                    <BotMessageBody msg={msg} />
                   </div>
                 )}
-                
-                <div className={`bubble ${msg.sender}`}>
-                  <MessageContent msg={msg} />
-                </div>
+                {msg.options && (
+                  <div className="options-container">
+                    {msg.options.map((opt) => {
+                      const isDisabled = loading || msg.optionsDisabled;
+                      return (
+                        <button
+                          key={opt}
+                          className="option-btn"
+                          disabled={isDisabled}
+                          onClick={() => sendMessage(opt)}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-
-              {msg.options && (
-                <div className="options-container">
-                  {msg.options.map((opt, idx) => {
-                    const isDisabled = loading || msg.optionsDisabled;
-                    return (
-                      <button
-                        key={idx}
-                        className="option-btn"
-                        disabled={isDisabled}
-                        onClick={() => sendMessage(opt)}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );})}
+            );
+          })}
 
           {loading && (
             <div className="typing-indicator">
-              <div className="bot-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="10" rx="2" />
-                  <circle cx="12" cy="5" r="2" />
-                  <path d="M12 7v4" />
-                  <line x1="8" y1="16" x2="8.01" y2="16" />
-                  <line x1="16" y1="16" x2="16.01" y2="16" />
-                </svg>
+              <div className="ai-avatar">
+                <McFlag size={22} radius={11} />
               </div>
               <div className="typing-bubble">
                 <div className="dot" /><div className="dot" /><div className="dot" />
@@ -1649,41 +1478,47 @@ export default function FloatingChatbot() {
           <div ref={chatEndRef} />
         </div>
 
-        <div className="chat-input-area">
+        <div className="chat-footer">
+          <button
+            type="button"
+            className="handoff-banner"
+            onClick={connectToHuman}
+            disabled={inputDisabled}
+          >
+            <span className="handoff-icon" aria-hidden="true">
+              <PersonIcon />
+            </span>
+            <span className="handoff-copy">Want to talk to a real person?</span>
+            <span className="handoff-cta">
+              Connect now
+              <span aria-hidden="true">›</span>
+            </span>
+          </button>
           <div className="input-wrapper">
             <input
               ref={inputRef}
               className="chat-input"
               type="text"
-              placeholder={
-                conversationStep === "free" || profileIsComplete(profile)
-                  ? "Ask about courses…"
-                  : "Write a message"
-              }
+              placeholder="Ask a question..."
               value={input}
-              disabled={
-                sessionInitializing ||
-                !sessionId ||
-                loading ||
-                (messages.length > 0 && optionsLockFreeText(messages[messages.length - 1]))
-              }
+              disabled={inputDisabled}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
+            <span className="attach-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M21.44 11.05l-8.49 8.49a6 6 0 0 1-8.49-8.49l8.49-8.49a4 4 0 0 1 5.66 5.66l-8.49 8.49a2 2 0 1 1-2.83-2.83l8.49-8.5" />
+              </svg>
+            </span>
             <button
-              className={`send-btn ${input.trim() ? 'active' : ''}`}
+              className={`send-btn${canSend ? " active" : ""}`}
               onClick={sendMessage}
-              disabled={
-                sessionInitializing ||
-                !sessionId ||
-                loading ||
-                (messages.length > 0 && optionsLockFreeText(messages[messages.length - 1]))
-              }
+              disabled={!canSend}
               title="Send"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="19" x2="12" y2="5"/>
-                <polyline points="5 12 12 5 19 12"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
               </svg>
             </button>
           </div>

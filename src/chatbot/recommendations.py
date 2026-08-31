@@ -219,23 +219,110 @@ def template_profile_recs_enabled() -> bool:
     return _TEMPLATE_ENABLED
 
 
-# Free-chat phrasing that means "rank courses for my saved prefs" — not a fact lookup.
+# Free-chat phrasing that means "rank courses for this ask" — not a fact lookup.
 _REC_REQUEST_RE = re.compile(
     r"\b("
     r"recommend(ations?)?|"
     r"suggest(ions?)?|"
     r"looking for|"
     r"what (courses|classes|training)|"
+    r"what .{0,40}(courses|classes|training)|"
     r"which courses|"
     r"(give me |show me |need )?(a )?list (of )?(courses|classes|training)|"
-    r"(give|show|send) me (some |a few )?(courses|classes|recommendations)|"
-    r"courses (for me|best suited|suited for|based on)|"
+    r"(give|show|send|find) me (some |a few |a )?(courses|classes|recommendations|course|class|training)|"
+    r"courses (for me|best suited|suited for|based on|do you offer|you offer)|"
     r"best (suited|courses|classes)|"
     r"suited for my (experience|profile|prefs|preferences|department|goal)|"
     r"based on my (profile|experience|prefs|preferences)|"
-    r"please recommend"
+    r"please recommend|"
+    r"i (want|need) (a |the )?(course|class|training|certification|cert|pmp|capm)"
     r")\b",
     re.IGNORECASE,
+)
+
+# Short topic asks (e.g. "PMP", "budgeting") that should still get catalog cards.
+_TOPIC_QUERY_RE = re.compile(
+    r"\b("
+    r"pmp|capm|pmi|"
+    r"budget(ing)?|appropriations?|"
+    r"project management|program management|"
+    r"leadership|supervisory|"
+    r"acquisition|contracting|procurement|"
+    r"agile|scrum|cybersecurity|"
+    r"federal financial|grants?|"
+    r"fac[- ]?p/?pm|fac[- ]?cor|"
+    r"exam prep|certification prep"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_CHITCHAT_RE = re.compile(
+    r"^(hi|hello|hey|thanks|thank you|ok|okay|yo|"
+    r"good (morning|afternoon|evening)|how are you)[\s!.?]*$",
+    re.IGNORECASE,
+)
+
+_QUERY_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "of",
+        "for",
+        "to",
+        "in",
+        "on",
+        "with",
+        "course",
+        "courses",
+        "class",
+        "classes",
+        "training",
+        "workshop",
+        "please",
+        "recommend",
+        "recommendation",
+        "recommendations",
+        "suggest",
+        "suggestion",
+        "suggestions",
+        "show",
+        "give",
+        "need",
+        "want",
+        "looking",
+        "find",
+        "list",
+        "some",
+        "few",
+        "best",
+        "suited",
+        "based",
+        "my",
+        "me",
+        "i",
+        "you",
+        "do",
+        "offer",
+        "available",
+        "what",
+        "which",
+        "that",
+        "this",
+        "about",
+        "from",
+        "your",
+        "experience",
+        "department",
+        "career",
+        "goal",
+        "level",
+        "profile",
+        "prefs",
+        "preferences",
+    }
 )
 
 
@@ -245,6 +332,16 @@ def looks_like_recommendation_request(message: str | None) -> bool:
     if not text:
         return False
     return _REC_REQUEST_RE.search(text) is not None
+
+
+def looks_like_topic_query(message: str | None) -> bool:
+    """True for short topic asks that should get catalog cards without a profile interview."""
+    text = (message or "").strip()
+    if not text or len(text) > 140:
+        return False
+    if _CHITCHAT_RE.match(text):
+        return False
+    return _TOPIC_QUERY_RE.search(text) is not None
 
 
 def _metadata_profile_complete(meta: dict[str, Any]) -> bool:
@@ -257,19 +354,22 @@ def should_use_template_recommendations(
     *,
     latest_message: str | None = None,
 ) -> bool:
-    """True for profile-based recommendation turns (onboarding refresh or free-chat rec ask)."""
+    """True when this turn should return catalog course cards (no LLM).
+
+    Fires on an explicit rec/list ask or a short topic query. A complete
+    learner profile is optional — it only improves ranking when present.
+    """
     if not template_profile_recs_enabled():
         return False
     meta = request_metadata or {}
+    if looks_like_recommendation_request(latest_message):
+        return True
+    if looks_like_topic_query(latest_message):
+        return True
+    # Legacy profile-complete payloads still skip the LLM.
     if meta.get("profile_complete") is True:
         return True
-    # Goal step with a full profile payload (frontend always sends profile_complete,
-    # but accept step+profile as a safe fallback).
     if meta.get("step") == "goal" and _metadata_profile_complete(meta):
-        return True
-    # After onboarding, prefs live in metadata/DB but not in the user message.
-    # A rec-list ask should reuse those prefs instead of the LLM asking again.
-    if looks_like_recommendation_request(latest_message) and _metadata_profile_complete(meta):
         return True
     return False
 
@@ -502,6 +602,34 @@ def catalog_profile_fit(entry: dict[str, Any], profile: UserProfile) -> float:
     return score
 
 
+def query_title_score(entry: dict[str, Any], query: str | None) -> float:
+    """How well the course title matches the learner's free-text ask."""
+    q = _NON_ALNUM_RE.sub(" ", _norm(query))
+    title = _NON_ALNUM_RE.sub(
+        " ",
+        _norm(str(entry.get("title") or entry.get("course_title") or "")),
+    )
+    if not q.strip() or not title.strip():
+        return 0.0
+    if q.strip() in title:
+        return 2.4
+    tokens = [
+        t for t in q.split() if t and t not in _QUERY_STOPWORDS and len(t) >= 2
+    ]
+    if not tokens:
+        return 0.0
+    hits = 0
+    for token in tokens:
+        if len(token) <= 3:
+            if re.search(rf"(?<![a-z0-9]){re.escape(token)}(?![a-z0-9])", title):
+                hits += 1
+        elif token in title:
+            hits += 1
+    if hits <= 0:
+        return 0.0
+    return 0.55 * hits + 1.2 * (hits / len(tokens))
+
+
 def _title_stem(title: str) -> str:
     """First content word(s) for light diversity (e.g. 'budget' vs 'acquisition')."""
     cleaned = _NON_ALNUM_RE.sub(" ", _norm(title))
@@ -547,8 +675,12 @@ def rank_courses_for_profile(
     retrieved_nodes: list[NodeWithScore] | None = None,
     *,
     max_courses: int | None = None,
+    query: str | None = None,
 ) -> list[dict[str, Any]]:
     """Rank official catalog courses; blend in hybrid-retrieval scores when present.
+
+    ``query`` (the learner's current ask) boosts title matches so recs work
+    without an onboarding profile.
 
     Returns official metadata dicts (course_id, title, duration, …), best first.
     """
@@ -564,11 +696,17 @@ def rank_courses_for_profile(
     for course_id, entry in catalog.items():
         topic = department_topic_score(entry, profile)
         in_retrieval = course_id in retrieval
+        qscore = query_title_score(entry, query)
 
-        # Candidate gate: on-topic for department, or surfaced by retrieval.
-        if dept_key and topic <= 0 and not in_retrieval:
+        # Candidate gate: on-topic for department, query title hit, or retrieval.
+        if dept_key and topic <= 0 and not in_retrieval and qscore <= 0:
             continue
-        if not dept_key and not in_retrieval and catalog_profile_fit(entry, profile) < 0.4:
+        if (
+            not dept_key
+            and not in_retrieval
+            and qscore <= 0
+            and catalog_profile_fit(entry, profile) < 0.4
+        ):
             continue
 
         fit = catalog_profile_fit(entry, profile)
@@ -576,9 +714,9 @@ def rank_courses_for_profile(
         if max_ret > 0 and course_id in retrieval:
             ret_norm = max(0.0, retrieval[course_id] / max_ret)
 
-        total = fit + _RETRIEVAL_BLEND * ret_norm
+        total = fit + _RETRIEVAL_BLEND * ret_norm + qscore
         # Retrieved but off-topic for a known department: keep only if still competitive.
-        if dept_key and topic <= 0 and in_retrieval:
+        if dept_key and topic <= 0 and in_retrieval and qscore <= 0:
             total = 0.2 * fit + 0.35 * ret_norm
             if total < 0.35:
                 continue
@@ -646,9 +784,12 @@ def nodes_to_course_cards(
     profile: UserProfile,
     *,
     max_courses: int | None = None,
+    query: str | None = None,
 ) -> list[str]:
     """Dedupe by course_id, catalog-rank, apply official fields, format cards."""
-    ranked = rank_courses_for_profile(profile, nodes, max_courses=max_courses)
+    ranked = rank_courses_for_profile(
+        profile, nodes, max_courses=max_courses, query=query
+    )
     cards: list[str] = []
     for metadata in ranked:
         card = format_course_card(metadata, description="")
@@ -671,7 +812,7 @@ def build_intro(profile: UserProfile) -> str:
             + " · ".join(focus)
             + "), here are courses from the Management Concepts catalog:"
         )
-    return "Here are courses from the Management Concepts catalog that match your profile:"
+    return "Here are Management Concepts courses that match what you asked:"
 
 
 def build_empty_reply(profile: UserProfile) -> str:
@@ -720,9 +861,10 @@ def build_template_recommendation_reply(
         latest_message=latest_message,
         request_metadata=request_metadata,
     )
+    search_query = (latest_message or "").strip() or build_profile_search_query(profile)
     nodes: list[NodeWithScore] = []
     try:
-        nodes = retrieve_recommendation_nodes(profile)
+        nodes = retrieve_recommendation_nodes(profile, query=search_query)
     except Exception as exc:
         # Catalog ranking can still produce solid recs without retrieval.
         logger.warning(
@@ -731,7 +873,7 @@ def build_template_recommendation_reply(
             exc_info=True,
         )
 
-    cards = nodes_to_course_cards(nodes, profile)
+    cards = nodes_to_course_cards(nodes, profile, query=search_query)
     if len(cards) < _MIN_COURSES:
         return build_empty_reply(profile)
 

@@ -21,7 +21,9 @@ from src.chatbot.recommendations import (
     goal_fit_score,
     level_fit_score,
     looks_like_recommendation_request,
+    looks_like_topic_query,
     nodes_to_course_cards,
+    query_title_score,
     rank_courses_for_profile,
     should_use_template_recommendations,
 )
@@ -126,9 +128,39 @@ def test_looks_like_recommendation_request():
     )
     assert looks_like_recommendation_request("Please recommend courses based on my profile.")
     assert looks_like_recommendation_request("show me courses for me")
+    assert looks_like_recommendation_request("What budgeting courses do you offer?")
+    assert looks_like_recommendation_request("I want a PMP certification")
     assert not looks_like_recommendation_request("What is the cost of course 4606?")
     assert not looks_like_recommendation_request("hello")
     assert not looks_like_recommendation_request("")
+
+
+def test_looks_like_topic_query():
+    assert looks_like_topic_query("PMP")
+    assert looks_like_topic_query("budgeting")
+    assert looks_like_topic_query("project management")
+    assert not looks_like_topic_query("hello")
+    assert not looks_like_topic_query("thanks")
+    assert not looks_like_topic_query("")
+
+
+def test_should_use_template_for_free_chat_rec_without_profile():
+    assert (
+        should_use_template_recommendations(
+            {"step": "free"},
+            latest_message="yes, give me a list of courses best suited for my experience",
+        )
+        is True
+    )
+    assert should_use_template_recommendations({}, latest_message="PMP") is True
+    assert should_use_template_recommendations(None, latest_message="hello") is False
+    assert (
+        should_use_template_recommendations(
+            _COMPLETE_FREE_PROFILE,
+            latest_message="What is the cost of course 4606?",
+        )
+        is False
+    )
 
 
 def test_should_use_template_for_free_chat_rec_with_complete_profile():
@@ -143,13 +175,6 @@ def test_should_use_template_for_free_chat_rec_with_complete_profile():
         should_use_template_recommendations(
             _COMPLETE_FREE_PROFILE,
             latest_message="What is the cost of course 4606?",
-        )
-        is False
-    )
-    assert (
-        should_use_template_recommendations(
-            {"step": "free"},
-            latest_message="yes, give me a list of courses best suited for my experience",
         )
         is False
     )
@@ -278,6 +303,50 @@ def test_rank_courses_for_profile_prefers_department_and_level():
     assert ids[0] == "4606"
     assert "9500" not in ids  # coaching package
     assert "1001" not in ids or ids.index("4606") < ids.index("1001")
+
+
+def test_query_title_score_prefers_phrase_match():
+    pmp = {"title": "PMP® Exam Prep (PMI® Authorized)"}
+    budget = {"title": "Federal Budgeting for Non-Budget Personnel"}
+    it = {"title": "Information Technology (IT) Acquisition"}
+    assert query_title_score(pmp, "PMP") > query_title_score(budget, "PMP")
+    assert query_title_score(budget, "budgeting courses") > query_title_score(it, "budgeting courses")
+    assert query_title_score(it, "hello") == 0
+
+
+def test_rank_courses_by_query_without_profile():
+    catalog = _catalog_fixture()
+    catalog["6137"] = {
+        "course_id": "6137",
+        "title": "PMP® Exam Prep (PMI® Authorized)",
+        "course_title": "PMP® Exam Prep (PMI® Authorized)",
+        "duration": "5 Days",
+        "level": "Intermediate",
+        "credits": "CLP: 40 | CPE: 40",
+        "price": "$3,059",
+        "url": "https://www.managementconcepts.com/product/6137",
+    }
+    profile = UserProfile()
+    with patch(
+        "src.chatbot.recommendations.load_course_catalog",
+        return_value=catalog,
+    ), patch(
+        "src.chatbot.recommendations.get_course",
+        side_effect=lambda cid: catalog.get(str(cid)),
+    ), patch(
+        "src.chatbot.recommendations.apply_official_catalog",
+        side_effect=lambda m: dict(m),
+    ), patch(
+        "src.ingestion.pricing.apply_catalog_prices",
+        side_effect=lambda m: m,
+    ):
+        ranked = rank_courses_for_profile(
+            profile, [], max_courses=3, query="PMP"
+        )
+
+    ids = [r["course_id"] for r in ranked]
+    assert ids[0] == "6137"
+    assert "9500" not in ids
 
 
 def test_rank_defers_hard_level_mismatch_for_senior():
@@ -627,7 +696,7 @@ def test_chat_stream_free_chat_still_uses_llm():
 
     def fake_stream(engine, message):
         class FakeResponse:
-            response_gen = iter(["Here are some courses."])
+            response_gen = iter(["Online and in-person sessions both count toward credits."])
 
         return FakeResponse()
 
@@ -643,14 +712,53 @@ def test_chat_stream_free_chat_still_uses_llm():
             "/chat/stream",
             json={
                 "session_id": session_id,
-                "message": "What budgeting courses do you offer?",
+                "message": "How does online delivery differ from classroom sessions?",
                 "metadata": {"step": "free"},
             },
         )
 
     assert response.status_code == 200
-    assert response.text == "Here are some courses."
+    assert "Online and in-person" in response.text
     engine_mock.assert_called_once()
+
+
+def test_chat_stream_topic_query_without_profile_uses_template():
+    session_id = str(uuid.uuid4())
+    template_reply = (
+        "Here are Management Concepts courses that match what you asked:\n\n"
+        "**PMP® Exam Prep (PMI® Authorized)**\n"
+        "\n"
+        "**Duration:** 5 Days\n"
+        "\n"
+        "[Register Now](https://www.managementconcepts.com/product/6137)"
+    )
+
+    with patch.object(session_manager, "save_messages") as save_mock, \
+         patch(
+             "src.chatbot.recommendations.build_template_recommendation_reply",
+             return_value=template_reply,
+         ) as rec_mock, \
+         patch(
+             "src.chatbot.query_context.enrich_metadata_with_durable_profile",
+             side_effect=lambda m, **kw: dict(m or {}),
+         ), \
+         patch("src.api.router.chat.get_or_create_chat_engine") as engine_mock, \
+         patch("src.chatbot.chatbot.get_streaming_response") as stream_mock:
+        response = client.post(
+            "/chat/stream",
+            json={
+                "session_id": session_id,
+                "message": "PMP",
+                "guest_id": "guest_pmp_topic",
+            },
+        )
+
+    assert response.status_code == 200
+    assert "PMP® Exam Prep" in response.text
+    rec_mock.assert_called_once()
+    engine_mock.assert_not_called()
+    stream_mock.assert_not_called()
+    assert save_mock.call_count == 1
 
 
 def test_chat_stream_template_failure_falls_back_to_llm():
